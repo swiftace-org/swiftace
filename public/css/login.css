@@ -1,0 +1,45 @@
+.login-form {
+  padding: 3rem 1rem;
+  margin: 0 auto;
+  width: fit-content;
+}
+
+.login-form > fieldset {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-width: 100%;
+}
+
+.login-form > fieldset > label:not(:first-child) {
+  margin-top: 1.25rem;
+}
+
+.login-form > header > h2 {
+  font-size: 1.5rem;
+  line-height: 1;
+  font-weight: 600;
+  text-align: center;
+}
+
+.login-form > header > p {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1;
+  text-align: center;
+  max-width: 300px;
+}
+
+.login-form > footer > input[type="submit"] {
+  width: 100%;
+  margin-top: 1.375rem;
+}
+
+.login-form > footer > p {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-secondary);
+}
