@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "dev": "npx --yes wrangler@latest pages dev public --binding LOCAL=1 --port 2000 --compatibility-date 2023-12-01 --compatibility-flags=\"nodejs_compat\"",
+    "kill": "pid=$(lsof -t -i:2000 -c workerd); [ -n \"$pid\" ] && kill $pid && echo \"PID $pid killed\" || echo \"Nothing to kill\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.515.0",
+    "marked": "^12.0.0",
+    "postgres": "^3.4.3",
+    "sanitize-html": "^2.12.1"
+  },
+  "prettier": {
+    "printWidth": 160
+  },
+  "devDependencies": {
+    "stylelint": "^16.2.1",
+    "stylelint-config-standard": "^36.0.0"
+  }
+}

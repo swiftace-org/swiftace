@@ -1,0 +1,12 @@
+{
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "files.associations": {
+    "*.md.txt": "markdown"
+  },
+  "stylelint.config": {
+    "extends": "stylelint-config-standard",
+    "rules": {}
+  }
+}
