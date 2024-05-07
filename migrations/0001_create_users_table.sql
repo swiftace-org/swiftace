@@ -1,0 +1,11 @@
+-- Migration number: 0001 	 2024-05-07T07:57:18.000Z
+
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    email TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT
+);
