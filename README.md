@@ -2,6 +2,8 @@
 
 SwiftAce is an open-source course hosting platform that can be self-hosted on Cloudflare. It provides basic LMS functionality and can be customized or whitelabeled to match a company’s brand, design system, etc. It can be thought of as a “Discourse/WordPress for Online Courses” or an “Open-Source Teachable Alternative.”
 
+> _NOTE_: This is project is currently under development and is not suitable for production use.
+
 ## Features
 
 TODO - Coming Soon
@@ -12,7 +14,7 @@ TODO - Coming Soon
 
 ## Environment Variables
 
-The following environment variables and service bindings are used in the application:
+The following [environment variables and service bindings](https://developers.cloudflare.com/pages/functions/bindings/) are used in the application and must be configured during deployment:
 
 - `SITE_TITLE` _(required)_ - The title of the site, shown in the browser's tab bar, in meta tags, etc. Keep it short e.g. "Learning Academy"
 
