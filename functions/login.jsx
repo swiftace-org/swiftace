@@ -2,10 +2,15 @@ import { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { makeHtmlResp, makeSes, safeguard, validateEmail, validateTurnstile } from "lib/utils";
-import { generateAuthToken, generateVerificationCode } from "lib/utils/auth";
+import { generateAuthToken, generateVerificationCode, getCurrentUserId } from "lib/utils/auth";
 import jsx from "lib/utils/jsx";
 
-export const onRequestGet = safeguard(async function ({ env }) {
+export const onRequestGet = safeguard(async function ({ request, env }) {
+  const currentUserId = await getCurrentUserId({ request, env });
+  if (currentUserId) {
+    return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
+  }
+
   return makeHtmlResp(<LoginPage env={env} />);
 });
 
