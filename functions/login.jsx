@@ -30,7 +30,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   if (!isTurnstileValid) return makeHtmlResp(<LoginPage env={env} email={email} turnstileError="Verification failed. Please try again!" />);
 
   // Look up email in DB and retrieve user (if exists)
-  const user = await env.DB.prepare(`select * from users where email=? limit 1`).bind(email).first();
+  let user = await env.DB.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
 
   // Retrieved stored verfication code if present
   const cacheKey = `EMAIL_VERIFICATION_CODE/${email}`;
@@ -57,13 +57,17 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
     return makeHtmlResp(<LoginPage env={env} email={email} showCode codeError="Invalid code. Please enter the correct code." showName={!user} disableEmail />);
   }
 
-  // TODO - Register user if required
+  // Register user if required
   if (!user) {
     // Show error if name is not provided
     if (!name) return makeHtmlResp(<LoginPage env={env} email={email} disableEmail code={code} showCode nameError="Please enter your name." />);
 
+    // Add a row to the users table
+    user = await env.DB.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(name, null).first();
+    await env.DB.prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`).bind(user.id, email).first();
+
     // TODO - Add rows to the account and profile tables (requires DB write access)
-    return makeHtmlResp(<LoginPage env={env} email={email} emailError="Sign up not implemented. Try existing email!" />);
+    // return makeHtmlResp(<LoginPage env={env} email={email} emailError="Sign up not implemented. Try existing email!" />);
   }
 
   // Generate JWT token and set cookie

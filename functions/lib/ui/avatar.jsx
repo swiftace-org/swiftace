@@ -1,19 +1,18 @@
 import jsx from "lib/utils/jsx";
 
-export function Avatar({ avatar, username, name }) {
+export function Avatar({ avatar, name }) {
   return avatar ? (
-    <img className="ui-avatar" src={avatar} alt={username} height="32" width="32" />
+    <img className="ui-avatar" src={avatar} alt={name} title={name} height="32" width="32" />
   ) : (
-    <div className="ui-avatar">{makeInitials({ name, username })}</div>
+    <div className="ui-avatar" title={name}>
+      {makeInitials({ name })}
+    </div>
   );
 }
 
-const makeInitials = ({ name = "", username = "" }) => {
-  let arr = (name || username).match(/\b\w/g) || [];
+const makeInitials = ({ name = "" }) => {
+  let arr = name.match(/\b\w/g) || [];
 
-  if (arr.length === 0 && username.length > 0) {
-    arr = [username[0]];
-  }
   if (arr.length === 0) {
     return "";
   }

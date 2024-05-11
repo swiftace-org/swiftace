@@ -9,9 +9,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--primary-700);
+  background-color: var(--primary-400);
   line-height: 1;
   color: var(--text-button);
+  font-size: 0.875rem;
 }
 
 .ui-badge {

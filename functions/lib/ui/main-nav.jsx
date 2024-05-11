@@ -28,12 +28,9 @@ function ProfileDropdown({ currentUser }) {
   return (
     <div className="ui-dropdown">
       <button>
-        <Avatar avatar={currentUser.avatar} username={currentUser.username} name={currentUser.name} />
+        <Avatar avatar={currentUser.avatar} name={currentUser.first_name} />
       </button>
       <ul>
-        <li>
-          <a href="/aakashns">Profile</a>
-        </li>
         <li>
           <a href="/settings">Settings</a>
         </li>
