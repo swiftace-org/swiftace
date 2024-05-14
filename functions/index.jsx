@@ -10,7 +10,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   const currentUser = currentUserId && (await env.DB.prepare(`SELECT * FROM users WHERE id = ? LIMIT 1;`).bind(currentUserId).first());
 
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
-  const sortedCourses = sortCoursesForUser(courses, []);
+  const sortedCourses = sortCoursesForUser(courses);
   return makeHtmlResp(<HomePage env={env} currentUser={currentUser} courses={sortedCourses} />);
 });
 
@@ -36,7 +36,10 @@ function HomePage({ env, currentUser, courses }) {
 }
 
 async function selectCoursesWithStats({ env, userId }) {
-  const courses = await env.DB.prepare(`SELECT * FROM courses WHERE visibility = 'PUBLIC'`).all();
+  const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC'`).all();
+  const courses = output.results;
+
+  console.log({ courses });
 
   // TODO - all get enrollment information
   return courses;
@@ -45,7 +48,7 @@ async function selectCoursesWithStats({ env, userId }) {
 function sortCoursesForUser(courses, orderIDs) {
   // Sort courses based on the order of IDs
   courses.sort((a, b) => {
-    const indexA = orderIDs.indexOf(Number(a.id));
+    const indexA = a.sort_.indexOf(Number(a.id));
     const indexB = orderIDs.indexOf(Number(b.id));
 
     return indexA - indexB;
