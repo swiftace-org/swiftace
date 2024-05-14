@@ -4,7 +4,8 @@
     "kill": "pid=$(lsof -t -i:2000 -c workerd); [ -n \"$pid\" ] && kill $pid && echo \"PID $pid killed\" || echo \"Nothing to kill\"",
     "list-db-migrations": "npx wrangler d1 migrations list swiftace-db --local -c d1.toml",
     "apply-db-migrations": "npx wrangler d1 migrations apply swiftace-db --local -c d1.toml",
-    "query-db": "npx wrangler d1 execute swiftace-db --local -c d1.toml --command"
+    "query-db": "npx wrangler d1 execute swiftace-db --local -c d1.toml --command",
+    "reset-db": "npx trash-cli .wrangler/state/v3/d1"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.515.0",
