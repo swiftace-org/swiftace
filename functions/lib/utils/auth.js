@@ -1,3 +1,4 @@
+import { DEFAULT_SESSION_TOKEN_AGE } from "./constants";
 import { parse } from "./cookie";
 
 export function generateVerificationCode() {
@@ -40,9 +41,33 @@ export async function getCurrentUser({ request, env }) {
 }
 
 export function createSessionCookie({ env, sessionToken }) {
-  return `SESSION_TOKEN=${sessionToken}; Max-Age=${45 * 24 * 60 * 60}; Path="/"; HttpOnly; SameSite=Strict; ${env.LOCAL ? "" : "Secure"}`;
+  return `SESSION_TOKEN=${sessionToken}; Max-Age=${DEFAULT_SESSION_TOKEN_AGE}; Path="/"; HttpOnly; SameSite=Strict; ${env.LOCAL ? "" : "Secure"}`;
 }
 
 export function createLogoutCookie({ env }) {
   return `SESSION_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path="/"; HttpOnly; SameSite=Strict; ${env.LOCAL ? "" : "Secure"}`;
+}
+
+export async function createUserSession({ userId, env }) {
+  if (!userId) return;
+  const sessionToken = await crypto.randomUUID();
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  await env.DB.prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`).bind(sessionTokenHash, userId).run();
+  return { sessionToken };
+}
+
+export async function deleteUserSessions({ request, env }) {
+  const token = getSessionToken({ request });
+  if (!token) return null;
+  const tokenHash = await hashSessionToken(token);
+  const user = await env.DB.prepare(`SELECT user_id FROM user_sessions WHERE token_hash = ? LIMIT 1;`).bind(tokenHash).first();
+  if (!user?.id) return null;
+  await env.DB.prepare(`DELETE FROM user_sessions WHERE user_id = ?;`).bind(user?.id).execute();
+}
+
+export async function deleteExpiredUserSessions({ userId, env }) {
+  if (!userId) return;
+  return env.DB.prepare(`DELETE FROM user_sessions WHERE user_id = ? AND created_at < strftime('%s', 'now') - ?;`)
+    .bind(userId, DEFAULT_SESSION_TOKEN_AGE)
+    .execute();
 }

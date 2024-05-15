@@ -2,7 +2,7 @@ import { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { makeHtmlResp, makeSes, safeguard, validateEmail, validateTurnstile } from "lib/utils";
-import { createSessionCookie, generateVerificationCode, getCurrentUser, hashSessionToken } from "lib/utils/auth";
+import { createSessionCookie, createUserSession, deleteExpiredUserSessions, generateVerificationCode, getCurrentUser, hashSessionToken } from "lib/utils/auth";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
@@ -79,15 +79,14 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
     await env.DB.prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`).bind(user.id, email).first();
   }
 
-  // Delete stored verification code
+  // Create new session and retrive session token
+  const { sessionToken } = await createUserSession({ userId: user.id, env });
+
+  // Delete verification code & expired sessions
   waitUntil(env.CACHE_KV.delete(cacheKey));
+  waitUntil(deleteExpiredUserSessions({ userId: user.id, env }));
 
-  // Generate session token and set cookie
-  const sessionToken = await crypto.randomUUID();
-  const sessionTokenHash = await hashSessionToken(sessionToken);
-  await env.DB.prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`).bind(sessionTokenHash, user.id).run();
-
-  // Set cookie and redirect to dashboard
+  // Set session token in cookie and redirect to "/"
   return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/", "Set-Cookie": createSessionCookie({ env, sessionToken }) } });
 });
 
@@ -113,7 +112,7 @@ function sendLoginEmail({ env, email, code }) {
 function LoginPage({ env, ...props }) {
   return (
     <RootLayout title="Sign In" description={env.SITE_DESCRIPTION} faviconSrc={env.FAVICON_URL} styles={["ui", "login"]}>
-      <MainNav logoSrc={env.LOGO_URL} />
+      <MainNav logoSrc={env.LOGO_URL} hideSignIn />
       <LoginForm
         turnstileSiteKey={env.TURNSTILE_SITE_KEY}
         subtitle={env.SITE_TAGLINE}

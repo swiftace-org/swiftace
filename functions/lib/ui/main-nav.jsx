@@ -2,7 +2,7 @@ import jsx from "lib/utils/jsx";
 import { Avatar } from "./avatar";
 import { DEFAULT_LOGO_SRC } from "lib/utils/constants";
 
-export function MainNav({ currentUser = null, logoSrc = DEFAULT_LOGO_SRC, siteTitle = null }) {
+export function MainNav({ currentUser = null, logoSrc = DEFAULT_LOGO_SRC, siteTitle = null, hideSignIn = false }) {
   return (
     <>
       <header className="ui-main-nav">
@@ -12,11 +12,11 @@ export function MainNav({ currentUser = null, logoSrc = DEFAULT_LOGO_SRC, siteTi
         <nav>
           {currentUser ? (
             <ProfileDropdown currentUser={currentUser} />
-          ) : (
+          ) : !hideSignIn ? (
             <a className="ui-main-nav-link" href="/login">
               Sign In
             </a>
-          )}
+          ) : null}
         </nav>
       </header>
       <div />

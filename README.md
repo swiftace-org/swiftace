@@ -30,8 +30,6 @@ The following [environment variables and service bindings](https://developers.cl
 
 - `AWS_FROM_EMAIL` _(required)_ - Email address verified with AWS SES for sending emails. Follow [these instructions](https://chat.openai.com/share/0de827f0-c85b-43fc-822d-ccd993a343df) to set up a verified sender email address.
 
-- `JWT_SECRET_KEY` _(required)_ - A random string used as the secret key to [sign JSON web tokens](https://chat.openai.com/share/14a3c3f1-934b-45c6-9497-45341a6b7c32) used for authenticating users. While you can use any random string, we recommend generating a UUID by running the `uuidgen` terminal command.
-
 - `FAVICON_URL` _(optional but recommended)_ - Used to set the favicon for the site, shown in the browser's tab bar.
 
 - `LOGO_URL` _(optional but recommended)_ - Used to set a logo for the site, shown in the navigation bar.
