@@ -3,7 +3,7 @@ import { SESv2Client } from "@aws-sdk/client-sesv2";
 export function safeguard(handler) {
   return async function (ctx) {
     try {
-      const requiredVars = ["SITE_TITLE", "SITE_DESCRIPTION", "SITE_TAGLINE", "TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV", "JWT_SECRET_KEY"];
+      const requiredVars = ["SITE_TITLE", "SITE_DESCRIPTION", "SITE_TAGLINE", "TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV"];
       ensureEnvVars({ env: ctx.env, func: "safeguard", names: requiredVars });
       return await handler(ctx);
     } catch (error) {
