@@ -7,7 +7,6 @@ import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const currentUser = await getCurrentUser({ request, env });
-  console.log({ currentUser });
   if (currentUser) {
     return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   }

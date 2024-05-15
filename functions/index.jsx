@@ -38,8 +38,6 @@ async function selectCoursesWithStats({ env, userId }) {
   const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC'`).all();
   const courses = output.results;
 
-  console.log({ courses });
-
   // TODO - all get enrollment information
   return courses;
 }
