@@ -1,6 +1,11 @@
 import jsx from "lib/utils/jsx";
 
-export function Avatar({ avatar, name }) {
+function makeFullName({ firstName, lastName }) {
+  return lastName ? `${firstName} ${lastName}` : firstName;
+}
+
+export function Avatar({ avatar, firstName, lastName }) {
+  const name = makeFullName({ firstName, lastName });
   return avatar ? (
     <img className="ui-avatar" src={avatar} alt={name} title={name} height="32" width="32" />
   ) : (

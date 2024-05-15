@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "npx --yes wrangler@latest pages dev public --kv=CACHE_KV --binding LOCAL=1 --d1 DB=FAF408E9-3EC3-452D-9265-150BEA4FFF54 --port 2000 --compatibility-date 2023-12-01 --compatibility-flags=\"nodejs_compat\"",
-    "kill": "pid=$(lsof -t -i:2000 -c workerd); [ -n \"$pid\" ] && kill $pid && echo \"PID $pid killed\" || echo \"Nothing to kill\"",
+    "kill": "pid=$(lsof -t -i:2000 -c workerd); [ -n \"$pid\" ] && kill -9 $pid && echo \"PID $pid killed\" || echo \"Nothing to kill\"",
     "list-db-migrations": "npx wrangler d1 migrations list swiftace-db --local -c d1.toml",
     "apply-db-migrations": "npx wrangler d1 migrations apply swiftace-db --local -c d1.toml",
     "query-db": "npx wrangler d1 execute swiftace-db --local -c d1.toml --command",

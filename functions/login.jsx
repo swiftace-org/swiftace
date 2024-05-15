@@ -2,15 +2,15 @@ import { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { makeHtmlResp, makeSes, safeguard, validateEmail, validateTurnstile } from "lib/utils";
-import { generateAuthToken, generateVerificationCode, getCurrentUserId } from "lib/utils/auth";
+import { createSessionCookie, generateVerificationCode, getCurrentUser, hashSessionToken } from "lib/utils/auth";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
-  const currentUserId = await getCurrentUserId({ request, env });
-  if (currentUserId) {
+  const currentUser = await getCurrentUser({ request, env });
+  console.log({ currentUser });
+  if (currentUser) {
     return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   }
-
   return makeHtmlResp(<LoginPage env={env} />);
 });
 
@@ -19,15 +19,16 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const email = formData.get("email")?.trim();
   const turnstileToken = formData.get("cf-turnstile-response");
   const code = formData.get("code");
-  const name = formData.get("name");
+  const firstName = formData.get("first_name")?.trim();
+  const lastName = formData.get("last_name")?.trim();
 
   // Reject if email is not provided or invalid
-  if (!email) return makeHtmlResp(<LoginPage env={env} email={email} emailError="Email is required" />);
-  if (!validateEmail(email)) return makeHtmlResp(<LoginPage env={env} email={email} emailError="Email is invalid" />);
+  if (!email) return makeHtmlResp(<LoginPage env={env} errors={{ email: "Email is required." }} />);
+  if (!validateEmail(email)) return makeHtmlResp(<LoginPage env={env} values={{ email }} errors={{ email: "Email is invalid." }} />);
 
   // Reject if Turnstile token is invalid
   const isTurnstileValid = await validateTurnstile({ env, turnstileToken });
-  if (!isTurnstileValid) return makeHtmlResp(<LoginPage env={env} email={email} turnstileError="Verification failed. Please try again!" />);
+  if (!isTurnstileValid) return makeHtmlResp(<LoginPage env={env} values={{ email }} errors={{ turnstile: "Verification failed. Please try again!" }} />);
 
   // Look up email in DB and retrieve user (if exists)
   let user = await env.DB.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
@@ -48,37 +49,47 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
     await sendLoginEmail({ env, email, code: storedCode });
 
     // If user is not registered, show expanded form requesting name and verification code
-    return makeHtmlResp(<LoginPage env={env} email={email} showCode showName={!user} disableEmail />);
+    return makeHtmlResp(<LoginPage env={env} values={{ email }} showCode showName={!user} disableEmail />);
   }
 
   // Verify code if provided by user
   if (code?.trim() !== storedCode.trim()) {
     // Show error if code is invalid
-    return makeHtmlResp(<LoginPage env={env} email={email} showCode codeError="Invalid code. Please enter the correct code." showName={!user} disableEmail />);
+    return makeHtmlResp(
+      <LoginPage
+        env={env}
+        values={{ email, firstName, lastName }}
+        errors={{ code: "Invalid code. Please enter the correct code." }}
+        showCode
+        showName={!user}
+        disableEmail
+      />
+    );
   }
 
   // Register user if required
   if (!user) {
     // Show error if name is not provided
-    if (!name) return makeHtmlResp(<LoginPage env={env} email={email} disableEmail code={code} showCode nameError="Please enter your name." />);
+    if (!firstName)
+      return makeHtmlResp(
+        <LoginPage env={env} values={{ email, code, firstName, lastName }} errors={{ firstName: "First name is required." }} disableEmail showCode />
+      );
 
     // Add a row to the users table
-    user = await env.DB.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(name, null).first();
+    user = await env.DB.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(firstName, lastName).first();
     await env.DB.prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`).bind(user.id, email).first();
-
-    // TODO - Add rows to the account and profile tables (requires DB write access)
-    // return makeHtmlResp(<LoginPage env={env} email={email} emailError="Sign up not implemented. Try existing email!" />);
   }
-
-  // Generate JWT token and set cookie
-  const authToken = await generateAuthToken({ userId: user.id, env });
-  const authCookie = `AUTH_TOKEN=${authToken}; Max-Age=${45 * 24 * 60 * 60}; Path="/"; ${env.LOCAL ? "" : "Secure"}`;
 
   // Delete stored verification code
   waitUntil(env.CACHE_KV.delete(cacheKey));
 
+  // Generate session token and set cookie
+  const sessionToken = await crypto.randomUUID();
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  await env.DB.prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`).bind(sessionTokenHash, user.id).run();
+
   // Set cookie and redirect to dashboard
-  return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/", "Set-Cookie": authCookie } });
+  return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/", "Set-Cookie": createSessionCookie({ env, sessionToken }) } });
 });
 
 function sendLoginEmail({ env, email, code }) {
@@ -117,15 +128,11 @@ function LoginPage({ env, ...props }) {
 
 function LoginForm({
   subtitle = null,
-  email = null,
-  emailError = null,
-  disableEmail = null,
-  code = null,
-  showCode = null,
-  codeError = null,
-  turnstileError = null,
+  values = null,
+  errors = null,
   showName = null,
-  nameError = null,
+  showCode = null,
+  disableEmail = null,
   privacyPolicyUrl = null,
   termsOfServiceUrl = null,
   turnstileSiteKey = null,
@@ -137,55 +144,11 @@ function LoginForm({
         {subtitle && <p>{subtitle}</p>}
       </header>
       <fieldset>
-        <label>
-          <div className="ui-form-label">
-            <span>Email Address </span>
-            {disableEmail && (
-              <a href="/login" className="ui-link">
-                Edit
-              </a>
-            )}
-          </div>
-          <input
-            className="ui-form-input"
-            name="email"
-            type="email"
-            placeholder="yourname@domain.com"
-            value={email}
-            required
-            readOnly={disableEmail}
-            autoFocus={!disableEmail}
-          />
-        </label>
-        {emailError && <div className="ui-form-error">{emailError}</div>}
-
-        {showName && (
-          <>
-            <label>
-              <div className="ui-form-label">Full Name</div>
-              <input className="ui-form-input" name="name" type="text" placeholder="Your Name" required />
-            </label>
-            {nameError && <div className="ui-form-error">{nameError}</div>}
-          </>
-        )}
-
-        {showCode && (
-          <>
-            <label>
-              <div className="ui-form-label">Verification Code</div>
-              <input className="ui-form-input" name="code" type="text" placeholder="6-digit code" required defaultValue={code} autoFocus={!showName} />
-            </label>
-            {codeError ? <div className="ui-form-error">{codeError}</div> : <div className="ui-form-hint">We've sent a code over email. Please check!</div>}
-          </>
-        )}
-
-        <label>
-          <div className="ui-form-label">Human Verification</div>
-          <div className="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="light" />
-        </label>
-        {turnstileError && <div className="ui-form-error">{turnstileError}</div>}
+        <EmailInput disabled={disableEmail} value={values?.email} error={errors?.email} />
+        <NameInputs show={showName} firstName={values?.firstName} lastName={values?.lastName} errors={errors} />
+        <CodeInput show={showCode} value={values?.code} autoFocus={!showName || values?.firstName} error={errors?.code} />
+        <Turnstile error={errors?.turnstile} siteKey={turnstileSiteKey} />
       </fieldset>
-
       <footer>
         <input type="submit" className="ui-button" value="Continue" />
         <p>
@@ -202,5 +165,78 @@ function LoginForm({
         </p>
       </footer>
     </form>
+  );
+}
+
+function EmailInput({ disabled, value, error }) {
+  return (
+    <>
+      <label>
+        <div className="ui-form-label">
+          <span>Email Address </span>
+          {disabled && (
+            <a href="/login" className="ui-link">
+              Edit
+            </a>
+          )}
+        </div>
+        <input
+          className="ui-form-input"
+          name="email"
+          type="email"
+          placeholder="yourname@domain.com"
+          value={value}
+          required
+          readOnly={disabled}
+          autoFocus={!disabled}
+        />
+      </label>
+      {error && <div className="ui-form-error">{error}</div>}
+    </>
+  );
+}
+
+function NameInputs({ show, firstName, lastName, errors }) {
+  return (
+    show && (
+      <>
+        <label>
+          <div className="ui-form-label">First Name</div>
+          <input className="ui-form-input" value={firstName} name="first_name" type="text" placeholder="Your First Name" required autoFocus={!firstName} />
+        </label>
+        {errors?.firstName && <div className="ui-form-error">{errors?.firstName}</div>}
+        <label>
+          <div className="ui-form-label">Last Name</div>
+          <input className="ui-form-input" value={lastName} name="last_name" type="text" placeholder="Your Last Name" />
+        </label>
+        {errors?.lastName && <div className="ui-form-error">{errors?.lastName}</div>}
+      </>
+    )
+  );
+}
+
+function CodeInput({ show, autoFocus, value, error }) {
+  return (
+    show && (
+      <>
+        <label>
+          <div className="ui-form-label">Verification Code</div>
+          <input className="ui-form-input" name="code" type="text" placeholder="6-digit code" required value={value} autoFocus={autoFocus} />
+        </label>
+        {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">We've sent a code over email. Please check!</div>}
+      </>
+    )
+  );
+}
+
+function Turnstile({ error, siteKey }) {
+  return (
+    <>
+      <label>
+        <div className="ui-form-label">Human Verification</div>
+        <div className="cf-turnstile" data-sitekey={siteKey} data-theme="light" />
+      </label>
+      {error && <div className="ui-form-error">{error}</div>}
+    </>
   );
 }

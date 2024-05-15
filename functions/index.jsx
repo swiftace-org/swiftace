@@ -2,12 +2,11 @@ import { CourseCard } from "lib/ui/course-card";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { makeHtmlResp, safeguard } from "lib/utils";
-import { getCurrentUserId } from "lib/utils/auth";
+import { getCurrentUser } from "lib/utils/auth";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
-  const currentUserId = await getCurrentUserId({ request, env });
-  const currentUser = currentUserId && (await env.DB.prepare(`SELECT * FROM users WHERE id = ? LIMIT 1;`).bind(currentUserId).first());
+  const currentUser = await getCurrentUser({ request, env });
 
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
   const sortedCourses = sortCoursesForUser(courses);
