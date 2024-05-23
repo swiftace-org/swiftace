@@ -33,20 +33,21 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 });
 
 async function selectCoursesWithStats({ env, userId }) {
-  const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC'`).all();
+  const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC';`).all();
+
   const courses = output.results;
 
   // TODO - all get enrollment information
   return courses;
 }
 
-function sortCoursesForUser(courses, orderIDs) {
+function sortCoursesForUser(courses) {
   // Sort courses based on the order of IDs
   courses.sort((a, b) => {
-    const indexA = a.sort_.indexOf(Number(a.id));
-    const indexB = orderIDs.indexOf(Number(b.id));
-
-    return indexA - indexB;
+    if (a.sort_order == null && b.sort_order == null) return 0;
+    if (a.sort_order == null) return 1;
+    if (b.sort_order == null) return -1;
+    return a.sort_order - b.sort_order;
   });
 
   // Separate courses based on conditions
