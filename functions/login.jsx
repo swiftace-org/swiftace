@@ -105,7 +105,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   // Register user if required
   if (!user) {
     // Show error if name is not provided
-    if (!firstName) return makeHtmlResponse(<LoginPage formTitle="Sign Up" firstNameError="First name is required." disableEmail showCode />);
+    if (!firstName) return makeHtmlResponse(<LoginPage showName formTitle="Sign Up" firstNameError="First name is required." disableEmail showCode />);
 
     // Add a row to the users table
     user = await database.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(firstName, lastName).first();
@@ -136,10 +136,7 @@ function sendLoginEmail({ env, email, code }) {
       Content: {
         Simple: {
           Subject: { Data: "Your verification code is " + code },
-          Body: {
-            Text: { Data: "Your verification code is " + code },
-            Html: { Data: "Your verification code is " + code },
-          },
+          Body: { Text: { Data: "Your verification code is " + code }, Html: { Data: "Your verification code is " + code } },
         },
       },
     })
