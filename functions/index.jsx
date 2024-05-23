@@ -2,7 +2,7 @@ import { CourseCard } from "lib/ui/course-card";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { getCurrentUser } from "lib/utils/auth";
-import { getSiteSettings, makeHtmlResp, safeguard } from "lib/utils/cloudflare";
+import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
@@ -12,7 +12,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
   const sortedCourses = sortCoursesForUser(courses);
-  return makeHtmlResp(
+  return makeHtmlResponse(
     <RootLayout title={siteSettings.title} description={siteSettings.description} faviconUrl={siteSettings.faviconUrl} styles={["ui", "home"]}>
       <MainNav logoUrl={siteSettings.logoUrl} siteTitle={siteSettings.title} currentUser={currentUser} />
       <main className="ui-container">

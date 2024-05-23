@@ -20,19 +20,19 @@ export function safeguard(handler) {
       ensureEnvVars({ env: ctx.env, func: "safeguard", names: requiredVars });
       return await handler(ctx);
     } catch (error) {
-      return makeErrorResp({ error, status: 500 });
+      return makeErrorResponse({ error, status: 500 });
     }
   };
 }
 
-export function makeHtmlResp(element, options) {
+export function makeHtmlResponse(element, options) {
   return new Response(element, {
     headers: { "content-type": "text/html;charset=UTF-8", ...options?.headers },
     ...options,
   });
 }
 
-export function makeErrorResp({ error, status }) {
+export function makeErrorResponse({ error, status }) {
   return new Response(`Internal Server Error:\n\n${error.message}\n\n\nStack Trace:\n${error.stack}\n\nPlease send this screenshot to site admins.`, {
     status,
   });

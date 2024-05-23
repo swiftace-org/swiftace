@@ -32,6 +32,10 @@
   max-width: 300px;
 }
 
+.login-form > footer {
+  max-width: 300px;
+}
+
 .login-form > footer > input[type="submit"] {
   width: 100%;
   margin-top: 1.375rem;

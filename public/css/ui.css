@@ -322,6 +322,16 @@
   }
 }
 
+.ui-page-header {
+  padding: 2rem 1rem;
+}
+
+@media screen and (width < 48rem) {
+  .ui-page-header {
+    padding: 1.5rem 1rem;
+  }
+}
+
 .ui-video {
   width: 100%; /* Adjust as needed */
   position: relative;
