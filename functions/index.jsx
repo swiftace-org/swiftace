@@ -1,29 +1,27 @@
 import { CourseCard } from "lib/ui/course-card";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
-import { makeHtmlResp, safeguard } from "lib/utils";
 import { getCurrentUser } from "lib/utils/auth";
+import { getSiteSettings, makeHtmlResp, safeguard } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
-  const currentUser = await getCurrentUser({ request, env });
+  const { DB: database, CACHE_KV: cacheKv } = env;
+  const siteSettings = await getSiteSettings({ cacheKv });
+  const currentUser = await getCurrentUser({ request, database });
 
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
   const sortedCourses = sortCoursesForUser(courses);
-  return makeHtmlResp(<HomePage env={env} currentUser={currentUser} courses={sortedCourses} />);
-});
-
-function HomePage({ env, currentUser, courses }) {
-  return (
-    <RootLayout title={env.SITE_TITLE} description={env.SITE_DESCRIPTION} faviconSrc={env.FAVICON_URL} styles={["ui", "home"]}>
-      <MainNav logoSrc={env.LOGO_URL} siteTitle={env.SITE_TITLE} currentUser={currentUser} />
+  return makeHtmlResp(
+    <RootLayout title={siteSettings.title} description={siteSettings.description} faviconUrl={siteSettings.faviconUrl} styles={["ui", "home"]}>
+      <MainNav logoUrl={siteSettings.logoUrl} siteTitle={siteSettings.title} currentUser={currentUser} />
       <main className="ui-container">
         <header className="home-header">
-          <h1 className="ui-page-heading">Courses - {env.SITE_TITLE}</h1>
-          <p>{env.SITE_TAGLINE}</p>
+          <h1 className="ui-page-heading">Courses - {siteSettings.title}</h1>
+          <p>{siteSettings.tagline}</p>
         </header>
         <ul className="home-courses">
-          {courses.map((course) => (
+          {sortedCourses.map((course) => (
             <li>
               <CourseCard course={course} />
             </li>
@@ -32,7 +30,7 @@ function HomePage({ env, currentUser, courses }) {
       </main>
     </RootLayout>
   );
-}
+});
 
 async function selectCoursesWithStats({ env, userId }) {
   const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC'`).all();

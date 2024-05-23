@@ -1,13 +1,12 @@
 import jsx from "lib/utils/jsx";
 import { Avatar } from "./avatar";
-import { DEFAULT_LOGO_SRC } from "lib/utils/constants";
 
-export function MainNav({ currentUser = null, logoSrc = DEFAULT_LOGO_SRC, siteTitle = null, hideSignIn = false }) {
+export function MainNav({ currentUser = null, logoUrl = null, siteTitle = null, hideSignIn = false }) {
   return (
     <>
       <header className="ui-main-nav">
         <a href="/">
-          <img height="28" className="ui-main-nav-logo" src={logoSrc} alt={siteTitle} />
+          <img height="28" className="ui-main-nav-logo" src={logoUrl} alt={siteTitle} />
         </a>
         <nav>
           {currentUser ? (

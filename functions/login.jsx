@@ -1,19 +1,33 @@
 import { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
-import { makeHtmlResp, makeSes, safeguard, validateEmail, validateTurnstile } from "lib/utils";
-import { createSessionCookie, createUserSession, deleteExpiredUserSessions, generateVerificationCode, getCurrentUser, hashSessionToken } from "lib/utils/auth";
+import * as auth from "lib/utils/auth";
+import { makeSes } from "lib/utils/aws";
+import { CachePrefix, getSiteSettings, makeHtmlResp, safeguard, validateTurnstile } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
-  const currentUser = await getCurrentUser({ request, env });
+  const { DB: database, CACHE_KV: cacheKv } = env;
+  const siteSettings = await getSiteSettings({ cacheKv });
+  const currentUser = await auth.getCurrentUser({ request, database });
   if (currentUser) {
     return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   }
-  return makeHtmlResp(<LoginPage env={env} />);
+  const props = {
+    siteTitle: siteSettings.title,
+    siteTagline: siteSettings.tagline,
+    siteDescription: siteSettings.description,
+    faviconUrl: siteSettings.faviconUrl,
+    logoUrl: siteSettings.logoUrl,
+    turnstileSiteKey: env.TURNSTILE_SITE_KEY,
+    formTitle: "Sign In / Sign Up",
+  };
+  return makeHtmlResp(<LoginPage {...props} />);
 });
 
 export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
+  const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal } = env;
+  const siteSettings = await getSiteSettings({ cacheKv });
   const formData = await request.formData();
   const email = formData.get("email")?.trim();
   const turnstileToken = formData.get("cf-turnstile-response");
@@ -21,25 +35,39 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const firstName = formData.get("first_name")?.trim();
   const lastName = formData.get("last_name")?.trim();
 
+  const props = {
+    siteTitle: siteSettings.title,
+    siteTagline: siteSettings.tagline,
+    siteDescription: siteSettings.description,
+    faviconUrl: siteSettings.faviconUrl,
+    logoUrl: siteSettings.logoUrl,
+    turnstileSiteKey: env.TURNSTILE_SITE_KEY,
+    formTitle: "Sign In / Sign Up",
+    email,
+    firstName,
+    lastName,
+    code,
+  };
+
   // Reject if email is not provided or invalid
-  if (!email) return makeHtmlResp(<LoginPage env={env} errors={{ email: "Email is required." }} />);
-  if (!validateEmail(email)) return makeHtmlResp(<LoginPage env={env} values={{ email }} errors={{ email: "Email is invalid." }} />);
+  if (!email) return makeHtmlResp(<LoginPage {...props} emailError="Email is required." />);
+  if (!auth.validateEmail(email)) return makeHtmlResp(<LoginPage {...props} emailError="Email is invalid." />);
 
   // Reject if Turnstile token is invalid
   const isTurnstileValid = await validateTurnstile({ env, turnstileToken });
-  if (!isTurnstileValid) return makeHtmlResp(<LoginPage env={env} values={{ email }} errors={{ turnstile: "Verification failed. Please try again!" }} />);
+  if (!isTurnstileValid) return makeHtmlResp(<LoginPage {...props} turnstileError="Verification failed. Please try again!" />);
 
   // Look up email in DB and retrieve user (if exists)
-  let user = await env.DB.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
+  let user = await database.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
 
   // Retrieved stored verfication code if present
-  const cacheKey = `EMAIL_VERIFICATION_CODE/${email}`;
-  let storedCode = await env.CACHE_KV.get(cacheKey);
+  const cacheKey = `${CachePrefix.emailVerificationCode}/${email}`;
+  let storedCode = await cacheKv.get(cacheKey);
 
   // Generate a new stored code if not present
   if (!storedCode) {
-    storedCode = generateVerificationCode();
-    waitUntil(env.CACHE_KV.put(cacheKey, storedCode, { expirationTtl: 600 })); // Valid for 10 minutes
+    storedCode = auth.generateVerificationCode();
+    waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: 600 })); // Valid for 10 minutes
   }
 
   // Send code if not provided by user
@@ -48,7 +76,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
     await sendLoginEmail({ env, email, code: storedCode });
 
     // If user is not registered, show expanded form requesting name and verification code
-    return makeHtmlResp(<LoginPage env={env} values={{ email }} showCode showName={!user} disableEmail />);
+    return makeHtmlResp(<LoginPage {...props} formTitle={user ? "Sign In" : "Sign Up"} showCode showName={!user} disableEmail />);
   }
 
   // Verify code if provided by user
@@ -56,9 +84,10 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
     // Show error if code is invalid
     return makeHtmlResp(
       <LoginPage
-        env={env}
-        values={{ email, firstName, lastName }}
-        errors={{ code: "Invalid code. Please enter the correct code." }}
+        {...props}
+        formTitle={user ? "Sign In" : "Sign Up"}
+        code={null}
+        codeError="Invalid code. Please enter the correct code."
         showCode
         showName={!user}
         disableEmail
@@ -69,25 +98,26 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   // Register user if required
   if (!user) {
     // Show error if name is not provided
-    if (!firstName)
-      return makeHtmlResp(
-        <LoginPage env={env} values={{ email, code, firstName, lastName }} errors={{ firstName: "First name is required." }} disableEmail showCode />
-      );
+    if (!firstName) return makeHtmlResp(<LoginPage {...props} formTitle="Sign Up" firstNameError="First name is required." disableEmail showCode />);
 
     // Add a row to the users table
-    user = await env.DB.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(firstName, lastName).first();
-    await env.DB.prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`).bind(user.id, email).first();
+    user = await database.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(firstName, lastName).first();
+    await database.prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`).bind(user.id, email).first();
   }
 
   // Create new session and retrive session token
-  const { sessionToken } = await createUserSession({ userId: user.id, env });
+  const { sessionToken } = await auth.createUserSession({ userId: user.id, database });
 
   // Delete verification code & expired sessions
-  waitUntil(env.CACHE_KV.delete(cacheKey));
-  waitUntil(deleteExpiredUserSessions({ userId: user.id, env }));
+  waitUntil(cacheKv.delete(cacheKey));
+  waitUntil(auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: siteSettings.sessionExpiryInSeconds }));
 
   // Set session token in cookie and redirect to "/"
-  return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/", "Set-Cookie": createSessionCookie({ env, sessionToken }) } });
+  return new Response(null, {
+    status: 302,
+    statusText: "Found",
+    headers: { Location: "/", "Set-Cookie": auth.createSessionCookie({ sessionToken, isLocal, maxAge: siteSettings.sessionExpiryInSeconds }) },
+  });
 });
 
 function sendLoginEmail({ env, email, code }) {
@@ -109,60 +139,58 @@ function sendLoginEmail({ env, email, code }) {
   );
 }
 
-function LoginPage({ env, ...props }) {
-  return (
-    <RootLayout title="Sign In" description={env.SITE_DESCRIPTION} faviconSrc={env.FAVICON_URL} styles={["ui", "login"]}>
-      <MainNav logoSrc={env.LOGO_URL} hideSignIn />
-      <LoginForm
-        turnstileSiteKey={env.TURNSTILE_SITE_KEY}
-        subtitle={env.SITE_TAGLINE}
-        privacyPolicyUrl={env.PRIVACY_POLICY_URL}
-        termsOfServiceUrl={env.TERMS_OF_SERVICE_URL}
-        {...props}
-      />
-    </RootLayout>
-  );
-}
-
-function LoginForm({
-  subtitle = null,
-  values = null,
-  errors = null,
-  showName = null,
-  showCode = null,
-  disableEmail = null,
-  privacyPolicyUrl = null,
-  termsOfServiceUrl = null,
-  turnstileSiteKey = null,
+function LoginPage({
+  siteTitle,
+  siteTagline,
+  siteDescription,
+  turnstileSiteKey,
+  faviconUrl,
+  logoUrl,
+  formTitle,
+  email = null,
+  firstName = null,
+  lastName = null,
+  code = null,
+  disableEmail = false,
+  emailError = null,
+  showName = false,
+  firstNameError = null,
+  lastNameError = null,
+  showCode = false,
+  codeError = null,
+  turnstileError = null,
 }) {
   return (
-    <form className="login-form" method="post" action="/login">
-      <header>
-        <h2>Sign In / Sign Up </h2>
-        {subtitle && <p>{subtitle}</p>}
-      </header>
-      <fieldset>
-        <EmailInput disabled={disableEmail} value={values?.email} error={errors?.email} />
-        <NameInputs show={showName} firstName={values?.firstName} lastName={values?.lastName} errors={errors} />
-        <CodeInput show={showCode} value={values?.code} autoFocus={!showName || values?.firstName} error={errors?.code} />
-        <Turnstile error={errors?.turnstile} siteKey={turnstileSiteKey} />
-      </fieldset>
-      <footer>
-        <input type="submit" className="ui-button" value="Continue" />
-        <p>
-          By signing in you agree to our
-          <br />
-          <a href={privacyPolicyUrl} rel="noopener noreferrer nofollow" target="_blank" className="ui-link">
-            privacy policy
-          </a>
-          {" and "}
-          <a href={termsOfServiceUrl} rel="noopener noreferrer nofollow" target="_blank" className="ui-link">
-            terms of service
-          </a>
-          .
-        </p>
-      </footer>
-    </form>
+    <RootLayout title={`${formTitle} - ${siteTitle}`} description={siteDescription} faviconUrl={faviconUrl} styles={["ui", "login"]}>
+      <MainNav logoUrl={logoUrl} hideSignIn />
+      <form className="login-form" method="post" action="/login">
+        <header>
+          <h2>{formTitle}</h2>
+          {siteTagline && <p>{siteTagline}</p>}
+        </header>
+        <fieldset>
+          <EmailInput disabled={disableEmail} value={email} error={emailError} />
+          <NameInputs show={showName} firstName={firstName} lastName={lastName} firstNameError={firstNameError} lastNameError={lastNameError} />
+          <CodeInput show={showCode} value={code} autoFocus={!showName || firstName} error={codeError} />
+          <Turnstile error={turnstileError} siteKey={turnstileSiteKey} />
+        </fieldset>
+        <footer>
+          <input type="submit" className="ui-button" value="Continue" />
+          <p>
+            By signing in you agree to our
+            <br />
+            <a href="/privacy-policy" rel="noopener noreferrer nofollow" target="_blank" className="ui-link">
+              privacy policy
+            </a>
+            {" and "}
+            <a href="/terms-of-service" rel="noopener noreferrer nofollow" target="_blank" className="ui-link">
+              terms of service
+            </a>
+            .
+          </p>
+        </footer>
+      </form>
+    </RootLayout>
   );
 }
 
@@ -194,7 +222,7 @@ function EmailInput({ disabled, value, error }) {
   );
 }
 
-function NameInputs({ show, firstName, lastName, errors }) {
+function NameInputs({ show, firstName, lastName, firstNameError, lastNameError }) {
   return (
     show && (
       <>
@@ -202,12 +230,12 @@ function NameInputs({ show, firstName, lastName, errors }) {
           <div className="ui-form-label">First Name</div>
           <input className="ui-form-input" value={firstName} name="first_name" type="text" placeholder="Your First Name" required autoFocus={!firstName} />
         </label>
-        {errors?.firstName && <div className="ui-form-error">{errors?.firstName}</div>}
+        {firstNameError && <div className="ui-form-error">{firstNameError}</div>}
         <label>
           <div className="ui-form-label">Last Name</div>
           <input className="ui-form-input" value={lastName} name="last_name" type="text" placeholder="Your Last Name" />
         </label>
-        {errors?.lastName && <div className="ui-form-error">{errors?.lastName}</div>}
+        {lastNameError && <div className="ui-form-error">{lastNameError}</div>}
       </>
     )
   );

@@ -1,5 +1,4 @@
 import jsx from "lib/utils/jsx";
-import { truncateCount } from "lib/utils";
 
 export function CourseCard({ course }) {
   let badgeText = "";
@@ -35,3 +34,8 @@ export function CourseCard({ course }) {
     </a>
   );
 }
+
+export const truncateCount = (num) => {
+  const convertedNum = Number(num);
+  return Math.abs(convertedNum) > 999 ? Math.sign(convertedNum) * parseFloat((Math.abs(convertedNum) / 1000).toFixed(1)) + "k" : convertedNum;
+};

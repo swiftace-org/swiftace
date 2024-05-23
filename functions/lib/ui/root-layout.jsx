@@ -1,7 +1,6 @@
-import { DEFAULT_FAVICON } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
-export function RootLayout({ title, description, children, metaImage = null, faviconSrc = DEFAULT_FAVICON, styles = ["ui"] }) {
+export function RootLayout({ title, description, children, metaImage = null, faviconUrl = null, styles = ["ui"] }) {
   return (
     <html lang="en">
       <head>
@@ -19,11 +18,10 @@ export function RootLayout({ title, description, children, metaImage = null, fav
           <link rel="preload" as="style" href={`/css/${style}.css`} media="screen" />
         ))}
 
-        <link rel="icon" href={faviconSrc} />
+        <link rel="icon" href={faviconUrl} />
         <title>{title}</title>
 
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"></link>
-        {/* add link tags for each entry in styles */}
         <link href="/css/variables.css" rel="stylesheet" />
         <link href="/css/normalize.css" rel="stylesheet" />
         {styles.map((style) => (

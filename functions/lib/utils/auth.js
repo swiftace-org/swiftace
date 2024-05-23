@@ -1,4 +1,3 @@
-import { DEFAULT_SESSION_TOKEN_AGE } from "./constants";
 import { parse } from "./cookie";
 
 export function generateVerificationCode() {
@@ -31,43 +30,64 @@ export function getSessionToken({ request }) {
   return getCookieSessionToken({ request }) ?? getHeaderSessionToken({ request });
 }
 
-export async function getCurrentUser({ request, env }) {
+export async function getCurrentUserId({ request, database }) {
+  const token = getSessionToken({ request });
+  if (!token) return null;
+  const tokenHash = await hashSessionToken(token);
+  const session = await database.prepare(`SELECT user_id FROM user_sessions WHERE token_hash = ? LIMIT 1;`).bind(tokenHash).first();
+  return session?.user_id;
+}
+
+export async function getCurrentUser({ request, database }) {
   const token = getSessionToken({ request });
   if (!token) return null;
   const tokenHash = await hashSessionToken(token);
   const query = `SELECT user_id, first_name, last_name, avatar_url FROM users JOIN user_sessions ON users.id = user_sessions.user_id AND token_hash = ? LIMIT 1`;
-  const user = await env.DB.prepare(query).bind(tokenHash).first();
+  const user = await database.prepare(query).bind(tokenHash).first();
   return user;
 }
 
-export function createSessionCookie({ env, sessionToken }) {
-  return `SESSION_TOKEN=${sessionToken}; Max-Age=${DEFAULT_SESSION_TOKEN_AGE}; Path="/"; HttpOnly; SameSite=Strict; ${env.LOCAL ? "" : "Secure"}`;
+export function createSessionCookie({ sessionToken, isLocal, maxAge }) {
+  return `SESSION_TOKEN=${sessionToken}; Max-Age=${maxAge}; Path="/"; HttpOnly; SameSite=Strict; ${isLocal ? "" : "Secure"}`;
 }
 
-export function createLogoutCookie({ env }) {
-  return `SESSION_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path="/"; HttpOnly; SameSite=Strict; ${env.LOCAL ? "" : "Secure"}`;
+export function createLogoutCookie({ isLocal }) {
+  return `SESSION_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path="/"; HttpOnly; SameSite=Strict; ${isLocal ? "" : "Secure"}`;
 }
 
-export async function createUserSession({ userId, env }) {
+export async function createUserSession({ userId, database }) {
   if (!userId) return;
   const sessionToken = await crypto.randomUUID();
   const sessionTokenHash = await hashSessionToken(sessionToken);
-  await env.DB.prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`).bind(sessionTokenHash, userId).run();
+  await database.prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`).bind(sessionTokenHash, userId).run();
   return { sessionToken };
 }
 
-export async function deleteUserSessions({ request, env }) {
-  const token = getSessionToken({ request });
-  if (!token) return null;
-  const tokenHash = await hashSessionToken(token);
-  const user = await env.DB.prepare(`SELECT user_id FROM user_sessions WHERE token_hash = ? LIMIT 1;`).bind(tokenHash).first();
-  if (!user?.id) return null;
-  await env.DB.prepare(`DELETE FROM user_sessions WHERE user_id = ?;`).bind(user?.id).execute();
+export async function deleteUserSessions({ userId, database }) {
+  await database.prepare(`DELETE FROM user_sessions WHERE user_id = ?;`).bind(userId).run();
 }
 
-export async function deleteExpiredUserSessions({ userId, env }) {
-  if (!userId) return;
-  return env.DB.prepare(`DELETE FROM user_sessions WHERE user_id = ? AND created_at < strftime('%s', 'now') - ?;`)
-    .bind(userId, DEFAULT_SESSION_TOKEN_AGE)
-    .execute();
+export async function deleteExpiredUserSessions({ userId, database, maxAge }) {
+  return database.prepare(`DELETE FROM user_sessions WHERE user_id = ? AND created_at < strftime('%s', 'now') - ?;`).bind(userId, maxAge).execute();
+}
+
+export function validateEmail(email) {
+  const EMAIL_REGEX = /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
+
+  if (!email) return false;
+
+  const emailParts = email.split("@");
+
+  if (emailParts.length !== 2) return false;
+
+  const account = emailParts[0];
+  if (account.length > 64) return false;
+
+  const address = emailParts[1];
+  if (address.length > 255) return false;
+
+  const domainParts = address.split(".");
+  if (domainParts.some((part) => part.length > 63)) return false;
+
+  return EMAIL_REGEX.test(email);
 }
