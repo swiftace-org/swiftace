@@ -1,0 +1,24 @@
+.site-settings-header {
+  padding: 2rem 1rem 1.5rem;
+}
+
+.site-settings-form {
+  padding: 0 1rem;
+}
+
+.site-settings-form input {
+  max-width: 24rem;
+}
+
+.site-settings-form textarea {
+  max-width: 48rem;
+}
+
+.site-settings-form > fieldset > label:not(:first-child) {
+  display: block;
+  margin-top: 1.25rem;
+}
+
+.site-settings-form > footer > input[type="submit"] {
+  margin-top: 1.5rem;
+}

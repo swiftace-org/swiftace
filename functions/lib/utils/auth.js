@@ -38,11 +38,22 @@ export async function getCurrentUserId({ request, database }) {
   return session?.user_id;
 }
 
-export async function getCurrentUser({ request, database }) {
+export async function getCurrentUser({ request, database, checkAdmin = false }) {
   const token = getSessionToken({ request });
   if (!token) return null;
   const tokenHash = await hashSessionToken(token);
-  const query = `SELECT user_id, first_name, last_name, avatar_url FROM users JOIN user_sessions ON users.id = user_sessions.user_id AND token_hash = ? LIMIT 1`;
+
+  if (checkAdmin) {
+    const query = `SELECT u.id, u.first_name, u.last_name, u.avatar_url,
+      CASE WHEN a.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_admin
+    FROM user_sessions AS us JOIN users AS u ON us.user_id = u.id
+      LEFT JOIN admins AS a ON u.id = a.user_id
+    WHERE us.token_hash = ? LIMIT 1;`;
+    const user = await database.prepare(query).bind(tokenHash).first();
+    return user;
+  }
+
+  const query = `SELECT users.id, first_name, last_name, avatar_url FROM users JOIN user_sessions ON users.id = user_sessions.user_id AND token_hash = ? LIMIT 1`;
   const user = await database.prepare(query).bind(tokenHash).first();
   return user;
 }
