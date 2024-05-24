@@ -68,6 +68,7 @@ export async function getSiteSettings({ cacheKv }) {
     termsOfServiceRawUrl: null,
     privacyPolicyRawUrl: null,
     sessionExpiryInSeconds: 45 * 24 * 60 * 60, // 45 days
+    otpExpiryInSeconds: 10 * 60, // 10 minutes
   };
 
   const siteSettings = (await cacheKv.get(CachePrefix.siteSettings, { type: "json" })) ?? {};
@@ -84,4 +85,5 @@ export async function getSiteSettings({ cacheKv }) {
  * @property {string|null} termsOfServiceRawUrl - The raw URL to the terms of service document, if any.
  * @property {string|null} privacyPolicyRawUrl - The raw URL to the privacy policy document, if any.
  * @property {number} sessionExpiryInSeconds - The duration in seconds after which a session expires.
+ * @property {number} otpExpiryInSeconds - The duration in seconds after which login verification code expires.
  */

@@ -28,7 +28,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 
 export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
   const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { title, tagline, description, faviconUrl, logoUrl, sessionExpiryInSeconds } = await getSiteSettings({ cacheKv });
+  const { title, tagline, description, faviconUrl, logoUrl, sessionExpiryInSeconds, otpExpiryInSeconds } = await getSiteSettings({ cacheKv });
   const formData = await request.formData();
   const email = formData.get("email")?.trim();
   const turnstileToken = formData.get("cf-turnstile-response");
@@ -36,42 +36,38 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const firstName = formData.get("first_name")?.trim();
   const lastName = formData.get("last_name")?.trim();
 
-  function LoginPage({
-    code = userCode,
-    formTitle = "Sign In / Sign Up",
-    disableEmail = false,
-    emailError = null,
-    showName = false,
-    firstNameError = null,
-    lastNameError = null,
-    showCode = false,
-    codeError = null,
-    turnstileError = null,
-  }) {
-    return (
-      <RootLayout title={`${formTitle} - ${title}`} description={description} faviconUrl={faviconUrl} styles={["ui", "login"]}>
-        <MainNav logoUrl={logoUrl} siteTitle={title} hideSignIn />
-        <form className="login-form" method="post" action="/login">
-          <FormHeader title={formTitle} tagline={tagline} />
-          <fieldset>
-            <EmailInput disabled={disableEmail} value={email} error={emailError} />
-            {showName && <NameInputs firstName={firstName} lastName={lastName} firstNameError={firstNameError} lastNameError={lastNameError} />}
-            {showCode && <CodeInput value={code} autoFocus={!showName || firstName} error={codeError} />}
-            <Turnstile error={turnstileError} siteKey={turnstileSiteKey} />
-          </fieldset>
-          <FormFooter />
-        </form>
-      </RootLayout>
+  const LoginFrame = ({ formTitle = "Sign In / Sign Up", children }) => (
+    <RootLayout title={`${formTitle} - ${title}`} description={description} faviconUrl={faviconUrl} styles={["ui", "login"]}>
+      <MainNav logoUrl={logoUrl} siteTitle={title} hideSignIn />
+      <form className="login-form" method="post" action="/login">
+        <FormHeader title={formTitle} tagline={tagline} />
+        <fieldset>{children}</fieldset>
+        <FormFooter />
+      </form>
+    </RootLayout>
+  );
+
+  // Reject if email is not provided or invalid
+  const emailError = !email ? "Email is required." : !auth.validateEmail(email) ? "Email is invalid" : null;
+  if (emailError) {
+    return makeHtmlResponse(
+      <LoginFrame>
+        <EmailInput value={email} error={emailError} />
+        <Turnstile siteKey={turnstileSiteKey} />
+      </LoginFrame>
     );
   }
 
-  // Reject if email is not provided or invalid
-  if (!email) return makeHtmlResponse(<LoginPage emailError="Email is required." />);
-  if (!auth.validateEmail(email)) return makeHtmlResponse(<LoginPage emailError="Email is invalid." />);
-
   // Reject if Turnstile token is invalid
   const isTurnstileValid = await validateTurnstile({ env, turnstileToken });
-  if (!isTurnstileValid) return makeHtmlResponse(<LoginPage turnstileError="Verification failed. Please try again!" />);
+  if (!isTurnstileValid) {
+    return makeHtmlResponse(
+      <LoginFrame>
+        <EmailInput value={email} />
+        <Turnstile siteKey={turnstileSiteKey} error="Verification failed. Please try again!" />
+      </LoginFrame>
+    );
+  }
 
   // Look up email in DB and retrieve user (if exists)
   let user = await database.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
@@ -83,29 +79,47 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   // Generate a new stored code if not present
   if (!storedCode) {
     storedCode = auth.generateVerificationCode();
-    waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: 600 })); // Valid for 10 minutes
+    waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: otpExpiryInSeconds }));
   }
 
-  // Send code if not provided by user
+  // Send verification code email & show the next screen
   if (!userCode) {
-    // Send verficiation code over email
     await sendLoginEmail({ env, email, code: storedCode });
-
-    // If user is not registered, show expanded form requesting name and verification code
-    return makeHtmlResponse(<LoginPage formTitle={user ? "Sign In" : "Sign Up"} showCode showName={!user} disableEmail />);
+    return makeHtmlResponse(
+      <LoginFrame formTitle={user ? "Sign In" : "Sign Up"}>
+        <EmailInput disabled value={email} />
+        {!user && <NameInputs firstName={firstName} lastName={lastName} />}
+        <CodeInput autoFocus={user || firstName} />
+        <Turnstile siteKey={turnstileSiteKey} />
+      </LoginFrame>
+    );
   }
 
-  // Verify code if provided by user
-  if (userCode?.trim() !== storedCode.trim()) {
-    // Show error if code is invalid
-    const codeError = "Invalid code. Please enter the correct code.";
-    return makeHtmlResponse(<LoginPage formTitle={user ? "Sign In" : "Sign Up"} code={null} codeError={codeError} showCode showName={!user} disableEmail />);
+  // Compare the entered code with the stored code
+  if (userCode?.trim() !== storedCode?.trim()) {
+    return makeHtmlResponse(
+      <LoginFrame formTitle={user ? "Sign In" : "Sign Up"}>
+        <EmailInput disabled value={email} />
+        {!user && <NameInputs firstName={firstName} lastName={lastName} />}
+        <CodeInput autoFocus={user || firstName} error="Invalid code. Please enter the correct code." />
+        <Turnstile siteKey={turnstileSiteKey} />
+      </LoginFrame>
+    );
   }
 
   // Register user if required
   if (!user) {
     // Show error if name is not provided
-    if (!firstName) return makeHtmlResponse(<LoginPage showName formTitle="Sign Up" firstNameError="First name is required." disableEmail showCode />);
+    if (!firstName) {
+      return makeHtmlResponse(
+        <LoginFrame formTitle="Sign Up">
+          <EmailInput disabled value={email} />
+          <NameInputs firstName={firstName} lastName={lastName} firstNameError="First name is required." />
+          <CodeInput value={userCode} />
+          <Turnstile siteKey={turnstileSiteKey} />
+        </LoginFrame>
+      );
+    }
 
     // Add a row to the users table
     user = await database.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(firstName, lastName).first();
