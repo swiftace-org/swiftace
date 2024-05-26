@@ -13,8 +13,8 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
   const sortedCourses = sortCoursesForUser(courses);
   return makeHtmlResponse(
-    <RootLayout title={siteSettings.title} description={siteSettings.description} faviconUrl={siteSettings.faviconUrl} styles={["ui", "home"]}>
-      <MainNav logoUrl={siteSettings.logoUrl} siteTitle={siteSettings.title} currentUser={currentUser} />
+    <RootLayout title={siteSettings.title} description={siteSettings.description} faviconUrl={siteSettings.favicon_url} styles={["ui", "home"]}>
+      <MainNav logoUrl={siteSettings.logo_url} siteTitle={siteSettings.title} currentUser={currentUser} />
       <main className="ui-container">
         <header className="home-header">
           <h1 className="ui-page-heading">Courses - {siteSettings.title}</h1>

@@ -2,6 +2,46 @@
   height: 65px;
 }
 
+.ui-alert {
+  border-radius: var(--border-radius-lg);
+  border-width: 1px;
+  padding: 1rem;
+}
+
+.ui-alert-error {
+  border-radius: var(--border-radius-lg);
+  border-color: var(--border-color-error);
+  border-width: 1px;
+  padding: 0.75rem 1rem;
+  color: var(--text-error);
+}
+
+.ui-alert-error > h4 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ui-alert-error > p {
+  font-size: 0.875rem;
+}
+
+.ui-alert-success {
+  border-radius: var(--border-radius-lg);
+  border-color: var(--border-color-success);
+  border-width: 1px;
+  padding: 0.75rem 1rem;
+  color: var(--text-success);
+}
+
+.ui-alert-success > h4 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ui-alert-success > p {
+  font-size: 0.875rem;
+}
+
 .ui-avatar {
   height: 2rem;
   width: 2rem;

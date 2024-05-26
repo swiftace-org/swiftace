@@ -8,7 +8,7 @@ import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { title, tagline, description, faviconUrl, logoUrl } = await getSiteSettings({ cacheKv });
+  const { title, tagline, description, favicon_url: faviconUrl, logo_url: logoUrl } = await getSiteSettings({ cacheKv });
   const currentUser = await auth.getCurrentUser({ request, database });
   if (currentUser) return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   return makeHtmlResponse(
@@ -28,7 +28,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 
 export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
   const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { title, tagline, description, faviconUrl, logoUrl, sessionExpiryInSeconds, otpExpiryInSeconds } = await getSiteSettings({ cacheKv });
+  const { title, tagline, description, favicon_url, logo_url, session_expiry_seconds, otp_expiry_seconds } = await getSiteSettings({ cacheKv });
   const formData = await request.formData();
   const email = formData.get("email")?.trim();
   const turnstileToken = formData.get("cf-turnstile-response");
@@ -37,8 +37,8 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const lastName = formData.get("last_name")?.trim();
 
   const LoginFrame = ({ formTitle = "Sign In / Sign Up", children }) => (
-    <RootLayout title={`${formTitle} - ${title}`} description={description} faviconUrl={faviconUrl} styles={["ui", "login"]}>
-      <MainNav logoUrl={logoUrl} siteTitle={title} hideSignIn />
+    <RootLayout title={`${formTitle} - ${title}`} description={description} faviconUrl={favicon_url} styles={["ui", "login"]}>
+      <MainNav logoUrl={logo_url} siteTitle={title} hideSignIn />
       <form className="login-form" method="post" action="/login">
         <FormHeader title={formTitle} tagline={tagline} />
         <fieldset>{children}</fieldset>
@@ -79,7 +79,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   // Generate a new stored code if not present
   if (!storedCode) {
     storedCode = auth.generateVerificationCode();
-    waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: otpExpiryInSeconds }));
+    waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: otp_expiry_seconds }));
   }
 
   // Send verification code email & show the next screen
@@ -131,13 +131,13 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
 
   // Delete verification code & expired sessions
   waitUntil(cacheKv.delete(cacheKey));
-  waitUntil(auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: sessionExpiryInSeconds }));
+  waitUntil(auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: session_expiry_seconds }));
 
   // Set session token in cookie and redirect to "/"
   return new Response(null, {
     status: 302,
     statusText: "Found",
-    headers: { Location: "/", "Set-Cookie": auth.createSessionCookie({ sessionToken, isLocal, maxAge: sessionExpiryInSeconds }) },
+    headers: { Location: "/", "Set-Cookie": auth.createSessionCookie({ sessionToken, isLocal, maxAge: session_expiry_seconds }) },
   });
 });
 

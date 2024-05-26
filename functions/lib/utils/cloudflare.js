@@ -16,7 +16,7 @@ export async function validateTurnstile({ env, turnstileToken }) {
 export function safeguard(handler) {
   return async function (ctx) {
     try {
-      const requiredVars = ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV"];
+      const requiredVars = ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV", "FILE_STORE"];
       ensureEnvVars({ env: ctx.env, func: "safeguard", names: requiredVars });
       return await handler(ctx);
     } catch (error) {
@@ -52,6 +52,10 @@ export const CachePrefix = {
   siteSettings: "SITE_SETTINGS",
 };
 
+export const FileStorePrefix = {
+  assets: "assets",
+};
+
 /**
  * Retrieves site settings from cache, with defaults for any settings not already stored.
  *
@@ -62,13 +66,12 @@ export async function getSiteSettings({ cacheKv }) {
     title: "Site Title",
     tagline: "Insert a short tagline here",
     description: "Insert a longer description of the site for SEO and link previews, limited to 160 characters for best results.",
-    faviconUrl: "/favicon.ico",
-    logoUrl: "/img/logo.svg",
-    metaImageUrl: null,
-    termsOfServiceRawUrl: null,
-    privacyPolicyRawUrl: null,
-    sessionExpiryInSeconds: 45 * 24 * 60 * 60, // 45 days
-    otpExpiryInSeconds: 10 * 60, // 10 minutes
+    favicon_url: "/favicon.ico",
+    logo_url: "/img/logo.svg",
+    terms_of_service_raw_url: null,
+    privacy_policy_raw_url: null,
+    session_expiry_seconds: 45 * 24 * 60 * 60, // 45 days
+    otp_expiry_seconds: 10 * 60, // 10 minutes
   };
 
   const siteSettings = (await cacheKv.get(CachePrefix.siteSettings, { type: "json" })) ?? {};
@@ -80,10 +83,10 @@ export async function getSiteSettings({ cacheKv }) {
  * @property {string} title - The title of the site.
  * @property {string} tagline - A short tagline for the site.
  * @property {string} description - A longer description of the site for SEO purposes, limited to 160 characters.
- * @property {string} faviconUrl - The URL to the site's favicon.
- * @property {string} logoUrl - The URL to the site's logo.
- * @property {string|null} termsOfServiceRawUrl - The raw URL to the terms of service document, if any.
- * @property {string|null} privacyPolicyRawUrl - The raw URL to the privacy policy document, if any.
- * @property {number} sessionExpiryInSeconds - The duration in seconds after which a session expires.
- * @property {number} otpExpiryInSeconds - The duration in seconds after which login verification code expires.
+ * @property {string} favicon_url - The URL to the site's favicon.
+ * @property {string} logo_url - The URL to the site's logo.
+ * @property {string|null} terms_of_service_raw_url - The raw URL to the terms of service document, if any.
+ * @property {string|null} privacy_policy_raw_url - The raw URL to the privacy policy document, if any.
+ * @property {number} session_expiry_seconds - The duration in seconds after which a session expires.
+ * @property {number} otp_expiry_seconds - The duration in seconds after which login verification code expires.
  */

@@ -6,6 +6,16 @@
   padding: 0 1rem;
 }
 
+.site-settings-form > .ui-alert-error {
+  margin-bottom: 1.25rem;
+  max-width: 48rem;
+}
+
+.site-settings-form > .ui-alert-success {
+  margin-bottom: 1.25rem;
+  max-width: 48rem;
+}
+
 .site-settings-form input {
   max-width: 24rem;
 }
@@ -21,4 +31,16 @@
 
 .site-settings-form > footer > input[type="submit"] {
   margin-top: 1.5rem;
+}
+
+img.site-settings-logo {
+  height: 3.5rem;
+  width: auto;
+  margin: 0.5rem 0;
+}
+
+img.site-settings-favicon {
+  height: 2rem;
+  width: auto;
+  margin: 0.5rem 0;
 }

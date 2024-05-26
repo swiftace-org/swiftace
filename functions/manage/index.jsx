@@ -9,8 +9,8 @@ export const onRequest = safeguard(async function ({ request, env }) {
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   return makeHtmlResponse(
-    <RootLayout title={`Admin - ${siteSettings.title}`} description={siteSettings.description} faviconUrl={siteSettings.faviconUrl} styles={["ui", "manage"]}>
-      <MainNav logoUrl={siteSettings.logoUrl} currentUser={currentUser} siteTitle={siteSettings.title} />
+    <RootLayout title={`Admin - ${siteSettings.title}`} description={siteSettings.description} faviconUrl={siteSettings.favicon_url} styles={["ui", "manage"]}>
+      <MainNav logoUrl={siteSettings.logo_url} currentUser={currentUser} siteTitle={siteSettings.title} />
       <main className="ui-container">
         <header className="manage-header">
           <h1 className="ui-page-heading">Manage - {siteSettings.title}</h1>
@@ -30,6 +30,11 @@ export const onRequest = safeguard(async function ({ request, env }) {
             <li>
               <a className="ui-link" href="/manage/secrets">
                 Site Secrets
+              </a>
+            </li>
+            <li>
+              <a className="ui-link" href="/manage/admins">
+                Admins
               </a>
             </li>
           </ul>
