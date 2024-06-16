@@ -3,19 +3,19 @@ import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import * as auth from "lib/utils/auth";
 import { makeSes } from "lib/utils/aws";
-import { CachePrefix, getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
+import { CachePrefixes, getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { title, tagline, description, favicon_url: faviconUrl, logo_url: logoUrl } = await getSiteSettings({ cacheKv });
+  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } = await getSiteSettings({ cacheKv });
   const currentUser = await auth.getCurrentUser({ request, database });
   if (currentUser) return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   return makeHtmlResponse(
-    <RootLayout title={`Sign In / Sign Up - ${title}`} description={description} faviconUrl={faviconUrl} styles={["ui", "login"]}>
-      <MainNav logoUrl={logoUrl} siteTitle={title} hideSignIn />
+    <RootLayout title={`Sign In / Sign Up - ${site_title}`} description={site_description} faviconUrl={site_favicon_url} styles={["ui", "login"]}>
+      <MainNav logoUrl={site_logo_url} siteTitle={site_title} hideSignIn />
       <form className="login-form" method="post" action="/login">
-        <FormHeader title="Sign In / Sign Up" tagline={tagline} />
+        <FormHeader title="Sign In / Sign Up" tagline={site_tagline} />
         <fieldset>
           <EmailInput />
           <Turnstile siteKey={turnstileSiteKey} />
@@ -28,7 +28,9 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 
 export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
   const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { title, tagline, description, favicon_url, logo_url, session_expiry_seconds, otp_expiry_seconds } = await getSiteSettings({ cacheKv });
+  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url, session_expiry_seconds, otp_expiry_seconds } = await getSiteSettings({
+    cacheKv,
+  });
   const formData = await request.formData();
   const email = formData.get("email")?.trim();
   const turnstileToken = formData.get("cf-turnstile-response");
@@ -37,10 +39,10 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const lastName = formData.get("last_name")?.trim();
 
   const LoginFrame = ({ formTitle = "Sign In / Sign Up", children }) => (
-    <RootLayout title={`${formTitle} - ${title}`} description={description} faviconUrl={favicon_url} styles={["ui", "login"]}>
-      <MainNav logoUrl={logo_url} siteTitle={title} hideSignIn />
+    <RootLayout title={`${formTitle} - ${site_title}`} description={site_description} faviconUrl={site_favicon_url} styles={["ui", "login"]}>
+      <MainNav logoUrl={site_logo_url} siteTitle={site_title} hideSignIn />
       <form className="login-form" method="post" action="/login">
-        <FormHeader title={formTitle} tagline={tagline} />
+        <FormHeader title={formTitle} tagline={site_tagline} />
         <fieldset>{children}</fieldset>
         <FormFooter />
       </form>
@@ -73,7 +75,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   let user = await database.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
 
   // Retrieved stored verfication code if present
-  const cacheKey = `${CachePrefix.emailVerificationCode}/${email}`;
+  const cacheKey = `${CachePrefixes.emailVerificationCode}/${email}`;
   let storedCode = await cacheKv.get(cacheKey);
 
   // Generate a new stored code if not present

@@ -4,6 +4,7 @@
 
 .site-settings-form {
   padding: 0 1rem;
+  margin-bottom: 2rem;
 }
 
 .site-settings-form > .ui-alert-error {
@@ -26,7 +27,7 @@
 
 .site-settings-form > fieldset > label:not(:first-child) {
   display: block;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .site-settings-form > footer > input[type="submit"] {

@@ -33,6 +33,11 @@ function ProfileDropdown({ currentUser }) {
         <li>
           <a href="/settings">Settings</a>
         </li>
+        {currentUser.is_admin && (
+          <li>
+            <a href="/manage">Manage</a>
+          </li>
+        )}
         <li>
           <a href="/logout">Sign Out</a>
         </li>

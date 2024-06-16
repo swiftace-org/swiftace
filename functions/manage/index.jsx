@@ -9,17 +9,22 @@ export const onRequest = safeguard(async function ({ request, env }) {
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   return makeHtmlResponse(
-    <RootLayout title={`Admin - ${siteSettings.title}`} description={siteSettings.description} faviconUrl={siteSettings.favicon_url} styles={["ui", "manage"]}>
-      <MainNav logoUrl={siteSettings.logo_url} currentUser={currentUser} siteTitle={siteSettings.title} />
+    <RootLayout
+      title={`Admin - ${siteSettings.site_title}`}
+      description={siteSettings.site_description}
+      faviconUrl={siteSettings.site_favicon_url}
+      styles={["ui", "manage"]}
+    >
+      <MainNav logoUrl={siteSettings.site_logo_url} currentUser={currentUser} siteTitle={siteSettings.site_title} />
       <main className="ui-container">
         <header className="manage-header">
-          <h1 className="ui-page-heading">Manage - {siteSettings.title}</h1>
+          <h1 className="ui-page-heading">Manage - {siteSettings.site_title}</h1>
         </header>
         <section className="manage-links">
           <ul>
             <li>
               <a className="ui-link" href="/manage/courses">
-                Courses
+                Manage Courses
               </a>
             </li>
             <li>
@@ -34,7 +39,7 @@ export const onRequest = safeguard(async function ({ request, env }) {
             </li>
             <li>
               <a className="ui-link" href="/manage/admins">
-                Admins
+                Manage Admins
               </a>
             </li>
           </ul>

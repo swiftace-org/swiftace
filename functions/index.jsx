@@ -7,18 +7,18 @@ import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const { site_title, site_description, site_tagline, site_favicon_url, site_logo_url } = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
 
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
   const sortedCourses = sortCoursesForUser(courses);
   return makeHtmlResponse(
-    <RootLayout title={siteSettings.title} description={siteSettings.description} faviconUrl={siteSettings.favicon_url} styles={["ui", "home"]}>
-      <MainNav logoUrl={siteSettings.logo_url} siteTitle={siteSettings.title} currentUser={currentUser} />
+    <RootLayout title={`${site_title} - ${site_tagline}`} description={site_description} faviconUrl={site_favicon_url} styles={["ui", "home"]}>
+      <MainNav logoUrl={site_logo_url} siteTitle={site_title} currentUser={currentUser} />
       <main className="ui-container">
         <header className="home-header">
-          <h1 className="ui-page-heading">Courses - {siteSettings.title}</h1>
-          <p>{siteSettings.tagline}</p>
+          <h1 className="ui-page-heading">Courses - {site_title}</h1>
+          <p>{site_tagline}</p>
         </header>
         <ul className="home-courses">
           {sortedCourses.map((course) => (
