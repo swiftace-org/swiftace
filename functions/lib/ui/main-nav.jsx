@@ -27,7 +27,7 @@ function ProfileDropdown({ currentUser }) {
   return (
     <div className="ui-dropdown">
       <button>
-        <Avatar avatar={currentUser.avatar} firstName={currentUser.first_name} lastName={currentUser.last_name} />
+        <Avatar avatar={currentUser.avatar_url} firstName={currentUser.first_name} lastName={currentUser.last_name} />
       </button>
       <ul>
         <li>

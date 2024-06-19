@@ -4,6 +4,7 @@ import { RootLayout } from "lib/ui/root-layout";
 import { assert, validateSameKeys } from "lib/utils/assert";
 import { getCurrentUser } from "lib/utils/auth";
 import { CachePrefixes, SiteAssetsKeys, assertSiteSettings, getSiteSettings, makeHtmlResponse, safeguard, uploadSiteAsset } from "lib/utils/cloudflare";
+import { FormSubmissionStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 /** TODO:
@@ -80,7 +81,7 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     `'newSettings' and 'errors' must have the same keys. \nnewSettings: ${Object.keys(newSettings).join(", ")}\nerrors:: ${Object.keys(errors).join(", ")}`
   );
 
-  const status = Object.values(errors).some((value) => value) ? "error" : "success";
+  const status = Object.values(errors).some((value) => value) ? FormSubmissionStatus.ERROR : FormSubmissionStatus.SUCCESS;
 
   await cacheKv.put(CachePrefixes.siteSettings, JSON.stringify(newSettings));
   return makeHtmlResponse(<SiteSettingsPage siteSettings={newSettings} errors={errors} currentUser={currentUser} status={status} />);
@@ -105,8 +106,8 @@ function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, stat
           enctype="multipart/form-data"
           onsubmit="return window.confirm('Are you sure you want to save the site settings?')"
         >
-          {status === "error" && <Alert title="Error" message="Some settings were not saved. Please fix the errors." variant="error" />}
-          {status === "success" && <Alert title="Success" message="Settings saved successfully." variant="success" />}
+          {status === FormSubmissionStatus.ERROR && <Alert title="Error" message="Some settings were not saved. Please fix the errors." variant="error" />}
+          {status === FormSubmissionStatus.SUCCESS && <Alert title="Success" message="Settings saved successfully." variant="success" />}
           <fieldset>
             <SiteTitleInput value={S.site_title} error={E?.site_title} />
             <SiteTaglineInput value={S.site_tagline} error={E?.site_tagline} />

@@ -27,11 +27,11 @@
 
 .site-settings-form > fieldset > label:not(:first-child) {
   display: block;
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
 }
 
 .site-settings-form > footer > input[type="submit"] {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
 }
 
 img.site-settings-logo {

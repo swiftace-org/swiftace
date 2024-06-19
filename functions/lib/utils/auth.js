@@ -52,6 +52,12 @@ export async function getCurrentUser({ request, database }) {
   return user;
 }
 
+export async function getUserEmails({ user, database }) {
+  const query = `SELECT email FROM user_emails WHERE user_id = ? LIMIT 10;`;
+  const queryOutcome = await database.prepare(query).bind(user.id).all();
+  return queryOutcome.results;
+}
+
 export function createSessionCookie({ sessionToken, isLocal, maxAge }) {
   return `SESSION_TOKEN=${sessionToken}; Max-Age=${maxAge}; Path="/"; HttpOnly; SameSite=Strict; ${isLocal ? "" : "Secure"}`;
 }

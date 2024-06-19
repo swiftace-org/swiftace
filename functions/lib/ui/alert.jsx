@@ -14,3 +14,9 @@ export function Alert({ title, message, variant = "neutral" }) {
     </aside>
   );
 }
+
+export const AlertVariant = {
+  NEUTRAL: "neutral",
+  ERROR: "error",
+  SUCCESS: "success",
+};
