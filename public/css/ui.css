@@ -196,7 +196,7 @@
     font-size: 0.875rem;
     display: none;
     position: absolute;
-    min-width: 12ch;
+    min-width: 14ch;
     background-color: var(--bg-body);
     border-width: 1px;
     right: 0;

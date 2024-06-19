@@ -4,13 +4,18 @@ import { getCurrentUser } from "lib/utils/auth";
 import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
+/** TODO:
+ * - [ ] Show tiles instead of just a list of links
+ * - [ ] Create a page for saving encrypted secrets (instead of in dev.vars)
+ */
+
 export const onRequest = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   return makeHtmlResponse(
     <RootLayout
-      title={`Admin - ${siteSettings.site_title}`}
+      title={`Manage Site - ${siteSettings.site_title}`}
       description={siteSettings.site_description}
       faviconUrl={siteSettings.site_favicon_url}
       styles={["ui", "manage"]}
@@ -18,7 +23,7 @@ export const onRequest = safeguard(async function ({ request, env }) {
       <MainNav logoUrl={siteSettings.site_logo_url} currentUser={currentUser} siteTitle={siteSettings.site_title} />
       <main className="ui-container">
         <header className="manage-header">
-          <h1 className="ui-page-heading">Manage - {siteSettings.site_title}</h1>
+          <h1 className="ui-page-heading">Manage Site - {siteSettings.site_title}</h1>
         </header>
         <section className="manage-links">
           <ul>

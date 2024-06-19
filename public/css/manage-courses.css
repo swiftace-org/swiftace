@@ -1,0 +1,28 @@
+section:has(> table.manage-courses-table) {
+  margin: 0 1rem;
+}
+
+table.manage-courses-table {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  border-collapse: collapse;
+}
+
+table.manage-courses-table th {
+  border-width: 1px;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+table.manage-courses-table td {
+  border-width: 1px;
+  padding: 0.5rem;
+}
+
+ul.manage-courses-actions {
+  display: flex;
+}
+
+ul.manage-courses-actions li:not(:last-child) {
+  margin-right: 0.5rem;
+}
