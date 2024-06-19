@@ -67,6 +67,11 @@
   opacity: 0.9;
 }
 
+.ui-breadcrumbs {
+  display: flex;
+  margin-bottom: 0.125rem;
+}
+
 .ui-button {
   display: inline-flex;
   align-items: center;
@@ -236,6 +241,10 @@
   max-width: 24rem;
 }
 
+.ui-form select {
+  max-width: 24rem;
+}
+
 .ui-form textarea {
   max-width: 48rem;
 }
@@ -261,7 +270,7 @@
 
 .ui-form-label {
   display: flex;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   font-size: 0.875rem;
   line-height: 1;
   font-weight: 500;
@@ -271,6 +280,11 @@
   > a {
     font-weight: 400;
   }
+}
+
+.ui-form-asterisk {
+  margin-left: 0.125rem;
+  color: var(--text-error);
 }
 
 .ui-form-error {

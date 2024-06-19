@@ -1,4 +1,5 @@
 import { Alert } from "lib/ui/alert";
+import { Breadcrumbs } from "lib/ui/breadcrumbs";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { assert, validateSameKeys } from "lib/utils/assert";
@@ -89,16 +90,17 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
 
 function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, status = null }) {
   return (
-    <RootLayout
-      title={`Manage Site Settings - ${S.site_title}`}
-      description={S.site_description}
-      faviconUrl={S.site_favicon_url}
-      styles={["ui", "site-settings"]}
-    >
+    <RootLayout title={`Site Settings - ${S.site_title}`} description={S.site_description} faviconUrl={S.site_favicon_url} styles={["ui", "site-settings"]}>
       <MainNav siteTitle={S.site_title} logoUrl={S.site_logo_url} currentUser={currentUser} />
       <main className="ui-container-sm">
         <header className="site-settings-header">
-          <h1 className="ui-page-heading">Manage Site Settings</h1>
+          <Breadcrumbs
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Manage", href: "/manage" },
+            ]}
+          />
+          <h1 className="ui-page-heading">Site Settings</h1>
         </header>
         <form
           className="site-settings-form"

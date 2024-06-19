@@ -16,6 +16,10 @@
   margin-top: 1.25rem;
 }
 
+.login-form .ui-form-label {
+  justify-content: space-between;
+}
+
 .login-form > header > h2 {
   font-size: 1.5rem;
   line-height: 1;

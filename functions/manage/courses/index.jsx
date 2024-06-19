@@ -1,3 +1,4 @@
+import { Breadcrumbs } from "lib/ui/breadcrumbs";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { PrivacyDisplay } from "lib/utils/constants";
 
@@ -30,9 +31,15 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
       styles={["ui", "manage-courses"]}
     >
       <MainNav currentUser={currentUser} siteTitle={siteSettings.site_title} logoUrl={siteSettings.site_logo_url} />
-      <main className="ui-container">
+      <main className="ui-container-sm">
         <header className="ui-page-header">
-          <h1 className="ui-page-heading">Manage Courses</h1>
+          <Breadcrumbs
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Manage", href: "/manage" },
+            ]}
+          />
+          <h1 className="ui-page-heading">Courses</h1>
         </header>
         <section>
           <table className="manage-courses-table">

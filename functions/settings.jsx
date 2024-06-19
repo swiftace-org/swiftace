@@ -1,4 +1,5 @@
 import { Alert, AlertVariant } from "lib/ui/alert";
+import { Breadcrumbs } from "lib/ui/breadcrumbs";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
@@ -104,6 +105,7 @@ function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors
       <MainNav currentUser={currentUser} siteTitle={siteSettings.site_title} logoUrl={siteSettings.site_logo_url} />
       <div className="ui-container-sm">
         <header className="ui-page-header">
+          <Breadcrumbs items={[{ label: "Home", href: "/" }]} />
           <h1 className="ui-page-heading">Account Settings</h1>
         </header>
         <form className="ui-form" method="post" enctype="multipart/form-data">
