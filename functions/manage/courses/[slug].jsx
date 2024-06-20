@@ -1,5 +1,5 @@
 import { Breadcrumbs } from "lib/ui/breadcrumbs";
-import { EditCourseForm, parseCourseForm } from "lib/ui/edit-course-form";
+import { EditCourseForm, parseCourseForm, uploadCourseCover } from "lib/ui/edit-course-form";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
@@ -8,12 +8,16 @@ import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudfla
 import { FormStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
+/** TODO:
+ * - [ ] Support removing cover image
+ */
+
 export const onRequest = safeguard(async function ({ request, env, params }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { CACHE_KV: cacheKv, DB: database } = env;
+  const { CACHE_KV: cacheKv, DB: database, FILE_STORE: fileStore } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   const baseProps = { siteSettings, currentUser };
@@ -40,7 +44,19 @@ export const onRequest = safeguard(async function ({ request, env, params }) {
   const formData = await request.formData();
   const { values, errors, files } = parseCourseForm({ formData });
 
-  if (Object.values(errors).some((value) => value)) {
+  let hasErrors = Object.values(errors).some((value) => value);
+  if (!hasErrors) {
+    const { url: cover_url, error: cover_url_error } = await uploadCourseCover({
+      fileStore,
+      courseId: course.id,
+      file: files.cover_url,
+    });
+    values.cover_url = cover_url ?? course.cover_url;
+    errors.cover_url = cover_url_error;
+    hasErrors = Object.values(errors).some((value) => value);
+  }
+
+  if (hasErrors) {
     return makeHtmlResponse(
       <ManageCoursePage
         {...baseProps}
@@ -52,8 +68,6 @@ export const onRequest = safeguard(async function ({ request, env, params }) {
       />
     );
   }
-
-  // TODO - update cover image
 
   let updatedCourse;
   try {
@@ -77,6 +91,7 @@ export const onRequest = safeguard(async function ({ request, env, params }) {
         values.additional_info
       )
       .first();
+    if (!updatedCourse) throw new Error(`Unknown error: 'updatedCouse' is '${updatedCourse}'.`);
   } catch (e) {
     return makeHtmlResponse(
       <ManageCoursePage

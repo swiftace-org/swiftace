@@ -1,7 +1,8 @@
-import { FormStatus } from "lib/utils/constants";
+import { FilePrefix, FormStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 import { Alert, AlertVariant } from "./alert";
 import { Asterisk } from "./asterisk";
+import { uploadFile } from "lib/utils/cloudflare";
 
 export function EditCourseForm({
   values,
@@ -67,6 +68,16 @@ export function parseCourseForm({ formData }) {
   if (!values.privacy) errors.privacy = "Privacy is required"; // todo - also check valid values
 
   return { values, errors, files };
+}
+
+export async function uploadCourseCover({ fileStore, courseId, file }) {
+  // TODO - Validate file dimensions
+  return uploadFile({
+    fileStore,
+    key: `${FilePrefix.COURSES}/${courseId}/cover`,
+    file,
+    maxSize: 2 * 1024 * 1024,
+  });
 }
 
 const FieldNames = {
@@ -282,7 +293,7 @@ function CoverImageField({ value, error }) {
     <>
       <label>
         <div className="ui-form-label">{FieldLabels.cover_url}</div>
-        <img src={value} /> {/* TODO - add styles here */}
+        <img className="ui-form-image-preview" title={value} alt={value} src={value} />
         <input className="ui-form-input" name={FieldNames.cover_url} type="file" />
       </label>
       {error ? (

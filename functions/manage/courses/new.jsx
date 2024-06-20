@@ -1,5 +1,5 @@
 import { Breadcrumbs } from "lib/ui/breadcrumbs";
-import { EditCourseForm, parseCourseForm } from "lib/ui/edit-course-form";
+import { EditCourseForm, parseCourseForm, uploadCourseCover } from "lib/ui/edit-course-form";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
@@ -67,6 +67,7 @@ export const onRequest = safeguard(async function ({ request, env }) {
       )
       .first();
     courseId = insertedCourse.id;
+    if (!courseId) throw new Error(`Unknown error: 'courseId' is '${courseId}'.`);
   } catch (e) {
     return makeHtmlResponse(
       <NewCoursePage
@@ -78,9 +79,23 @@ export const onRequest = safeguard(async function ({ request, env }) {
     );
   }
 
-  console.log({ courseId });
-
-  // TODO - upload cover image
+  const { url: cover_url, error: cover_error } = await uploadCourseCover({
+    fileStore,
+    courseId,
+    file: files.cover_url,
+  });
+  if (cover_error) {
+    // TODO - what to do in this case? (course created but cover not added)
+    console.error("Failed to upload cover image. " + cover_error);
+  } else if (cover_url) {
+    const updateQuery = `UPDATE courses SET cover_url = ? WHERE id = ?`;
+    try {
+      await database.prepare(updateQuery).bind(cover_url, courseId).run();
+    } catch (e) {
+      // TODO - what do do in this case? (cover uploaded but not set in DB)
+      console.error("Failed to save uploaded cover image in DB. " + e.message);
+    }
+  }
 
   return new Response(null, {
     status: 302,

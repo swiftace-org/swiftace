@@ -78,7 +78,8 @@
   justify-content: center;
   border-radius: var(--border-radius);
   text-align: center;
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke,
+    opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   color: var(--text-button);
@@ -268,6 +269,13 @@
   margin-top: 1.5rem;
 }
 
+.ui-form-image-preview {
+  margin-bottom: 0.5rem;
+  max-width: 48rem;
+  width: 100%;
+  height: auto;
+}
+
 .ui-form-label {
   display: flex;
   /* justify-content: space-between; */
@@ -312,7 +320,8 @@
 .ui-form-input:focus {
   outline: 2px solid transparent;
   border-color: rgb(106 158 255 / 50%);
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke,
+    opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   box-shadow: 0 0 0 3px rgb(52 144 220 / 50%);
