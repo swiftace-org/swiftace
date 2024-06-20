@@ -55,8 +55,8 @@ export const CachePrefixes = {
 };
 
 export const FileStorePrefixes = {
-  assets: "assets",
-  avatars: "avatars",
+  ASSETS: "assets",
+  AVATARS: "avatars",
 };
 
 /**
@@ -130,24 +130,13 @@ export const SiteAssetsKeys = {
   privacy_policy: "privacy-policy",
 };
 
-export async function uploadSiteAsset({ fileStore, file, name, maxSize }) {
+export async function uploadFile({ fileStore, file, key, maxSize = null }) {
   if (!file) return { url: null };
-  if (file.size > maxSize) return { error: `Please upload a file smaller than ${formatBytes(maxSize)}.` };
+  if (maxSize && file.size > maxSize) return { error: `Please upload a file smaller than ${formatBytes(maxSize)}` };
   const extension = file.name.split(".").pop();
-  const key = `${FileStorePrefixes.assets}/${name}`;
   const uploadResult = await fileStore.put(key, file, { httpMetadata: { contentType: file.type }, customMetadata: { extension } });
   const uploadTimestamp = uploadResult.uploaded.getTime();
-  return { url: `/assets/${name}.${extension}?t=${uploadTimestamp}` };
-}
-
-export async function uploadAvatar({ fileStore, file, userId, maxSize }) {
-  if (!file) return { url: null };
-  if (file.size > maxSize) return { error: `Please upload a file smaller than ${formatBytes(maxSize)}.` };
-  const extension = file.name.split(".").pop();
-  const key = `${FileStorePrefixes.avatars}/${userId}`;
-  const uploadResult = await fileStore.put(key, file, { httpMetadata: { contentType: file.type }, customMetadata: { extension } });
-  const uploadTimestamp = uploadResult.uploaded.getTime();
-  return { url: `/avatars/${userId}.${extension}?t=${uploadTimestamp}` };
+  return { url: `/files/${key}.${extension}?t=${uploadTimestamp}` };
 }
 
 export function formatBytes(bytes, decimals = 2) {

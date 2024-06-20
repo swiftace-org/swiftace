@@ -4,7 +4,7 @@ import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
 import { getCurrentUser, getUserEmails } from "lib/utils/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard, uploadAvatar } from "lib/utils/cloudflare";
+import { FileStorePrefixes, getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/utils/cloudflare";
 import { FormSubmissionStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
@@ -55,10 +55,10 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
   const avatar_file = formData.get(FieldNames.avatar_url);
   let avatar_url;
   if (avatar_file) {
-    const { url, error } = await uploadAvatar({
+    const { url, error } = await uploadFile({
       fileStore,
       file: avatar_file,
-      userId: currentUser.id,
+      key: `${FileStorePrefixes.AVATARS}/user-${currentUser.id}`,
       maxSize: 1 * 1024 * 1024, // 1 MB
     });
     avatar_url = url;

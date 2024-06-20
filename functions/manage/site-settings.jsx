@@ -4,23 +4,34 @@ import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { assert, validateSameKeys } from "lib/utils/assert";
 import { getCurrentUser } from "lib/utils/auth";
-import { CachePrefixes, SiteAssetsKeys, assertSiteSettings, getSiteSettings, makeHtmlResponse, safeguard, uploadSiteAsset } from "lib/utils/cloudflare";
+import {
+  CachePrefixes,
+  FileStorePrefixes,
+  SiteAssetsKeys,
+  assertSiteSettings,
+  getSiteSettings,
+  makeHtmlResponse,
+  safeguard,
+  uploadFile,
+} from "lib/utils/cloudflare";
 import { FormSubmissionStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 /** TODO:
- * - Add a .ui-form-field enclosing div to control label & input widths
- * - Refactor ui-form-input CSS to remove flex layout from labels (also refactor login page accordingly)
- * - Show preview logo & favicon images on upload (client-side JS)
- * - Validate file sizes before form submission (show error alert box or just window.alert)
- * - Validate text fields on server side (in case form was submitted directly using POST)
- * - Add a dismiss button to the success alert
- * - Indicate if terms of service and privacy policy have not been set
- * - Show not found page with proper styling
- * - Add file type checks on server side too
- * - Extract file types and file sizes into common components
- * - Add alt text for images
- * - Overwrite with default setting if an invalid setting is found
+ * - [ ] Add a .ui-form-field enclosing div to control label & input widths
+ * - [ ] Refactor ui-form-input CSS to remove flex layout from labels (also refactor login page accordingly)
+ * - [ ] Show preview logo & favicon images on upload (client-side JS)
+ * - [ ] Validate file sizes before form submission (show error alert box or just window.alert)
+ * - [ ] Validate text fields on server side (in case form was submitted directly using POST)
+ * - [ ] Add a dismiss button to the success alert
+ * - [ ] Indicate if terms of service and privacy policy have not been set
+ * - [ ] Show not found page with proper styling
+ * - [ ] Add file type checks on server side too
+ * - [ ] Extract file types and file sizes into common components
+ * - [ ] Add alt text for images
+ * - [ ] Overwrite with default setting if an invalid setting is found
+ * - [ ] Resize large images to make them smaller to serve
+ * - [ ] Maybe look into using cloudflare images for image serving (??)
  */
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
@@ -46,10 +57,30 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     { url: terms_of_service_raw_url, error: terms_of_service_error },
     { url: privacy_policy_raw_url, error: privacy_policy_error },
   ] = await Promise.all([
-    uploadSiteAsset({ fileStore, name: SiteAssetsKeys.site_favicon, file: formData.get(FieldNames.site_favicon), maxSize: 100 * 1024 }),
-    uploadSiteAsset({ fileStore, name: SiteAssetsKeys.site_logo, file: formData.get(FieldNames.site_logo), maxSize: 2 * 1024 * 1024 }),
-    uploadSiteAsset({ fileStore, name: SiteAssetsKeys.terms_of_service, file: formData.get(FieldNames.terms_of_service), maxSize: 1024 * 1024 }),
-    uploadSiteAsset({ fileStore, name: SiteAssetsKeys.privacy_policy, file: formData.get(FieldNames.privacy_policy), maxSize: 1024 * 1024 }),
+    uploadFile({
+      fileStore,
+      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.site_favicon}`,
+      file: formData.get(FieldNames.site_favicon),
+      maxSize: 100 * 1024,
+    }),
+    uploadFile({
+      fileStore,
+      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.site_logo}`,
+      file: formData.get(FieldNames.site_logo),
+      maxSize: 2 * 1024 * 1024,
+    }),
+    uploadFile({
+      fileStore,
+      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.terms_of_service}`,
+      file: formData.get(FieldNames.terms_of_service),
+      maxSize: 1024 * 1024,
+    }),
+    uploadFile({
+      fileStore,
+      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.privacy_policy}`,
+      file: formData.get(FieldNames.privacy_policy),
+      maxSize: 1024 * 1024,
+    }),
   ]);
 
   const newSettings = {
