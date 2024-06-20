@@ -4,17 +4,11 @@ import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { assert, validateSameKeys } from "lib/utils/assert";
 import { getCurrentUser } from "lib/utils/auth";
-import {
-  CachePrefixes,
-  FileStorePrefixes,
-  SiteAssetsKeys,
-  assertSiteSettings,
-  getSiteSettings,
-  makeHtmlResponse,
-  safeguard,
-  uploadFile,
-} from "lib/utils/cloudflare";
-import { FormSubmissionStatus } from "lib/utils/constants";
+import { assertSiteSettings, getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/utils/cloudflare";
+import { SiteAssetFilename } from "lib/utils/constants";
+import { CachePrefix } from "lib/utils/constants";
+import { FilePrefix } from "lib/utils/constants";
+import { FormStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 /** TODO:
@@ -59,25 +53,25 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
   ] = await Promise.all([
     uploadFile({
       fileStore,
-      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.site_favicon}`,
+      key: `${FilePrefix.ASSETS}/${SiteAssetFilename.site_favicon}`,
       file: formData.get(FieldNames.site_favicon),
       maxSize: 100 * 1024,
     }),
     uploadFile({
       fileStore,
-      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.site_logo}`,
+      key: `${FilePrefix.ASSETS}/${SiteAssetFilename.site_logo}`,
       file: formData.get(FieldNames.site_logo),
       maxSize: 2 * 1024 * 1024,
     }),
     uploadFile({
       fileStore,
-      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.terms_of_service}`,
+      key: `${FilePrefix.ASSETS}/${SiteAssetFilename.terms_of_service}`,
       file: formData.get(FieldNames.terms_of_service),
       maxSize: 1024 * 1024,
     }),
     uploadFile({
       fileStore,
-      key: `${FileStorePrefixes.ASSETS}/${SiteAssetsKeys.privacy_policy}`,
+      key: `${FilePrefix.ASSETS}/${SiteAssetFilename.privacy_policy}`,
       file: formData.get(FieldNames.privacy_policy),
       maxSize: 1024 * 1024,
     }),
@@ -113,9 +107,9 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     `'newSettings' and 'errors' must have the same keys. \nnewSettings: ${Object.keys(newSettings).join(", ")}\nerrors:: ${Object.keys(errors).join(", ")}`
   );
 
-  const status = Object.values(errors).some((value) => value) ? FormSubmissionStatus.ERROR : FormSubmissionStatus.SUCCESS;
+  const status = Object.values(errors).some((value) => value) ? FormStatus.ERROR : FormStatus.SUCCESS;
 
-  await cacheKv.put(CachePrefixes.siteSettings, JSON.stringify(newSettings));
+  await cacheKv.put(CachePrefix.SITE_SETTINGS, JSON.stringify(newSettings));
   return makeHtmlResponse(<SiteSettingsPage siteSettings={newSettings} errors={errors} currentUser={currentUser} status={status} />);
 });
 
@@ -139,8 +133,8 @@ function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, stat
           enctype="multipart/form-data"
           onsubmit="return window.confirm('Are you sure you want to save the site settings?')"
         >
-          {status === FormSubmissionStatus.ERROR && <Alert title="Error" message="Some settings were not saved. Please fix the errors." variant="error" />}
-          {status === FormSubmissionStatus.SUCCESS && <Alert title="Success" message="Settings saved successfully." variant="success" />}
+          {status === FormStatus.ERROR && <Alert title="Error" message="Some settings were not saved. Please fix the errors." variant="error" />}
+          {status === FormStatus.SUCCESS && <Alert title="Success" message="Settings saved successfully." variant="success" />}
           <fieldset>
             <SiteTitleInput value={S.site_title} error={E?.site_title} />
             <SiteTaglineInput value={S.site_tagline} error={E?.site_tagline} />

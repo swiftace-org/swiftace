@@ -8,28 +8,33 @@ import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudfla
 import { FormStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
-/** TODO:
- * - [ ] Perform validation before creating course
- * - [ ] Validate the slug to ensure it contains lowecase and hyphens only
- * - [ ] Create a common path for serving files e.g. /files/a/long/key.ext?t=1243
- */
-
-export const onRequest = safeguard(async function ({ request, env }) {
+export const onRequest = safeguard(async function ({ request, env, params }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { CACHE_KV: cacheKv, DB: database, FILE_STORE: fileStore } = env;
+  const { CACHE_KV: cacheKv, DB: database } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   const baseProps = { siteSettings, currentUser };
-
   if (!currentUser || !currentUser?.is_admin) {
     return makeHtmlResponse(<NotFoundPage {...baseProps} />);
   }
 
-  if (request.method == "GET") {
-    return makeHtmlResponse(<NewCoursePage {...baseProps} />);
+  const courseSlug = params.slug;
+  const query = `SELECT id, title, slug, privacy, overview, description, 
+    cover_url, promo_video_url, additional_info 
+    FROM courses 
+    WHERE slug = ? 
+    LIMIT 1`;
+  const course = await database.prepare(query).bind(courseSlug).first();
+  if (!course) {
+    return makeHtmlResponse(<NotFoundPage {...baseProps} />);
+  }
+
+  baseProps.course = course;
+  if (request.method === "GET") {
+    return makeHtmlResponse(<ManageCoursePage {...baseProps} course={course} values={course} />);
   }
 
   const formData = await request.formData();
@@ -37,69 +42,78 @@ export const onRequest = safeguard(async function ({ request, env }) {
 
   if (Object.values(errors).some((value) => value)) {
     return makeHtmlResponse(
-      <NewCoursePage
+      <ManageCoursePage
         {...baseProps}
+        course={course}
         values={values}
         status={FormStatus.ERROR}
         errors={errors}
-        statusMessage={"Failed to create course. Please fix the errors below."}
+        statusMessage={"Failed to save course. Please fix the errors below."}
       />
     );
   }
 
-  // Create the course
-  const insertQuery = `INSERT INTO courses 
-    (privacy, slug, title, overview, description, promo_video_url, additional_info) 
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id`;
+  // TODO - update cover image
 
-  let courseId;
+  let updatedCourse;
   try {
-    const insertedCourse = await database
-      .prepare(insertQuery)
+    const updateQuery = `UPDATE courses
+    SET slug = ?2, privacy = ?3, title = ?4, overview = ?5, description = ?6,
+      cover_url = ?7, promo_video_url = ?8, additional_info = ?9
+    WHERE slug = ?1
+    RETURNING id, title, slug, privacy, overview, description, 
+      cover_url, promo_video_url, additional_info;`;
+    updatedCourse = await database
+      .prepare(updateQuery)
       .bind(
-        values.privacy,
+        course.slug,
         values.slug,
+        values.privacy,
         values.title,
         values.overview,
         values.description,
+        values.cover_url ?? null,
         values.promo_video_url,
         values.additional_info
       )
       .first();
-    courseId = insertedCourse.id;
   } catch (e) {
     return makeHtmlResponse(
-      <NewCoursePage
+      <ManageCoursePage
         {...baseProps}
+        course={course}
         values={values}
         status={FormStatus.ERROR}
-        statusMessage={`Failed to create course. ${e.message}`}
+        statusMessage={`Failed to save course. ${e.message}`}
       />
     );
   }
 
-  console.log({ courseId });
+  if (course.slug !== updatedCourse.slug) {
+    return new Response(null, {
+      status: 302,
+      statusText: "Found",
+      headers: { Location: `/manage/courses/${updatedCourse.slug}` },
+    });
+  }
 
-  // TODO - upload cover image
-
-  return new Response(null, {
-    status: 302,
-    statusText: "Found",
-    headers: { Location: `/manage/course/${values.slug}` },
-  });
+  return makeHtmlResponse(
+    <ManageCoursePage {...baseProps} course={updatedCourse} values={updatedCourse} />
+  );
 });
 
-function NewCoursePage({
-  currentUser,
+function ManageCoursePage({
   siteSettings,
-  values = null,
+  currentUser,
+  course,
+  values,
   errors = null,
   status = null,
   statusMessage = null,
 }) {
   return (
     <RootLayout
-      title={`New Course - ${siteSettings.site_title}`}
+      title={`Manage Course - ${course.title} - ${siteSettings.site_title}`}
       description={siteSettings.site_description}
       faviconUrl={siteSettings.site_favicon_url}
     >
@@ -117,16 +131,16 @@ function NewCoursePage({
               { label: "Courses", href: "/manage/courses" },
             ]}
           />
-          <h1 className="ui-page-heading">New Course</h1>
+          <h1 className="ui-page-heading">{course.title}</h1>
         </header>
         <EditCourseForm
           values={values}
           errors={errors}
           status={status}
           statusMessage={statusMessage}
-          submitLabel="Create Course"
-          action="/manage/courses/new"
-          confirmMessage="Are you sure you want to create a course with the provided information?"
+          submitLabel="Save Course"
+          action={`/manage/courses/${course.slug}`}
+          confirmMessage="Are you sure you want to update the course with provided information?"
         />
       </main>
     </RootLayout>

@@ -4,8 +4,9 @@ import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
 import { getCurrentUser, getUserEmails } from "lib/utils/auth";
-import { FileStorePrefixes, getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/utils/cloudflare";
-import { FormSubmissionStatus } from "lib/utils/constants";
+import { getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/utils/cloudflare";
+import { FilePrefix } from "lib/utils/constants";
+import { FormStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 /** Blog Post - Anatomy of a Form
@@ -24,6 +25,7 @@ import jsx from "lib/utils/jsx";
  * - [ ] Add more server-side validations
  * - [ ] Allow removing profile picture
  * - [ ] Show preview of profile picture on upload
+ * - [ ] Resize avatarimage to a small size
  */
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
@@ -31,10 +33,17 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   const siteSettings = await getSiteSettings({ cacheKv });
 
   const currentUser = await getCurrentUser({ request, database });
-  if (!currentUser) return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
+  if (!currentUser)
+    return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
   const userEmails = await getUserEmails({ user: currentUser, database });
 
-  return makeHtmlResponse(<AccountSettingsPage siteSettings={siteSettings} currentUser={currentUser} userEmails={userEmails} />);
+  return makeHtmlResponse(
+    <AccountSettingsPage
+      siteSettings={siteSettings}
+      currentUser={currentUser}
+      userEmails={userEmails}
+    />
+  );
 });
 
 export const onRequestPost = safeguard(async function ({ request, env }) {
@@ -42,7 +51,8 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
   const siteSettings = await getSiteSettings({ cacheKv });
 
   const currentUser = await getCurrentUser({ request, database });
-  if (!currentUser) return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
+  if (!currentUser)
+    return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
   const userEmails = await getUserEmails({ user: currentUser, database });
 
   const formData = await request.formData();
@@ -58,7 +68,7 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     const { url, error } = await uploadFile({
       fileStore,
       file: avatar_file,
-      key: `${FileStorePrefixes.AVATARS}/user-${currentUser.id}`,
+      key: `${FilePrefix.AVATARS}/user-${currentUser.id}`,
       maxSize: 1 * 1024 * 1024, // 1 MB
     });
     avatar_url = url;
@@ -67,17 +77,32 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     avatar_url = currentUser.avatar_url;
   }
 
-  const status = Object.values(formErrors).some((value) => value) ? FormSubmissionStatus.ERROR : FormSubmissionStatus.SUCCESS;
+  const status = Object.values(formErrors).some((value) => value)
+    ? FormStatus.ERROR
+    : FormStatus.SUCCESS;
   if (status === "error") {
     return makeHtmlResponse(
-      <AccountSettingsPage siteSettings={siteSettings} currentUser={currentUser} userEmails={userEmails} status={status} formErrors={formErrors} />
+      <AccountSettingsPage
+        siteSettings={siteSettings}
+        currentUser={currentUser}
+        userEmails={userEmails}
+        status={status}
+        formErrors={formErrors}
+      />
     );
   }
 
   const query = `UPDATE users SET first_name = ?, last_name = ?, avatar_url = ? WHERE id = ?`;
   await database.prepare(query).bind(first_name, last_name, avatar_url, currentUser.id).run();
   const newCurrentUser = await getCurrentUser({ database, request });
-  return makeHtmlResponse(<AccountSettingsPage siteSettings={siteSettings} currentUser={newCurrentUser} userEmails={userEmails} status={status} />);
+  return makeHtmlResponse(
+    <AccountSettingsPage
+      siteSettings={siteSettings}
+      currentUser={newCurrentUser}
+      userEmails={userEmails}
+      status={status}
+    />
+  );
 });
 
 const FieldNames = {
@@ -99,43 +124,90 @@ const FieldHints = {
   email: "Your email cannot be updated.",
 };
 
-function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors = null, status = null }) {
+function AccountSettingsPage({
+  siteSettings,
+  currentUser,
+  userEmails,
+  formErrors = null,
+  status = null,
+}) {
   return (
-    <RootLayout title={`Account Settings - ${siteSettings.site_title}`} description={siteSettings.site_description} faviconUrl={siteSettings.favicon_url}>
-      <MainNav currentUser={currentUser} siteTitle={siteSettings.site_title} logoUrl={siteSettings.site_logo_url} />
+    <RootLayout
+      title={`Account Settings - ${siteSettings.site_title}`}
+      description={siteSettings.site_description}
+      faviconUrl={siteSettings.favicon_url}
+    >
+      <MainNav
+        currentUser={currentUser}
+        siteTitle={siteSettings.site_title}
+        logoUrl={siteSettings.site_logo_url}
+      />
       <div className="ui-container-sm">
         <header className="ui-page-header">
           <Breadcrumbs items={[{ label: "Home", href: "/" }]} />
           <h1 className="ui-page-heading">Account Settings</h1>
         </header>
         <form className="ui-form" method="post" enctype="multipart/form-data">
-          {status === FormSubmissionStatus.ERROR && (
-            <Alert title="Error" message="Settings were not saved. Please fix the errors." variant={AlertVariant.ERROR} />
+          {status === FormStatus.ERROR && (
+            <Alert
+              title="Error"
+              message="Settings were not saved. Please fix the errors."
+              variant={AlertVariant.ERROR}
+            />
           )}
-          {status === FormSubmissionStatus.SUCCESS && <Alert title="Success" message="Settings saved successfully." variant={AlertVariant.SUCCESS} />}
+          {status === FormStatus.SUCCESS && (
+            <Alert
+              title="Success"
+              message="Settings saved successfully."
+              variant={AlertVariant.SUCCESS}
+            />
+          )}
 
           <fieldset>
             <label>
               <div className="ui-form-label">{FieldLabels.first_name}</div>
-              <input className="ui-form-input" name={FieldNames.first_name} type="text" value={currentUser.first_name} />
+              <input
+                className="ui-form-input"
+                name={FieldNames.first_name}
+                type="text"
+                value={currentUser.first_name}
+              />
             </label>
-            {formErrors?.first_name && <div className="ui-form-error">{formErrors?.first_name}</div>}
+            {formErrors?.first_name && (
+              <div className="ui-form-error">{formErrors?.first_name}</div>
+            )}
             <label>
               <div className="ui-form-label">{FieldLabels.last_name}</div>
-              <input className="ui-form-input" name={FieldNames.last_name} type="text" value={currentUser.last_name} />
+              <input
+                className="ui-form-input"
+                name={FieldNames.last_name}
+                type="text"
+                value={currentUser.last_name}
+              />
             </label>
             {formErrors?.last_name && <div className="ui-form-error">{formErrors?.last_name}</div>}
             <label>
               <div className="ui-form-label">{FieldLabels.email}</div>
               {userEmails.map((row) => (
-                <input className="ui-form-input" name={FieldNames.email} type="text" value={row.email} disabled />
+                <input
+                  className="ui-form-input"
+                  name={FieldNames.email}
+                  type="text"
+                  value={row.email}
+                  disabled
+                />
               ))}
             </label>
             <div className="ui-form-hint">{FieldHints.email}</div>
             <label>
               <div className="ui-form-label">{FieldLabels.avatar_url}</div>
               <img className="ui-form-round-image" height="40" src={currentUser.avatar_url} />
-              <input className="ui-form-input" name={FieldNames.avatar_url} type="file" />
+              <input
+                className="ui-form-input"
+                name={FieldNames.avatar_url}
+                type="file"
+                accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
+              />
             </label>
             {formErrors?.avatar_url ? (
               <div className="ui-form-error">{formErrors?.avatar_url}</div>

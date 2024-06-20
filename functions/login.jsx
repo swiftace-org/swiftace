@@ -3,7 +3,8 @@ import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import * as auth from "lib/utils/auth";
 import { makeSes } from "lib/utils/aws";
-import { CachePrefixes, getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
+import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
+import { CachePrefix } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
@@ -75,7 +76,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   let user = await database.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
 
   // Retrieved stored verfication code if present
-  const cacheKey = `${CachePrefixes.emailVerificationCode}/${email}`;
+  const cacheKey = `${CachePrefix.EMAIL_VERIFICATION_CODE}/${email}`;
   let storedCode = await cacheKv.get(cacheKey);
 
   // Generate a new stored code if not present

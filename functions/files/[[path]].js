@@ -1,4 +1,5 @@
-import { FileStorePrefixes, safeguard } from "lib/utils/cloudflare";
+import { safeguard } from "lib/utils/cloudflare";
+import { FilePrefix } from "lib/utils/constants";
 
 /** TODO:
  * - [ ] Check that the MIME type matches the extension
@@ -8,7 +9,7 @@ import { FileStorePrefixes, safeguard } from "lib/utils/cloudflare";
 export const onRequestGet = safeguard(async function ({ env, params }) {
   const { FILE_STORE: fileStore } = env;
   const path = params.path;
-  if (Object.values(FileStorePrefixes).indexOf(path[0]) == -1) return new Response("Not Found", { status: 404 });
+  if (Object.values(FilePrefix).indexOf(path[0]) == -1) return new Response("Not Found", { status: 404 });
 
   const joinedPath = path.join("/");
   const assetKey = removePathExtension(joinedPath);

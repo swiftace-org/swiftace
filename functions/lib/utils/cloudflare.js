@@ -1,4 +1,5 @@
 import { assert, assertAll, validateUrlOrPath } from "./assert";
+import { CachePrefix } from "./constants";
 
 export async function validateTurnstile({ env, turnstileToken }) {
   let formData = new FormData();
@@ -49,16 +50,6 @@ export function ensureEnvVar({ env, func, name }) {
   if (!env[name]) throw new Error(`[${func}] ${name} not configured.`);
 }
 
-export const CachePrefixes = {
-  emailVerificationCode: "EMAIL_VERIFICATION_CODE",
-  siteSettings: "SITE_SETTINGS",
-};
-
-export const FileStorePrefixes = {
-  ASSETS: "assets",
-  AVATARS: "avatars",
-};
-
 /**
  * @typedef {Object} SiteSettings
  * @property {string} site_title - The title of the site.
@@ -90,7 +81,7 @@ export async function getSiteSettings({ cacheKv }) {
   assert(fn, typeof cacheKv === "object" && cacheKv != null, "'cacheKv' must be a non-null object");
   assert(fn, typeof cacheKv.get === "function", "'cacheKv' must have a 'get' function");
 
-  const savedSettings = (await cacheKv.get(CachePrefixes.siteSettings, { type: "json" })) ?? {};
+  const savedSettings = (await cacheKv.get(CachePrefix.SITE_SETTINGS, { type: "json" })) ?? {};
   const siteSettings = { ...DefaultSiteSettings, ...savedSettings };
 
   return siteSettings;
@@ -122,13 +113,6 @@ export function assertSiteSettings(displayTag, siteSettings, message) {
     message
   );
 }
-
-export const SiteAssetsKeys = {
-  site_favicon: "favicon",
-  site_logo: "logo",
-  terms_of_service: "terms-of-service",
-  privacy_policy: "privacy-policy",
-};
 
 export async function uploadFile({ fileStore, file, key, maxSize = null }) {
   if (!file) return { url: null };

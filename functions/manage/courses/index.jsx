@@ -16,10 +16,13 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   const { CACHE_KV: cacheKv, DB: database } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
-  if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
+  if (!currentUser || !currentUser?.is_admin)
+    return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
   const courses = await selectCoursesForAdmin({ database });
 
-  return makeHtmlResponse(<ManageCoursesPage siteSettings={siteSettings} currentUser={currentUser} courses={courses} />);
+  return makeHtmlResponse(
+    <ManageCoursesPage siteSettings={siteSettings} currentUser={currentUser} courses={courses} />
+  );
 });
 
 function ManageCoursesPage({ siteSettings, currentUser, courses }) {
@@ -30,7 +33,11 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
       faviconUrl={siteSettings.site_favicon_url}
       styles={["ui", "manage-courses"]}
     >
-      <MainNav currentUser={currentUser} siteTitle={siteSettings.site_title} logoUrl={siteSettings.site_logo_url} />
+      <MainNav
+        currentUser={currentUser}
+        siteTitle={siteSettings.site_title}
+        logoUrl={siteSettings.site_logo_url}
+      />
       <main className="ui-container-sm">
         <header className="ui-page-header">
           <Breadcrumbs
@@ -65,7 +72,7 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
                         </a>
                       </li>
                       <li>
-                        <a className="ui-link" href={`/course/${course.slug}/manage`}>
+                        <a className="ui-link" href={`/manage/courses/${course.slug}`}>
                           Manage
                         </a>
                       </li>
