@@ -20,6 +20,7 @@
   --text-error: rgb(248 113 113);
   --text-success: rgb(16 185 129);
   --bg-body: #fff;
+  --bg-body-translucent: rgb(255 255 255 / 50%);
   --bg-disabled: rgb(239 239 239 / 30%);
   --bg-success: rgb(222 252 233);
   --bg-button: var(--primary-400);

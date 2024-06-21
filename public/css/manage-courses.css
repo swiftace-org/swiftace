@@ -17,6 +17,19 @@ table.manage-courses-table th {
 table.manage-courses-table td {
   border-width: 1px;
   padding: 0.5rem;
+  line-height: 1.5;
+}
+
+table.manage-courses-table tr[draggable="true"] {
+  cursor: move;
+}
+
+table.manage-courses-table .manage-courses-drag-handle {
+  visibility: hidden;
+}
+
+table.manage-courses-table tr[draggable="true"] .manage-courses-drag-handle {
+  visibility: visible;
 }
 
 ul.manage-courses-actions {
@@ -25,4 +38,13 @@ ul.manage-courses-actions {
 
 ul.manage-courses-actions li:not(:last-child) {
   margin-right: 0.5rem;
+}
+
+.manage-courses-dragging-row {
+  opacity: 0.5;
+  background-color: var(--bg-body);
+}
+
+.manage-courses-ordering-buttons {
+  display: none;
 }
