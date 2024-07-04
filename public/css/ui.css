@@ -284,15 +284,15 @@
   max-width: 48rem;
 }
 
-.form > fieldset > input {
+.form > fieldset input {
   max-width: 24rem;
 }
 
-.form > fieldset > select {
+.form > fieldset select {
   max-width: 24rem;
 }
 
-.form > fieldset > textarea {
+.form > fieldset textarea {
   max-width: 48rem;
 }
 

@@ -130,49 +130,51 @@ function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <div className="ui-container-sm">
-        <header className="ui-page-header">
+      <div className="container small">
+        <header className="page-header">
           <Breadcrumb items={[{ label: "Home", href: "/" }]} />
-          <h1 className="ui-page-heading">Account Settings</h1>
+          <h1 className="page-heading">Account Settings</h1>
         </header>
-        <form className="ui-form" method="post" enctype="multipart/form-data">
-          {status === FormStatus.ERROR && (
-            <Alert
-              title="Error"
-              message="Settings were not saved. Please fix the errors."
-              variant={AlertVariant.ERROR}
-            />
-          )}
-          {status === FormStatus.SUCCESS && (
-            <Alert title="Success" message="Settings saved successfully." variant={AlertVariant.SUCCESS} />
-          )}
+        <form className="form" method="post" enctype="multipart/form-data">
+          <header>
+            {status === FormStatus.ERROR && (
+              <Alert
+                title="Error"
+                message="Settings were not saved. Please fix the errors."
+                variant={AlertVariant.ERROR}
+              />
+            )}
+            {status === FormStatus.SUCCESS && (
+              <Alert title="Success" message="Settings saved successfully." variant={AlertVariant.SUCCESS} />
+            )}
+          </header>
 
           <fieldset>
             <label>
-              <div className="ui-form-label">{FieldLabels.first_name}</div>
+              <div className="form-label">{FieldLabels.first_name}</div>
               <input
-                className="ui-form-input"
+                className="form-input"
                 name={FieldNames.first_name}
                 type="text"
                 value={currentUser.first_name}
               />
             </label>
-            {formErrors?.first_name && <div className="ui-form-error">{formErrors?.first_name}</div>}
+            {formErrors?.first_name && <div className="form-hint error">{formErrors?.first_name}</div>}
             <label>
-              <div className="ui-form-label">{FieldLabels.last_name}</div>
+              <div className="form-label">{FieldLabels.last_name}</div>
               <input
-                className="ui-form-input"
+                className="form-input"
                 name={FieldNames.last_name}
                 type="text"
                 value={currentUser.last_name}
               />
             </label>
-            {formErrors?.last_name && <div className="ui-form-error">{formErrors?.last_name}</div>}
+            {formErrors?.last_name && <div className="form-hint error">{formErrors?.last_name}</div>}
             <label>
-              <div className="ui-form-label">{FieldLabels.email}</div>
+              <div className="form-label">{FieldLabels.email}</div>
               {userEmails.map((row) => (
                 <input
-                  className="ui-form-input"
+                  className="form-input"
                   name={FieldNames.email}
                   type="text"
                   value={row.email}
@@ -180,25 +182,25 @@ function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors
                 />
               ))}
             </label>
-            <div className="ui-form-hint">{FieldHints.email}</div>
+            <div className="form-hint">{FieldHints.email}</div>
             <label>
-              <div className="ui-form-label">{FieldLabels.avatar_url}</div>
-              <img className="ui-form-round-image" height="40" src={currentUser.avatar_url} />
+              <div className="form-label">{FieldLabels.avatar_url}</div>
+              <img className="form-round-image" height="40" src={currentUser.avatar_url} />
               <input
-                className="ui-form-input"
+                className="form-input"
                 name={FieldNames.avatar_url}
                 type="file"
                 accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
               />
             </label>
             {formErrors?.avatar_url ? (
-              <div className="ui-form-error">{formErrors?.avatar_url}</div>
+              <div className="form-hint error">{formErrors?.avatar_url}</div>
             ) : (
-              <div className="ui-form-hint">{FieldHints.avatar_url}</div>
+              <div className="form-hint">{FieldHints.avatar_url}</div>
             )}
           </fieldset>
           <footer>
-            <input type="submit" className="ui-button" value="Save Settings" />
+            <input type="submit" className="button" value="Save Settings" />
           </footer>
         </form>
       </div>
