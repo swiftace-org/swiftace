@@ -1,4 +1,4 @@
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { PrivacyDisplay } from "lib/utils/constants";
 
@@ -20,8 +20,7 @@ export const onRequest = safeguard(async function ({ request, env }) {
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   const baseProps = { siteSettings, currentUser };
-  if (!currentUser || !currentUser?.is_admin)
-    return makeHtmlResponse(<NotFoundPage {...baseProps} />);
+  if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<NotFoundPage {...baseProps} />);
   const courses = await selectCoursesForAdmin({ database });
 
   if (request.method == "GET") {
@@ -76,7 +75,7 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
       />
       <main className="ui-container-sm">
         <header className="ui-page-header">
-          <Breadcrumbs
+          <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },

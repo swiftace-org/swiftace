@@ -1,9 +1,15 @@
-export function assert(displayTag, condition, message) {
-  if (!condition) throw new Error(`[${displayTag}] ${message}\n`);
+export function assert(displayTag, condition, message, data) {
+  if (!condition) {
+    const serializedData = data !== undefined ? "\n" + JSON.stringify(data, null, 2) + "\n" : "";
+    const finalMessage = `[${displayTag}] ${message}\n${serializedData}`;
+    throw new Error(finalMessage);
+  }
 }
 
 export function assertAll(displayTag, conditionsAndMessages, overallMessage = "Error") {
-  const errors = conditionsAndMessages.filter(([condition]) => !condition).map(([_, message]) => message);
+  const errors = conditionsAndMessages
+    .filter(([condition]) => !condition)
+    .map(([_, message]) => message);
   const combinedMessage = `${overallMessage}\n-${errors.join("\n-")}`;
   assert(displayTag, errors.length === 0, combinedMessage);
 }

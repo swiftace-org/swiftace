@@ -1,4 +1,4 @@
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { EditCourseForm, parseCourseForm, uploadCourseCover } from "lib/ui/edit-course-form";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
@@ -112,9 +112,7 @@ export const onRequest = safeguard(async function ({ request, env, params }) {
     });
   }
 
-  return makeHtmlResponse(
-    <ManageCoursePage {...baseProps} course={updatedCourse} values={updatedCourse} />
-  );
+  return makeHtmlResponse(<ManageCoursePage {...baseProps} course={updatedCourse} values={updatedCourse} />);
 });
 
 function ManageCoursePage({
@@ -139,7 +137,7 @@ function ManageCoursePage({
       />
       <main className="ui-container-sm">
         <header className="ui-page-header">
-          <Breadcrumbs
+          <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },

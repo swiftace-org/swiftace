@@ -1,4 +1,4 @@
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { getCurrentUser } from "lib/utils/auth";
@@ -21,10 +21,14 @@ export const onRequest = safeguard(async function ({ request, env }) {
       faviconUrl={siteSettings.site_favicon_url}
       styles={["ui", "manage"]}
     >
-      <MainNav logoUrl={siteSettings.site_logo_url} currentUser={currentUser} siteTitle={siteSettings.site_title} />
+      <MainNav
+        logoUrl={siteSettings.site_logo_url}
+        currentUser={currentUser}
+        siteTitle={siteSettings.site_title}
+      />
       <main className="ui-container-sm">
         <header className="manage-header">
-          <Breadcrumbs items={[{ label: "Home", href: "/" }]} />
+          <Breadcrumb items={[{ label: "Home", href: "/" }]} />
           <h1 className="ui-page-heading">Manage - {siteSettings.site_title}</h1>
         </header>
         <section className="manage-links">

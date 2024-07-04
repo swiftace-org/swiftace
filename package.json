@@ -14,7 +14,7 @@
     "sanitize-html": "^2.12.1"
   },
   "prettier": {
-    "printWidth": 100
+    "printWidth": 110
   },
   "devDependencies": {
     "stylelint": "^16.2.1",

@@ -3,17 +3,29 @@ import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import * as auth from "lib/utils/auth";
 import { makeSes } from "lib/utils/aws";
-import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
+import {
+  getSiteSettings,
+  makeHtmlResponse,
+  safeguard,
+  validateTurnstile,
+} from "lib/utils/cloudflare";
 import { CachePrefix } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } = await getSiteSettings({ cacheKv });
+  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } =
+    await getSiteSettings({ cacheKv });
   const currentUser = await auth.getCurrentUser({ request, database });
-  if (currentUser) return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
+  if (currentUser)
+    return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   return makeHtmlResponse(
-    <RootLayout title={`Sign In / Sign Up - ${site_title}`} description={site_description} faviconUrl={site_favicon_url} styles={["ui", "login"]}>
+    <RootLayout
+      title={`Sign In / Sign Up - ${site_title}`}
+      description={site_description}
+      faviconUrl={site_favicon_url}
+      styles={["ui", "login"]}
+    >
       <MainNav logoUrl={site_logo_url} siteTitle={site_title} hideSignIn />
       <form className="login-form" method="post" action="/login">
         <FormHeader title="Sign In / Sign Up" tagline={site_tagline} />
@@ -28,8 +40,21 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 });
 
 export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
-  const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url, session_expiry_seconds, otp_expiry_seconds } = await getSiteSettings({
+  const {
+    DB: database,
+    CACHE_KV: cacheKv,
+    IS_LOCAL: isLocal,
+    TURNSTILE_SITE_KEY: turnstileSiteKey,
+  } = env;
+  const {
+    site_title,
+    site_tagline,
+    site_description,
+    site_favicon_url,
+    site_logo_url,
+    session_expiry_seconds,
+    otp_expiry_seconds,
+  } = await getSiteSettings({
     cacheKv,
   });
   const formData = await request.formData();
@@ -40,7 +65,12 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const lastName = formData.get("last_name")?.trim();
 
   const LoginFrame = ({ formTitle = "Sign In / Sign Up", children }) => (
-    <RootLayout title={`${formTitle} - ${site_title}`} description={site_description} faviconUrl={site_favicon_url} styles={["ui", "login"]}>
+    <RootLayout
+      title={`${formTitle} - ${site_title}`}
+      description={site_description}
+      faviconUrl={site_favicon_url}
+      styles={["ui", "login"]}
+    >
       <MainNav logoUrl={site_logo_url} siteTitle={site_title} hideSignIn />
       <form className="login-form" method="post" action="/login">
         <FormHeader title={formTitle} tagline={site_tagline} />
@@ -51,7 +81,11 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   );
 
   // Reject if email is not provided or invalid
-  const emailError = !email ? "Email is required." : !auth.validateEmail(email) ? "Email is invalid" : null;
+  const emailError = !email
+    ? "Email is required."
+    : !auth.validateEmail(email)
+    ? "Email is invalid"
+    : null;
   if (emailError) {
     return makeHtmlResponse(
       <LoginFrame>
@@ -73,7 +107,12 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   }
 
   // Look up email in DB and retrieve user (if exists)
-  let user = await database.prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`).bind(email).first();
+  let user = await database
+    .prepare(
+      `SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`
+    )
+    .bind(email)
+    .first();
 
   // Retrieved stored verfication code if present
   const cacheKey = `${CachePrefix.EMAIL_VERIFICATION_CODE}/${email}`;
@@ -104,7 +143,10 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
       <LoginFrame formTitle={user ? "Sign In" : "Sign Up"}>
         <EmailInput disabled value={email} />
         {!user && <NameInputs firstName={firstName} lastName={lastName} />}
-        <CodeInput autoFocus={user || firstName} error="Invalid code. Please enter the correct code." />
+        <CodeInput
+          autoFocus={user || firstName}
+          error="Invalid code. Please enter the correct code."
+        />
         <Turnstile siteKey={turnstileSiteKey} />
       </LoginFrame>
     );
@@ -117,7 +159,11 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
       return makeHtmlResponse(
         <LoginFrame formTitle="Sign Up">
           <EmailInput disabled value={email} />
-          <NameInputs firstName={firstName} lastName={lastName} firstNameError="First name is required." />
+          <NameInputs
+            firstName={firstName}
+            lastName={lastName}
+            firstNameError="First name is required."
+          />
           <CodeInput value={userCode} />
           <Turnstile siteKey={turnstileSiteKey} />
         </LoginFrame>
@@ -125,8 +171,14 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
     }
 
     // Add a row to the users table
-    user = await database.prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`).bind(firstName, lastName).first();
-    await database.prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`).bind(user.id, email).first();
+    user = await database
+      .prepare(`INSERT INTO users (first_name, last_name) VALUES (?, ?) RETURNING id;`)
+      .bind(firstName, lastName)
+      .first();
+    await database
+      .prepare(`INSERT INTO user_emails (user_id, email) VALUES (?, ?)`)
+      .bind(user.id, email)
+      .first();
   }
 
   // Create new session and retrive session token
@@ -134,13 +186,22 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
 
   // Delete verification code & expired sessions
   waitUntil(cacheKv.delete(cacheKey));
-  waitUntil(auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: session_expiry_seconds }));
+  waitUntil(
+    auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: session_expiry_seconds })
+  );
 
   // Set session token in cookie and redirect to "/"
   return new Response(null, {
     status: 302,
     statusText: "Found",
-    headers: { Location: "/", "Set-Cookie": auth.createSessionCookie({ sessionToken, isLocal, maxAge: session_expiry_seconds }) },
+    headers: {
+      Location: "/",
+      "Set-Cookie": auth.createSessionCookie({
+        sessionToken,
+        isLocal,
+        maxAge: session_expiry_seconds,
+      }),
+    },
   });
 });
 
@@ -153,7 +214,10 @@ function sendLoginEmail({ env, email, code }) {
       Content: {
         Simple: {
           Subject: { Data: "Your verification code is " + code },
-          Body: { Text: { Data: "Your verification code is " + code }, Html: { Data: "Your verification code is " + code } },
+          Body: {
+            Text: { Data: "Your verification code is " + code },
+            Html: { Data: "Your verification code is " + code },
+          },
         },
       },
     })
@@ -186,16 +250,35 @@ const EmailInput = ({ disabled = false, value = null, error = null }) => (
   </>
 );
 
-const NameInputs = ({ firstName = null, lastName = null, firstNameError = null, lastNameError = null }) => (
+const NameInputs = ({
+  firstName = null,
+  lastName = null,
+  firstNameError = null,
+  lastNameError = null,
+}) => (
   <>
     <label>
       <div className="ui-form-label">First Name</div>
-      <input className="ui-form-input" value={firstName} name="first_name" type="text" placeholder="Your First Name" required autoFocus={!firstName} />
+      <input
+        className="ui-form-input"
+        value={firstName}
+        name="first_name"
+        type="text"
+        placeholder="Your First Name"
+        required
+        autoFocus={!firstName}
+      />
     </label>
     {firstNameError && <div className="ui-form-error">{firstNameError}</div>}
     <label>
       <div className="ui-form-label">Last Name</div>
-      <input className="ui-form-input" value={lastName} name="last_name" type="text" placeholder="Your Last Name" />
+      <input
+        className="ui-form-input"
+        value={lastName}
+        name="last_name"
+        type="text"
+        placeholder="Your Last Name"
+      />
     </label>
     {lastNameError && <div className="ui-form-error">{lastNameError}</div>}
   </>
@@ -205,9 +288,21 @@ const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
   <>
     <label>
       <div className="ui-form-label">Verification Code</div>
-      <input className="ui-form-input" name="code" type="text" placeholder="6-digit code" required value={value} autoFocus={autoFocus} />
+      <input
+        className="ui-form-input"
+        name="code"
+        type="text"
+        placeholder="6-digit code"
+        required
+        value={value}
+        autoFocus={autoFocus}
+      />
     </label>
-    {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">We've sent a code over email. Please check!</div>}
+    {error ? (
+      <div className="ui-form-error">{error}</div>
+    ) : (
+      <div className="ui-form-hint">We've sent a code over email. Please check!</div>
+    )}
   </>
 );
 
@@ -232,7 +327,8 @@ const FormFooter = () => (
   <footer>
     <input type="submit" className="ui-button" value="Continue" />
     <p>
-      By signing in you agree to our <Outlink href="/privacy-policy">privacy policy</Outlink> and <Outlink href="/terms-of-service">terms of service</Outlink>.
+      By signing in you agree to our <Outlink href="/privacy-policy">privacy policy</Outlink> and{" "}
+      <Outlink href="/terms-of-service">terms of service</Outlink>.
     </p>
   </footer>
 );

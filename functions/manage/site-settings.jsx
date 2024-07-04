@@ -1,10 +1,16 @@
 import { Alert } from "lib/ui/alert";
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
 import { assert, validateSameKeys } from "lib/utils/assert";
 import { getCurrentUser } from "lib/utils/auth";
-import { assertSiteSettings, getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/utils/cloudflare";
+import {
+  assertSiteSettings,
+  getSiteSettings,
+  makeHtmlResponse,
+  safeguard,
+  uploadFile,
+} from "lib/utils/cloudflare";
 import { SiteAssetFilename } from "lib/utils/constants";
 import { CachePrefix } from "lib/utils/constants";
 import { FilePrefix } from "lib/utils/constants";
@@ -85,10 +91,17 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     site_logo_url: logo_url ?? siteSettings.site_logo_url,
     terms_of_service_raw_url: terms_of_service_raw_url ?? siteSettings.terms_of_service_raw_url,
     privacy_policy_raw_url: privacy_policy_raw_url ?? siteSettings.privacy_policy_raw_url,
-    session_expiry_seconds: parseInt(formData.get(FieldNames.session_expiry_seconds)?.trim()) ?? siteSettings.session_expiry_seconds,
-    otp_expiry_seconds: parseInt(formData.get(FieldNames.otp_expiry_seconds)?.trim()) ?? siteSettings.otp_expiry_seconds,
+    session_expiry_seconds:
+      parseInt(formData.get(FieldNames.session_expiry_seconds)?.trim()) ??
+      siteSettings.session_expiry_seconds,
+    otp_expiry_seconds:
+      parseInt(formData.get(FieldNames.otp_expiry_seconds)?.trim()) ?? siteSettings.otp_expiry_seconds,
   };
-  assertSiteSettings("POST /site-settings", newSettings, `'newSiteSettings' is invalid.\n\n${JSON.stringify(newSettings, null, 2)}\n`);
+  assertSiteSettings(
+    "POST /site-settings",
+    newSettings,
+    `'newSiteSettings' is invalid.\n\n${JSON.stringify(newSettings, null, 2)}\n`
+  );
 
   const errors = {
     site_title: null,
@@ -104,22 +117,31 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
   assert(
     "POST /site-settings",
     validateSameKeys(newSettings, errors),
-    `'newSettings' and 'errors' must have the same keys. \nnewSettings: ${Object.keys(newSettings).join(", ")}\nerrors:: ${Object.keys(errors).join(", ")}`
+    `'newSettings' and 'errors' must have the same keys. \nnewSettings: ${Object.keys(newSettings).join(
+      ", "
+    )}\nerrors:: ${Object.keys(errors).join(", ")}`
   );
 
   const status = Object.values(errors).some((value) => value) ? FormStatus.ERROR : FormStatus.SUCCESS;
 
   await cacheKv.put(CachePrefix.SITE_SETTINGS, JSON.stringify(newSettings));
-  return makeHtmlResponse(<SiteSettingsPage siteSettings={newSettings} errors={errors} currentUser={currentUser} status={status} />);
+  return makeHtmlResponse(
+    <SiteSettingsPage siteSettings={newSettings} errors={errors} currentUser={currentUser} status={status} />
+  );
 });
 
 function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, status = null }) {
   return (
-    <RootLayout title={`Site Settings - ${S.site_title}`} description={S.site_description} faviconUrl={S.site_favicon_url} styles={["ui", "site-settings"]}>
+    <RootLayout
+      title={`Site Settings - ${S.site_title}`}
+      description={S.site_description}
+      faviconUrl={S.site_favicon_url}
+      styles={["ui", "site-settings"]}
+    >
       <MainNav siteTitle={S.site_title} logoUrl={S.site_logo_url} currentUser={currentUser} />
       <main className="ui-container-sm">
         <header className="site-settings-header">
-          <Breadcrumbs
+          <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },
@@ -133,8 +155,16 @@ function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, stat
           enctype="multipart/form-data"
           onsubmit="return window.confirm('Are you sure you want to save the site settings?')"
         >
-          {status === FormStatus.ERROR && <Alert title="Error" message="Some settings were not saved. Please fix the errors." variant="error" />}
-          {status === FormStatus.SUCCESS && <Alert title="Success" message="Settings saved successfully." variant="success" />}
+          {status === FormStatus.ERROR && (
+            <Alert
+              title="Error"
+              message="Some settings were not saved. Please fix the errors."
+              variant="error"
+            />
+          )}
+          {status === FormStatus.SUCCESS && (
+            <Alert title="Success" message="Settings saved successfully." variant="success" />
+          )}
           <fieldset>
             <SiteTitleInput value={S.site_title} error={E?.site_title} />
             <SiteTaglineInput value={S.site_tagline} error={E?.site_tagline} />
@@ -195,9 +225,20 @@ const SiteTitleInput = ({ value, error = null }) => (
   <>
     <label>
       <div className="ui-form-label">{FieldLabels.site_title}</div>
-      <input className="ui-form-input" name={FieldNames.site_title} type="text" required value={value} maxlength={32} />
+      <input
+        className="ui-form-input"
+        name={FieldNames.site_title}
+        type="text"
+        required
+        value={value}
+        maxlength={32}
+      />
     </label>
-    {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.site_title}</div>}
+    {error ? (
+      <div className="ui-form-error">{error}</div>
+    ) : (
+      <div className="ui-form-hint">{FieldHints.site_title}</div>
+    )}
   </>
 );
 
@@ -205,9 +246,20 @@ const SiteTaglineInput = ({ value, error = null }) => (
   <>
     <label>
       <div className="ui-form-label">{FieldLabels.site_tagline}</div>
-      <input className="ui-form-input" name={FieldNames.site_tagline} type="text" required value={value} maxlength={64} />
+      <input
+        className="ui-form-input"
+        name={FieldNames.site_tagline}
+        type="text"
+        required
+        value={value}
+        maxlength={64}
+      />
     </label>
-    {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.site_tagline}</div>}
+    {error ? (
+      <div className="ui-form-error">{error}</div>
+    ) : (
+      <div className="ui-form-hint">{FieldHints.site_tagline}</div>
+    )}
   </>
 );
 
@@ -215,11 +267,21 @@ const SiteDescriptionInput = ({ value, error = null }) => (
   <>
     <label>
       <div className="ui-form-label">{FieldLabels.site_description}</div>
-      <textarea className="ui-form-input" name={FieldNames.site_description} required rows={3} maxlength={160}>
+      <textarea
+        className="ui-form-input"
+        name={FieldNames.site_description}
+        required
+        rows={3}
+        maxlength={160}
+      >
         {value}
       </textarea>
     </label>
-    {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.site_description}</div>}
+    {error ? (
+      <div className="ui-form-error">{error}</div>
+    ) : (
+      <div className="ui-form-hint">{FieldHints.site_description}</div>
+    )}
   </>
 );
 
@@ -237,7 +299,11 @@ function SiteLogoFileInput({ value, error = null }) {
         type="file"
         accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
       />
-      {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.site_logo_url}</div>}
+      {error ? (
+        <div className="ui-form-error">{error}</div>
+      ) : (
+        <div className="ui-form-hint">{FieldHints.site_logo_url}</div>
+      )}
     </>
   );
 }
@@ -256,7 +322,11 @@ function SiteFaviconFileInput({ value, error = null }) {
         type="file"
         accept="image/png, image/gif, image/svg+xml, image/x-icon"
       />
-      {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.site_favicon_url}</div>}
+      {error ? (
+        <div className="ui-form-error">{error}</div>
+      ) : (
+        <div className="ui-form-hint">{FieldHints.site_favicon_url}</div>
+      )}
     </>
   );
 }
@@ -279,8 +349,17 @@ function TermsOfServiceFileInput({ value, error = null }) {
           )}
         </span>
       </label>
-      <input className="ui-form-input" name={FieldNames.terms_of_service} type="file" accept=".txt, .md, text/markdown" />
-      {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.terms_of_service_raw_url}</div>}
+      <input
+        className="ui-form-input"
+        name={FieldNames.terms_of_service}
+        type="file"
+        accept=".txt, .md, text/markdown"
+      />
+      {error ? (
+        <div className="ui-form-error">{error}</div>
+      ) : (
+        <div className="ui-form-hint">{FieldHints.terms_of_service_raw_url}</div>
+      )}
     </>
   );
 }
@@ -301,8 +380,17 @@ function PrivacyPolicyFileInput({ value, error = null }) {
           </>
         )}
       </label>
-      <input className="ui-form-input" name={FieldNames.privacy_policy} type="file" accept=".txt, .md, text/markdown" />
-      {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.privacy_policy_raw_url}</div>}
+      <input
+        className="ui-form-input"
+        name={FieldNames.privacy_policy}
+        type="file"
+        accept=".txt, .md, text/markdown"
+      />
+      {error ? (
+        <div className="ui-form-error">{error}</div>
+      ) : (
+        <div className="ui-form-hint">{FieldHints.privacy_policy_raw_url}</div>
+      )}
     </>
   );
 }
@@ -312,9 +400,18 @@ function SessionExpiryInput({ value, error = null }) {
     <>
       <label>
         <div className="ui-form-label">{FieldLabels.session_expiry_seconds}</div>
-        <input className="ui-form-input" name={FieldNames.session_expiry_seconds} type="number" value={value} />
+        <input
+          className="ui-form-input"
+          name={FieldNames.session_expiry_seconds}
+          type="number"
+          value={value}
+        />
       </label>
-      {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.session_expiry_seconds}</div>}
+      {error ? (
+        <div className="ui-form-error">{error}</div>
+      ) : (
+        <div className="ui-form-hint">{FieldHints.session_expiry_seconds}</div>
+      )}
     </>
   );
 }
@@ -326,7 +423,11 @@ function OTPExpiryInput({ value, error = null }) {
         <div className="ui-form-label">{FieldLabels.otp_expiry_seconds}</div>
         <input className="ui-form-input" name={FieldNames.otp_expiry_seconds} type="number" value={value} />
       </label>
-      {error ? <div className="ui-form-error">{error}</div> : <div className="ui-form-hint">{FieldHints.otp_expiry_seconds}</div>}
+      {error ? (
+        <div className="ui-form-error">{error}</div>
+      ) : (
+        <div className="ui-form-hint">{FieldHints.otp_expiry_seconds}</div>
+      )}
     </>
   );
 }

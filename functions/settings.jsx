@@ -1,5 +1,5 @@
 import { Alert, AlertVariant } from "lib/ui/alert";
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
@@ -38,11 +38,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   const userEmails = await getUserEmails({ user: currentUser, database });
 
   return makeHtmlResponse(
-    <AccountSettingsPage
-      siteSettings={siteSettings}
-      currentUser={currentUser}
-      userEmails={userEmails}
-    />
+    <AccountSettingsPage siteSettings={siteSettings} currentUser={currentUser} userEmails={userEmails} />
   );
 });
 
@@ -77,9 +73,7 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     avatar_url = currentUser.avatar_url;
   }
 
-  const status = Object.values(formErrors).some((value) => value)
-    ? FormStatus.ERROR
-    : FormStatus.SUCCESS;
+  const status = Object.values(formErrors).some((value) => value) ? FormStatus.ERROR : FormStatus.SUCCESS;
   if (status === "error") {
     return makeHtmlResponse(
       <AccountSettingsPage
@@ -124,13 +118,7 @@ const FieldHints = {
   email: "Your email cannot be updated.",
 };
 
-function AccountSettingsPage({
-  siteSettings,
-  currentUser,
-  userEmails,
-  formErrors = null,
-  status = null,
-}) {
+function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors = null, status = null }) {
   return (
     <RootLayout
       title={`Account Settings - ${siteSettings.site_title}`}
@@ -144,7 +132,7 @@ function AccountSettingsPage({
       />
       <div className="ui-container-sm">
         <header className="ui-page-header">
-          <Breadcrumbs items={[{ label: "Home", href: "/" }]} />
+          <Breadcrumb items={[{ label: "Home", href: "/" }]} />
           <h1 className="ui-page-heading">Account Settings</h1>
         </header>
         <form className="ui-form" method="post" enctype="multipart/form-data">
@@ -156,11 +144,7 @@ function AccountSettingsPage({
             />
           )}
           {status === FormStatus.SUCCESS && (
-            <Alert
-              title="Success"
-              message="Settings saved successfully."
-              variant={AlertVariant.SUCCESS}
-            />
+            <Alert title="Success" message="Settings saved successfully." variant={AlertVariant.SUCCESS} />
           )}
 
           <fieldset>
@@ -173,9 +157,7 @@ function AccountSettingsPage({
                 value={currentUser.first_name}
               />
             </label>
-            {formErrors?.first_name && (
-              <div className="ui-form-error">{formErrors?.first_name}</div>
-            )}
+            {formErrors?.first_name && <div className="ui-form-error">{formErrors?.first_name}</div>}
             <label>
               <div className="ui-form-label">{FieldLabels.last_name}</div>
               <input
