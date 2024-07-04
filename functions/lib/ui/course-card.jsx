@@ -1,4 +1,4 @@
-import { assert } from "lib/utils/assert";
+import { assert } from "lib/utils/validation";
 import jsx from "lib/utils/jsx";
 
 export function CourseCard({ course }) {

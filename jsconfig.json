@@ -5,6 +5,5 @@
     "jsxFactory": "jsx",
     "jsxFragmentFactory": "jsx.Fragment",
     "checkJs": true
-  },
-  "include": ["functions"]
+  }
 }

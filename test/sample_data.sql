@@ -1,3 +1,19 @@
+-- Clear the users, user_emails, and admins tables
+DELETE FROM users;
+DELETE FROM user_emails;
+DELETE FROM admins;
+
+-- Insert a user "Aakash N S" with the specified email and ID
+INSERT INTO users (id, first_name, last_name) VALUES (1, 'Aakash', 'N S');
+
+-- Insert the email for the user
+INSERT INTO user_emails (email, user_id) VALUES ('aakashns.sky@gmail.com', 1);
+
+-- Make the user an admin
+INSERT INTO admins (user_id) VALUES (1);
+
+DELETE FROM courses;
+
 INSERT INTO courses
 (slug, title, overview, description, cover_url, promo_video_url, additional_info, sort_order, privacy)
 VALUES

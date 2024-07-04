@@ -1,4 +1,4 @@
-import { assert, assertAll, validateUrlOrPath } from "./assert";
+import { assert, assertAll, validateUrlOrPath } from "./validation";
 import { CachePrefix } from "./constants";
 
 export async function validateTurnstile({ env, turnstileToken }) {
@@ -36,9 +36,12 @@ export function makeHtmlResponse(element, options) {
 }
 
 export function makeErrorResponse({ error, status }) {
-  return new Response(`Internal Server Error:\n\n${error.stack}\n\nPlease send this screenshot to site admins.`, {
-    status,
-  });
+  return new Response(
+    `Internal Server Error:\n\n${error.stack}\n\nPlease send this screenshot to site admins.`,
+    {
+      status,
+    }
+  );
 }
 
 export function ensureEnvVars({ env, func, names }) {
@@ -67,7 +70,8 @@ export function ensureEnvVar({ env, func, name }) {
 const DefaultSiteSettings = {
   site_title: "Site Title",
   site_tagline: "Insert a short tagline here",
-  site_description: "Insert a longer description of the site for SEO and link previews, limited to 160 characters for best results.",
+  site_description:
+    "Insert a longer description of the site for SEO and link previews, limited to 160 characters for best results.",
   site_favicon_url: "/favicon.ico",
   site_logo_url: "/img/logo.svg",
   terms_of_service_raw_url: null,
@@ -91,24 +95,38 @@ export function assertSiteSettings(displayTag, siteSettings, message) {
   assertAll(
     displayTag,
     [
-      [typeof siteSettings.site_title === "string" && siteSettings.site_title.trim() !== "", "'site_title' must be a non-empty string"],
-      [typeof siteSettings.site_tagline === "string" && siteSettings.site_tagline.trim() !== "", "'site_tagline' must be a non-empty string"],
-      [typeof siteSettings.site_description === "string" && siteSettings.site_description.trim() !== "", "'site_description' must be a non-empty string"],
+      [
+        typeof siteSettings.site_title === "string" && siteSettings.site_title.trim() !== "",
+        "'site_title' must be a non-empty string",
+      ],
+      [
+        typeof siteSettings.site_tagline === "string" && siteSettings.site_tagline.trim() !== "",
+        "'site_tagline' must be a non-empty string",
+      ],
+      [
+        typeof siteSettings.site_description === "string" && siteSettings.site_description.trim() !== "",
+        "'site_description' must be a non-empty string",
+      ],
       [validateUrlOrPath(siteSettings.site_favicon_url), "'site_favicon_url' must be a valid URL or path"],
       [validateUrlOrPath(siteSettings.site_logo_url), "'site_logo_url' must be a valid URL or path"],
       [
-        siteSettings.terms_of_service_raw_url === null || validateUrlOrPath(siteSettings.terms_of_service_raw_url),
+        siteSettings.terms_of_service_raw_url === null ||
+          validateUrlOrPath(siteSettings.terms_of_service_raw_url),
         "'terms_of_service_raw_url' must be null or a valid URL or path",
       ],
       [
-        siteSettings.privacy_policy_raw_url === null || validateUrlOrPath(siteSettings.privacy_policy_raw_url),
+        siteSettings.privacy_policy_raw_url === null ||
+          validateUrlOrPath(siteSettings.privacy_policy_raw_url),
         "'privacy_policy_raw_url' must be null or a valid URL or path",
       ],
       [
         typeof siteSettings.session_expiry_seconds === "number" && siteSettings.session_expiry_seconds > 0,
         "'session_expiry_seconds' must be a positive number",
       ],
-      [typeof siteSettings.otp_expiry_seconds === "number" && siteSettings.otp_expiry_seconds > 0, "'otp_expiry_seconds' must be a positive number"],
+      [
+        typeof siteSettings.otp_expiry_seconds === "number" && siteSettings.otp_expiry_seconds > 0,
+        "'otp_expiry_seconds' must be a positive number",
+      ],
     ],
     message
   );
@@ -116,9 +134,13 @@ export function assertSiteSettings(displayTag, siteSettings, message) {
 
 export async function uploadFile({ fileStore, file, key, maxSize = null }) {
   if (!file) return { url: null };
-  if (maxSize && file.size > maxSize) return { error: `Please upload a file smaller than ${formatBytes(maxSize)}` };
+  if (maxSize && file.size > maxSize)
+    return { error: `Please upload a file smaller than ${formatBytes(maxSize)}` };
   const extension = file.name.split(".").pop();
-  const uploadResult = await fileStore.put(key, file, { httpMetadata: { contentType: file.type }, customMetadata: { extension } });
+  const uploadResult = await fileStore.put(key, file, {
+    httpMetadata: { contentType: file.type },
+    customMetadata: { extension },
+  });
   const uploadTimestamp = uploadResult.uploaded.getTime();
   return { url: `/files/${key}.${extension}?t=${uploadTimestamp}` };
 }

@@ -1,25 +1,26 @@
 import { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { MainNav } from "lib/ui/main-nav";
+import { Outlink } from "lib/ui/outline";
 import { RootLayout } from "lib/ui/root-layout";
 import * as auth from "lib/utils/auth";
 import { makeSes } from "lib/utils/aws";
-import {
-  getSiteSettings,
-  makeHtmlResponse,
-  safeguard,
-  validateTurnstile,
-} from "lib/utils/cloudflare";
+import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
 import { CachePrefix } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } =
-    await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await auth.getCurrentUser({ request, database });
-  if (currentUser)
+  if (currentUser) {
     return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
-  return makeHtmlResponse(
+  }
+  return makeHtmlResponse(<LoginPage siteSettings={siteSettings} turnstileSiteKey={turnstileSiteKey} />);
+});
+
+export const LoginPage = ({ siteSettings, turnstileSiteKey }) => {
+  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } = siteSettings;
+  return (
     <RootLayout
       title={`Sign In / Sign Up - ${site_title}`}
       description={site_description}
@@ -37,15 +38,10 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
       </form>
     </RootLayout>
   );
-});
+};
 
 export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
-  const {
-    DB: database,
-    CACHE_KV: cacheKv,
-    IS_LOCAL: isLocal,
-    TURNSTILE_SITE_KEY: turnstileSiteKey,
-  } = env;
+  const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
   const {
     site_title,
     site_tagline,
@@ -81,11 +77,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   );
 
   // Reject if email is not provided or invalid
-  const emailError = !email
-    ? "Email is required."
-    : !auth.validateEmail(email)
-    ? "Email is invalid"
-    : null;
+  const emailError = !email ? "Email is required." : !auth.validateEmail(email) ? "Email is invalid" : null;
   if (emailError) {
     return makeHtmlResponse(
       <LoginFrame>
@@ -108,9 +100,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
 
   // Look up email in DB and retrieve user (if exists)
   let user = await database
-    .prepare(
-      `SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`
-    )
+    .prepare(`SELECT u.id FROM user_emails ue JOIN users u ON ue.user_id = u.id AND ue.email = ? LIMIT 1;`)
     .bind(email)
     .first();
 
@@ -143,10 +133,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
       <LoginFrame formTitle={user ? "Sign In" : "Sign Up"}>
         <EmailInput disabled value={email} />
         {!user && <NameInputs firstName={firstName} lastName={lastName} />}
-        <CodeInput
-          autoFocus={user || firstName}
-          error="Invalid code. Please enter the correct code."
-        />
+        <CodeInput autoFocus={user || firstName} error="Invalid code. Please enter the correct code." />
         <Turnstile siteKey={turnstileSiteKey} />
       </LoginFrame>
     );
@@ -159,11 +146,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
       return makeHtmlResponse(
         <LoginFrame formTitle="Sign Up">
           <EmailInput disabled value={email} />
-          <NameInputs
-            firstName={firstName}
-            lastName={lastName}
-            firstNameError="First name is required."
-          />
+          <NameInputs firstName={firstName} lastName={lastName} firstNameError="First name is required." />
           <CodeInput value={userCode} />
           <Turnstile siteKey={turnstileSiteKey} />
         </LoginFrame>
@@ -186,9 +169,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
 
   // Delete verification code & expired sessions
   waitUntil(cacheKv.delete(cacheKey));
-  waitUntil(
-    auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: session_expiry_seconds })
-  );
+  waitUntil(auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: session_expiry_seconds }));
 
   // Set session token in cookie and redirect to "/"
   return new Response(null, {
@@ -227,16 +208,16 @@ function sendLoginEmail({ env, email, code }) {
 const EmailInput = ({ disabled = false, value = null, error = null }) => (
   <>
     <label>
-      <div className="ui-form-label">
+      <div className="form-label">
         <span>Email Address </span>
         {disabled && (
-          <a href="/login" className="ui-link">
+          <a href="/login" className="link">
             Edit
           </a>
         )}
       </div>
       <input
-        className="ui-form-input"
+        className="form-input"
         name="email"
         type="email"
         placeholder="yourname@domain.com"
@@ -246,21 +227,16 @@ const EmailInput = ({ disabled = false, value = null, error = null }) => (
         autoFocus={!disabled}
       />
     </label>
-    {error && <div className="ui-form-error">{error}</div>}
+    {error && <div className="form-error">{error}</div>}
   </>
 );
 
-const NameInputs = ({
-  firstName = null,
-  lastName = null,
-  firstNameError = null,
-  lastNameError = null,
-}) => (
+const NameInputs = ({ firstName = null, lastName = null, firstNameError = null, lastNameError = null }) => (
   <>
     <label>
-      <div className="ui-form-label">First Name</div>
+      <div className="form-label">First Name</div>
       <input
-        className="ui-form-input"
+        className="form-input"
         value={firstName}
         name="first_name"
         type="text"
@@ -269,27 +245,27 @@ const NameInputs = ({
         autoFocus={!firstName}
       />
     </label>
-    {firstNameError && <div className="ui-form-error">{firstNameError}</div>}
+    {firstNameError && <div className="form-hint error">{firstNameError}</div>}
     <label>
-      <div className="ui-form-label">Last Name</div>
+      <div className="form-label">Last Name</div>
       <input
-        className="ui-form-input"
+        className="form-input"
         value={lastName}
         name="last_name"
         type="text"
         placeholder="Your Last Name"
       />
     </label>
-    {lastNameError && <div className="ui-form-error">{lastNameError}</div>}
+    {lastNameError && <div className="form-hint error">{lastNameError}</div>}
   </>
 );
 
 const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
   <>
     <label>
-      <div className="ui-form-label">Verification Code</div>
+      <div className="form-label">Verification Code</div>
       <input
-        className="ui-form-input"
+        className="form-input"
         name="code"
         type="text"
         placeholder="6-digit code"
@@ -299,9 +275,9 @@ const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
       />
     </label>
     {error ? (
-      <div className="ui-form-error">{error}</div>
+      <div className="form-hint error">{error}</div>
     ) : (
-      <div className="ui-form-hint">We've sent a code over email. Please check!</div>
+      <div className="form-hint">We've sent a code over email. Please check!</div>
     )}
   </>
 );
@@ -309,32 +285,26 @@ const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
 const Turnstile = ({ error = null, siteKey }) => (
   <>
     <label>
-      <div className="ui-form-label">Human Verification</div>
+      <div className="form-label">Human Verification</div>
       <div className="cf-turnstile" data-sitekey={siteKey} data-theme="light" />
     </label>
-    {error && <div className="ui-form-error">{error}</div>}
+    {error && <div className="form-hint error">{error}</div>}
   </>
 );
 
 const FormHeader = ({ title, tagline }) => (
   <header>
-    <h2>{title}</h2>
+    <h1>{title}</h1>
     {tagline && <p>{tagline}</p>}
   </header>
 );
 
 const FormFooter = () => (
   <footer>
-    <input type="submit" className="ui-button" value="Continue" />
+    <input type="submit" className="button" value="Continue" />
     <p>
       By signing in you agree to our <Outlink href="/privacy-policy">privacy policy</Outlink> and{" "}
       <Outlink href="/terms-of-service">terms of service</Outlink>.
     </p>
   </footer>
-);
-
-const Outlink = ({ href, children }) => (
-  <a href={href} rel="noopener noreferrer nofollow" target="_blank" className="ui-link">
-    {children}
-  </a>
 );

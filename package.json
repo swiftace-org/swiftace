@@ -4,7 +4,7 @@
     "kill": "pid=$(lsof -t -i:2000 -c workerd); [ -n \"$pid\" ] && kill -9 $pid && echo \"PID $pid killed\" || echo \"Nothing to kill\"",
     "list-db-migrations": "npx wrangler d1 migrations list swiftace-db --local -c d1.toml",
     "apply-db-migrations": "npx wrangler d1 migrations apply swiftace-db --local -c d1.toml",
-    "query-db": "npx wrangler d1 execute swiftace-db --local -c d1.toml --command",
+    "query-db": "npx wrangler d1 execute swiftace-db --local -c d1.toml",
     "reset-db": "npx trash-cli .wrangler/state/v3/d1",
     "gen-db-migration": "sh -c 'mkdir -p migrations && echo \"-- Migration number: $1    $(date -u +'%Y-%m-%dT%H:%M:%S.000Z')\" > \"migrations/$1_$2.sql\"' --"
   },

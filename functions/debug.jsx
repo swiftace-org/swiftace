@@ -8,7 +8,7 @@ import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudfla
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
-  const { CACHE_KV: cacheKv, DATABASE: database } = env;
+  const { CACHE_KV: cacheKv, DB: database } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
 
@@ -36,7 +36,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
       <MainNav siteTitle={siteSettings.title} currentUser={user} logoUrl={siteSettings.site_logo_url} />
       <NotFound />
 
-      <div style="padding: 1rem;">
+      <div className="page-section">
         <Breadcrumb
           items={[
             { label: "Home", href: "/" },

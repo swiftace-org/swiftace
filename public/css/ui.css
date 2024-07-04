@@ -1,3 +1,4 @@
+/* Alert box to display success or messages to user */
 .alert {
   border-radius: var(--border-radius-lg);
   border-width: 1px;
@@ -27,10 +28,11 @@
   font-size: 0.875rem;
 }
 
-/** Round avatar bubble showing an image or name initials
- * 
- * TODO - add examples (image & name initials)
- */
+.asterisk {
+  color: var(--text-error);
+}
+
+/** Round avatar bubble with profile image or name initials */
 .avatar {
   border-radius: var(--border-radius-full);
   display: flex;
@@ -44,10 +46,7 @@
   width: 2rem;
 }
 
-/* Small inline badge with border, background & rounded corners
- * 
- * Example: <span class="UI-Badge">Enrolled</span>
- */
+/* Badge pill with rounded corners */
 .badge {
   padding: 0.125rem 0.5rem;
   border-radius: var(--border-radius-full);
@@ -60,9 +59,9 @@
   opacity: 0.9;
 }
 
-/** TODO - Add docs */
+/** Breadcrumb navigation (list of links) */
 .breadcrumb {
-  margin-bottom: 0.125rem;
+  padding-bottom: 0.125rem;
 }
 
 .breadcrumb > ul {
@@ -70,7 +69,8 @@
   color: var(--text-secondary);
 }
 
-.breadcrumb > ul > li > a:hover {
+.breadcrumb > ul > li > a:hover,
+.breadcrumb > ul > li > a:focus {
   color: var(--text-link-hover);
 }
 
@@ -78,7 +78,7 @@
   color: var(--text-link-hover);
 }
 
-/** TODO - Add docs */
+/** Solid button with rounded corners  */
 .button {
   display: inline-flex;
   align-items: center;
@@ -97,7 +97,8 @@
   cursor: pointer;
 }
 
-.button:hover {
+.button:hover,
+.button:focus {
   background-color: var(--bg-button-hover);
   box-shadow: rgb(0 0 0) 2px #f8fafc;
 }
@@ -111,12 +112,14 @@
   cursor: not-allowed;
 }
 
+/* Outline button variant */
 .button.outline {
   color: var(--bg-button);
   background-color: transparent;
   border: 1px solid var(--bg-button);
 }
 
+.button.outline:hover,
 .button.outline:hover {
   color: var(--text-button);
   background-color: var(--bg-button);
@@ -127,13 +130,12 @@
   background-color: var(--bg-button-active);
 }
 
+/* Fixed-width variant */
 .button.wide {
   min-width: 8rem;
 }
 
-/** A horizontal row of buttons
- * TODO - add example
- */
+/** Horizontal row of spaced buttons */
 .button-row {
   display: flex;
   gap: 1rem;
@@ -260,14 +262,47 @@
   padding: 0.25rem 1rem;
 }
 
-.dropdown-link:hover {
+.dropdown:hover > ul,
+.dropdown:focus-within > ul {
+  display: block;
+}
+
+.dropdown-link:hover,
+.dropdown-link:focus {
   opacity: 1;
   background-color: var(--bg-disabled);
 }
 
-.dropdown:hover > ul,
-.dropdown:focus-within > ul {
+/* Form and form elements */
+.form {
+  padding: 0 1rem;
+  margin-bottom: 2rem;
+}
+
+.form > header > .alert {
+  margin-bottom: 1.25rem;
+  max-width: 48rem;
+}
+
+.form > fieldset > input {
+  max-width: 24rem;
+}
+
+.form > fieldset > select {
+  max-width: 24rem;
+}
+
+.form > fieldset > textarea {
+  max-width: 48rem;
+}
+
+.form > fieldset > label:not(:first-child) {
   display: block;
+  margin-top: 1.5rem;
+}
+
+.form > footer > input[type="submit"] {
+  margin-top: 1.5rem;
 }
 
 .icon {
@@ -275,21 +310,95 @@
   width: 1rem;
 }
 
+/* Form input field */
+.form-input {
+  padding: 0.375rem;
+  border-radius: var(--border-radius);
+  border-width: 1px;
+  width: 100%;
+}
+
+.form-input:focus {
+  outline: 2px solid transparent;
+  border-color: rgb(106 158 255 / 50%);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity,
+    box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  box-shadow: 0 0 0 3px rgb(52 144 220 / 50%);
+}
+
+.form-input[readonly] {
+  background-color: var(--bg-disabled);
+}
+
+.form-input[disabled] {
+  background-color: var(--bg-disabled);
+  cursor: not-allowed;
+}
+
+/* Form input label */
+.form-label {
+  display: flex;
+  font-size: 0.875rem;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+.form-label > a {
+  font-weight: 400;
+}
+
+/* Form input hint/error */
+.form-hint {
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.125;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+.form-hint.error {
+  color: var(--text-error);
+  opacity: 1;
+}
+
+/* Image preview inside a form */
+.form-image {
+  margin-bottom: 0.5rem;
+  max-width: 48rem;
+  width: 100%;
+  height: auto;
+}
+
+/* Round image preview inside a form */
+.form-round-image {
+  height: 4rem;
+  width: 4rem;
+  border-radius: var(--border-radius-full);
+  border-width: 1px;
+  margin: 0.5rem 0;
+  background-color: var(--bg-disabled);
+}
+
 /** TODO - Add docs */
-.UI-Link {
+.link {
   color: var(--text-link);
 }
 
-.UI-Link:hover {
+.link:hover,
+.link:focus {
   color: var(--text-link-hover);
 }
 
-.UI-Link:active {
+.link:active {
   color: var(--text-link-active);
 }
 
-/** TODO - Add docs */
-.UI-Main-Nav {
+/** Site navigation bar (fixed to top) */
+.main-nav {
   z-index: 25;
   border-bottom: 1px solid var(--border-color);
   position: fixed;
@@ -304,44 +413,45 @@
   justify-content: space-between;
 }
 
-.UI-Main-Nav .ui-main-nav-logo {
+.main-nav-logo {
   height: 1.75rem;
   display: inline;
 }
 
-.UI-Main-Nav .ui-main-nav-link {
+.main-nav-link {
   display: block;
   margin-left: 0.5rem;
   font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
-.UI-Main-Nav .ui-main-nav-link:hover {
+.main-nav-link:hover,
+.main-nav-link:focus {
   color: var(--text-link-hover);
 }
 
-.UI-Main-Nav .ui-main-nav-link:active {
+.main-nav-link:active {
   color: var(--text-link-active);
 }
 
-.UI-Main-Nav + div.ui-main-nav-spacer {
+.main-nav + div {
   height: 3rem;
 }
 
-/** TODO - Add docs */
-.UI-Page-Header {
+/** Header section for the page */
+.page-header {
   margin: 2rem 1rem 1.5rem;
 }
 
 /* sm */
 @media screen and (width < 48rem) {
-  .UI-Page-Header {
+  .page-header {
     margin: 1.5rem 1rem 1.25rem;
   }
 }
 
-/** TODO - Add docs */
-.UI-Page-Heading {
+/** Page heading (typically h1) */
+.page-heading {
   font-weight: bold;
   font-size: 2.25rem;
   line-height: 1;
@@ -349,18 +459,25 @@
 
 /* sm */
 @media screen and (width < 48rem) {
-  .UI-Page-Heading {
+  .page-heading {
     font-size: 1.875rem;
   }
 }
 
-/** TODO - Add docs */
-.UI-Page-Section {
-  margin: 1rem;
+/** Page section with margins */
+.page-section {
+  margin: 1.5rem 1rem;
 }
 
-/** TODO - Add docs */
-.UI-Page-Subheading {
+/* sm */
+@media screen and (width < 48rem) {
+  .page-section {
+    margin: 1.25rem 1rem;
+  }
+}
+
+/** Page subheading (shown below page heading) */
+.page-subheading {
   padding-top: 0.125rem;
   font-size: 1.25rem;
   margin-top: 0.375rem;
@@ -370,7 +487,33 @@
 
 /* sm */
 @media screen and (width < 48rem) {
-  .UI-Page-Subheading {
+  .page-subheading {
     font-size: 1rem;
   }
+}
+
+/* Video (iframe embed or preview image) */
+.video {
+  width: 100%; /* Adjust as needed */
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio (height/width) */
+}
+
+.video > iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.video > img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }

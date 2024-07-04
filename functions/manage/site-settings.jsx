@@ -2,7 +2,7 @@ import { Alert } from "lib/ui/alert";
 import { Breadcrumb } from "lib/ui/breadcrumb";
 import { MainNav } from "lib/ui/main-nav";
 import { RootLayout } from "lib/ui/root-layout";
-import { assert, validateSameKeys } from "lib/utils/assert";
+import { assert, validateSameKeys } from "lib/utils/validation";
 import { getCurrentUser } from "lib/utils/auth";
 import {
   assertSiteSettings,
@@ -155,16 +155,18 @@ function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, stat
           enctype="multipart/form-data"
           onsubmit="return window.confirm('Are you sure you want to save the site settings?')"
         >
-          {status === FormStatus.ERROR && (
-            <Alert
-              title="Error"
-              message="Some settings were not saved. Please fix the errors."
-              variant="error"
-            />
-          )}
-          {status === FormStatus.SUCCESS && (
-            <Alert title="Success" message="Settings saved successfully." variant="success" />
-          )}
+          <header>
+            {status === FormStatus.ERROR && (
+              <Alert
+                title="Error"
+                message="Some settings were not saved. Please fix the errors."
+                variant="error"
+              />
+            )}
+            {status === FormStatus.SUCCESS && (
+              <Alert title="Success" message="Settings saved successfully." variant="success" />
+            )}
+          </header>
           <fieldset>
             <SiteTitleInput value={S.site_title} error={E?.site_title} />
             <SiteTaglineInput value={S.site_tagline} error={E?.site_tagline} />

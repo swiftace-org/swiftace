@@ -4,50 +4,25 @@ import { Avatar } from "./avatar";
 export function MainNav({ currentUser = null, logoUrl = null, siteTitle = null, hideSignIn = false }) {
   return (
     <>
-      <header className="UI-Main-Nav">
+      <header className="main-nav">
         <a href="/">
-          <img height="28" className="ui-main-nav-logo" src={logoUrl} alt={siteTitle} />
+          <img height="28" className="main-nav-logo" src={logoUrl} alt={siteTitle} />
         </a>
         <nav>
           {currentUser ? (
             <ProfileDropdown currentUser={currentUser} />
           ) : !hideSignIn ? (
-            <a className="ui-main-nav-link" href="/login">
+            <a className="main-nav-link" href="/login">
               Sign In
             </a>
           ) : null}
         </nav>
       </header>
-      <div className="ui-main-nav-spacer" />
+      <div />
     </>
   );
 }
 
-/**
- * A dropdown component for user profile actions.
- *
- * @component
- * @param {Object} props - The component props.
- * @param {Object} props.currentUser - The current user object.
- * @param {string} props.currentUser.avatar_url - URL of the user's avatar image.
- * @param {string} props.currentUser.first_name - User's first name.
- * @param {string} props.currentUser.last_name - User's last name.
- * @param {boolean} props.currentUser.is_admin - Whether the user has admin privileges.
- *
- * @returns {JSX.Element} A dropdown menu with user avatar and action links.
- *
- * @example
- * const user = {
- *   avatar_url: 'https://example.com/avatar.jpg',
- *   first_name: 'John',
- *   last_name: 'Doe',
- *   is_admin: true
- * };
- *
- * return (
- *   <ProfileDropdown currentUser={user} />
- * );
- */
 export function ProfileDropdown({ currentUser }) {
   return (
     <div className="dropdown right">
