@@ -11,7 +11,10 @@ export default [
   {
     rules: {
       "react/prop-types": 0,
-      "react/no-unknown-property": ["error", { ignore: ["class", "enctype"] }],
+      "react/no-unknown-property": [
+        "error",
+        { ignore: ["class", "enctype", "maxlength", "onsubmit", "for"] },
+      ],
       "react/jsx-key": 0,
     },
     settings: {

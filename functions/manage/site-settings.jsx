@@ -16,6 +16,7 @@ import { CachePrefix } from "lib/utils/constants";
 import { FilePrefix } from "lib/utils/constants";
 import { FormStatus } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
+import { Outlink } from "lib/ui/outlink";
 
 /** TODO:
  * - [ ] Add a .ui-form-field enclosing div to control label & input widths
@@ -136,21 +137,20 @@ function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, stat
       title={`Site Settings - ${S.site_title}`}
       description={S.site_description}
       faviconUrl={S.site_favicon_url}
-      styles={["ui", "site-settings"]}
     >
       <MainNav siteTitle={S.site_title} logoUrl={S.site_logo_url} currentUser={currentUser} />
-      <main className="ui-container-sm">
-        <header className="site-settings-header">
+      <main class="container small">
+        <header class="page-header">
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },
             ]}
           />
-          <h1 className="ui-page-heading">Site Settings</h1>
+          <h1 class="page-heading">Site Settings</h1>
         </header>
         <form
-          className="site-settings-form"
+          class="form"
           method="post"
           enctype="multipart/form-data"
           onsubmit="return window.confirm('Are you sure you want to save the site settings?')"
@@ -179,7 +179,7 @@ function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, stat
             <OTPExpiryInput value={S.otp_expiry_seconds} />
           </fieldset>
           <footer>
-            <input type="submit" className="ui-button" value="Save Settings" />
+            <input type="submit" class="button" value="Save Settings" />
           </footer>
         </form>
       </main>
@@ -226,9 +226,9 @@ const FieldHints = {
 const SiteTitleInput = ({ value, error = null }) => (
   <>
     <label>
-      <div className="ui-form-label">{FieldLabels.site_title}</div>
+      <div class="form-label">{FieldLabels.site_title}</div>
       <input
-        className="ui-form-input"
+        class="form-input"
         name={FieldNames.site_title}
         type="text"
         required
@@ -237,9 +237,9 @@ const SiteTitleInput = ({ value, error = null }) => (
       />
     </label>
     {error ? (
-      <div className="ui-form-error">{error}</div>
+      <div class="form-hint error">{error}</div>
     ) : (
-      <div className="ui-form-hint">{FieldHints.site_title}</div>
+      <div class="form-hint">{FieldHints.site_title}</div>
     )}
   </>
 );
@@ -247,9 +247,9 @@ const SiteTitleInput = ({ value, error = null }) => (
 const SiteTaglineInput = ({ value, error = null }) => (
   <>
     <label>
-      <div className="ui-form-label">{FieldLabels.site_tagline}</div>
+      <div class="form-label">{FieldLabels.site_tagline}</div>
       <input
-        className="ui-form-input"
+        class="form-input"
         name={FieldNames.site_tagline}
         type="text"
         required
@@ -258,9 +258,9 @@ const SiteTaglineInput = ({ value, error = null }) => (
       />
     </label>
     {error ? (
-      <div className="ui-form-error">{error}</div>
+      <div class="form-hint error">{error}</div>
     ) : (
-      <div className="ui-form-hint">{FieldHints.site_tagline}</div>
+      <div class="form-hint">{FieldHints.site_tagline}</div>
     )}
   </>
 );
@@ -268,21 +268,15 @@ const SiteTaglineInput = ({ value, error = null }) => (
 const SiteDescriptionInput = ({ value, error = null }) => (
   <>
     <label>
-      <div className="ui-form-label">{FieldLabels.site_description}</div>
-      <textarea
-        className="ui-form-input"
-        name={FieldNames.site_description}
-        required
-        rows={3}
-        maxlength={160}
-      >
+      <div class="form-label">{FieldLabels.site_description}</div>
+      <textarea class="form-input" name={FieldNames.site_description} required rows={3} maxlength={160}>
         {value}
       </textarea>
     </label>
     {error ? (
-      <div className="ui-form-error">{error}</div>
+      <div class="form-hint error">{error}</div>
     ) : (
-      <div className="ui-form-hint">{FieldHints.site_description}</div>
+      <div class="form-hint">{FieldHints.site_description}</div>
     )}
   </>
 );
@@ -290,21 +284,21 @@ const SiteDescriptionInput = ({ value, error = null }) => (
 function SiteLogoFileInput({ value, error = null }) {
   return (
     <>
-      <label for="site-settings-logo-input" className="ui-form-label">
-        {FieldLabels.site_logo_url}
+      <label>
+        <div class="form-label">{FieldLabels.site_logo_url}</div>
+        <img class="form-image small" height="64" src={value} />
+        <input
+          class="form-input"
+          name={FieldNames.site_logo}
+          type="file"
+          accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
+        />
       </label>
-      <img className="site-settings-logo" height="40" src={value} />
-      <input
-        id="site-settings-logo-input"
-        className="ui-form-input"
-        name={FieldNames.site_logo}
-        type="file"
-        accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
-      />
+
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.site_logo_url}</div>
+        <div class="form-hint">{FieldHints.site_logo_url}</div>
       )}
     </>
   );
@@ -313,21 +307,20 @@ function SiteLogoFileInput({ value, error = null }) {
 function SiteFaviconFileInput({ value, error = null }) {
   return (
     <>
-      <label for="site-settings-favicon-input" className="ui-form-label">
-        {FieldLabels.site_favicon_url}
+      <label>
+        <div class="form-label">{FieldLabels.site_favicon_url}</div>
+        <img class="form-image tiny" height="32" src={value} />
+        <input
+          class="form-input"
+          name={FieldNames.site_favicon}
+          type="file"
+          accept="image/png, image/gif, image/svg+xml, image/x-icon"
+        />
       </label>
-      <img className="site-settings-favicon" height="40" src={value} />
-      <input
-        id="site-settings-favicon-input"
-        className="ui-form-input"
-        name={FieldNames.site_favicon}
-        type="file"
-        accept="image/png, image/gif, image/svg+xml, image/x-icon"
-      />
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.site_favicon_url}</div>
+        <div class="form-hint">{FieldHints.site_favicon_url}</div>
       )}
     </>
   );
@@ -336,31 +329,27 @@ function SiteFaviconFileInput({ value, error = null }) {
 function TermsOfServiceFileInput({ value, error = null }) {
   return (
     <>
-      <label className="ui-form-label">
-        <span>
+      <label>
+        <div class="form-label">
           {FieldLabels.terms_of_service_raw_url}
           &nbsp;
           {value && (
             <>
-              (
-              <a className="ui-link" href={value} target="_blank">
-                view
-              </a>
-              )
+              (<Outlink href={value}>view</Outlink>)
             </>
           )}
-        </span>
+        </div>
+        <input
+          class="form-input"
+          name={FieldNames.terms_of_service}
+          type="file"
+          accept=".txt, .md, text/markdown"
+        />
       </label>
-      <input
-        className="ui-form-input"
-        name={FieldNames.terms_of_service}
-        type="file"
-        accept=".txt, .md, text/markdown"
-      />
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.terms_of_service_raw_url}</div>
+        <div class="form-hint">{FieldHints.terms_of_service_raw_url}</div>
       )}
     </>
   );
@@ -369,29 +358,27 @@ function TermsOfServiceFileInput({ value, error = null }) {
 function PrivacyPolicyFileInput({ value, error = null }) {
   return (
     <>
-      <label className="ui-form-label">
-        {FieldLabels.privacy_policy_raw_url}
-        &nbsp;
-        {value && (
-          <>
-            (
-            <a className="ui-link" href={value} target="_blank">
-              view
-            </a>
-            )
-          </>
-        )}
+      <label>
+        <div class="form-label">
+          {FieldLabels.privacy_policy_raw_url}
+          &nbsp;
+          {value && (
+            <>
+              (<Outlink href={value}>view</Outlink>)
+            </>
+          )}
+        </div>
+        <input
+          class="form-input"
+          name={FieldNames.privacy_policy}
+          type="file"
+          accept=".txt, .md, text/markdown"
+        />
       </label>
-      <input
-        className="ui-form-input"
-        name={FieldNames.privacy_policy}
-        type="file"
-        accept=".txt, .md, text/markdown"
-      />
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.privacy_policy_raw_url}</div>
+        <div class="form-hint">{FieldHints.privacy_policy_raw_url}</div>
       )}
     </>
   );
@@ -401,18 +388,13 @@ function SessionExpiryInput({ value, error = null }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.session_expiry_seconds}</div>
-        <input
-          className="ui-form-input"
-          name={FieldNames.session_expiry_seconds}
-          type="number"
-          value={value}
-        />
+        <div class="form-label">{FieldLabels.session_expiry_seconds}</div>
+        <input class="form-input" name={FieldNames.session_expiry_seconds} type="number" value={value} />
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.session_expiry_seconds}</div>
+        <div class="form-hint">{FieldHints.session_expiry_seconds}</div>
       )}
     </>
   );
@@ -422,13 +404,13 @@ function OTPExpiryInput({ value, error = null }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.otp_expiry_seconds}</div>
-        <input className="ui-form-input" name={FieldNames.otp_expiry_seconds} type="number" value={value} />
+        <div class="form-label">{FieldLabels.otp_expiry_seconds}</div>
+        <input class="form-input" name={FieldNames.otp_expiry_seconds} type="number" value={value} />
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div className="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.otp_expiry_seconds}</div>
+        <div className="form-hint">{FieldHints.otp_expiry_seconds}</div>
       )}
     </>
   );

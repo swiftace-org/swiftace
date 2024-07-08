@@ -61,7 +61,7 @@
 
 /** Breadcrumb navigation (list of links) */
 .breadcrumb {
-  padding-bottom: 0.125rem;
+  padding-bottom: 0.25rem;
 }
 
 .breadcrumb > ul {
@@ -153,73 +153,6 @@
   width: 60rem;
   max-width: 100%;
   margin: 0 auto;
-}
-
-/** TODO - Add docs */
-.course-card {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition-property: transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-  border-radius: var(--border-radius-lg);
-}
-
-.course-card:hover,
-.course-card:focus {
-  transform: scale(1.05);
-}
-
-.course-card > img {
-  border-radius: var(--border-radius-lg);
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-}
-
-.course-card > section {
-  padding: 1rem 1rem 0;
-  flex: 1;
-}
-
-.course-card > section > h2 {
-  font-size: 1.375rem;
-  line-height: 1.625rem;
-  opacity: 0.95;
-  font-weight: 600;
-}
-
-.course-card > section > p {
-  padding: 0.25rem 0;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  margin-top: 0.25rem;
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.course-card > section > ul {
-  margin: 0.5rem 0 0.25rem;
-  display: flex;
-  align-items: center;
-}
-
-.course-card > section > ul > li {
-  display: flex;
-  align-items: center;
-  margin-right: 1rem;
-  line-height: 1;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.course-card > section > ul > li > img {
-  margin-right: 0.25rem;
-  opacity: 0.8;
 }
 
 /** TODO - Add docs */
@@ -371,6 +304,16 @@
   max-width: 48rem;
   width: 100%;
   height: auto;
+}
+
+.form-image.tiny {
+  width: 2rem;
+  max-width: 100%;
+}
+
+.form-image.small {
+  width: 4rem;
+  max-width: 100%;
 }
 
 /* Round image preview inside a form */

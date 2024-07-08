@@ -16,6 +16,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
+  console.log({ currentUser });
 
   const course = {
     slug: "react-fundamentals",
@@ -41,7 +42,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
       <MainNav siteTitle={siteSettings.title} currentUser={user} logoUrl={siteSettings.site_logo_url} />
       <NotFound />
 
-      <div className="page-section">
+      <div class="page-section">
         <Breadcrumb
           items={[
             { label: "Home", href: "/" },

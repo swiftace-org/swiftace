@@ -14,42 +14,45 @@ export const onRequest = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
-  return makeHtmlResponse(
+  return makeHtmlResponse(<ManagePage siteSettings={siteSettings} currentUser={currentUser} />);
+});
+
+function ManagePage({ siteSettings, currentUser }) {
+  return (
     <RootLayout
       title={`Manage - ${siteSettings.site_title}`}
       description={siteSettings.site_description}
       faviconUrl={siteSettings.site_favicon_url}
-      styles={["ui", "manage"]}
     >
       <MainNav
         logoUrl={siteSettings.site_logo_url}
         currentUser={currentUser}
         siteTitle={siteSettings.site_title}
       />
-      <main className="ui-container-sm">
-        <header className="manage-header">
+      <main className="container small">
+        <header className="page-header">
           <Breadcrumb items={[{ label: "Home", href: "/" }]} />
-          <h1 className="ui-page-heading">Manage - {siteSettings.site_title}</h1>
+          <h1 className="page-heading">Manage - {siteSettings.site_title}</h1>
         </header>
-        <section className="manage-links">
+        <section className="page-section">
           <ul>
             <li>
-              <a className="ui-link" href="/manage/courses">
+              <a className="link" href="/manage/courses">
                 Manage Courses
               </a>
             </li>
             <li>
-              <a className="ui-link" href="/manage/site-settings">
+              <a className="link" href="/manage/site-settings">
                 Site Settings
               </a>
             </li>
             <li>
-              <a className="ui-link" href="/manage/secrets">
+              <a className="link" href="/manage/secrets">
                 Site Secrets
               </a>
             </li>
             <li>
-              <a className="ui-link" href="/manage/admins">
+              <a className="link" href="/manage/admins">
                 Manage Admins
               </a>
             </li>
@@ -58,4 +61,4 @@ export const onRequest = safeguard(async function ({ request, env }) {
       </main>
     </RootLayout>
   );
-});
+}

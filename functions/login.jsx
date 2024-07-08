@@ -1,6 +1,6 @@
 import { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { MainNav } from "lib/ui/main-nav";
-import { Outlink } from "lib/ui/outline";
+import { Outlink } from "lib/ui/outlink";
 import { RootLayout } from "lib/ui/root-layout";
 import * as auth from "lib/utils/auth";
 import { makeSes } from "lib/utils/aws";
