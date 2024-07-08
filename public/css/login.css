@@ -16,7 +16,8 @@
   margin-top: 1.25rem;
 }
 
-.login-form .ui-form-label {
+.login-form-email-label {
+  display: flex;
   justify-content: space-between;
 }
 

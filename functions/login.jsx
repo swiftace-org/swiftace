@@ -28,7 +28,7 @@ export const LoginPage = ({ siteSettings, turnstileSiteKey }) => {
       styles={["ui", "login"]}
     >
       <MainNav logoUrl={site_logo_url} siteTitle={site_title} hideSignIn />
-      <form className="login-form" method="post" action="/login">
+      <form class="login-form" method="post" action="/login">
         <FormHeader title="Sign In / Sign Up" tagline={site_tagline} />
         <fieldset>
           <EmailInput />
@@ -68,7 +68,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
       styles={["ui", "login"]}
     >
       <MainNav logoUrl={site_logo_url} siteTitle={site_title} hideSignIn />
-      <form className="login-form" method="post" action="/login">
+      <form class="login-form" method="post" action="/login">
         <FormHeader title={formTitle} tagline={site_tagline} />
         <fieldset>{children}</fieldset>
         <FormFooter />
@@ -208,16 +208,18 @@ function sendLoginEmail({ env, email, code }) {
 const EmailInput = ({ disabled = false, value = null, error = null }) => (
   <>
     <label>
-      <div className="form-label">
-        <span>Email Address </span>
-        {disabled && (
-          <a href="/login" className="link">
-            Edit
-          </a>
-        )}
+      <div class="form-label">
+        <div class="login-form-email-label">
+          <span>Email Address </span>
+          {disabled && (
+            <a href="/login" class="link">
+              Edit
+            </a>
+          )}
+        </div>
       </div>
       <input
-        className="form-input"
+        class="form-input"
         name="email"
         type="email"
         placeholder="yourname@domain.com"
@@ -227,16 +229,16 @@ const EmailInput = ({ disabled = false, value = null, error = null }) => (
         autoFocus={!disabled}
       />
     </label>
-    {error && <div className="form-error">{error}</div>}
+    {error && <div class="form-error">{error}</div>}
   </>
 );
 
 const NameInputs = ({ firstName = null, lastName = null, firstNameError = null, lastNameError = null }) => (
   <>
     <label>
-      <div className="form-label">First Name</div>
+      <div class="form-label">First Name</div>
       <input
-        className="form-input"
+        class="form-input"
         value={firstName}
         name="first_name"
         type="text"
@@ -245,27 +247,21 @@ const NameInputs = ({ firstName = null, lastName = null, firstNameError = null, 
         autoFocus={!firstName}
       />
     </label>
-    {firstNameError && <div className="form-hint error">{firstNameError}</div>}
+    {firstNameError && <div class="form-hint error">{firstNameError}</div>}
     <label>
-      <div className="form-label">Last Name</div>
-      <input
-        className="form-input"
-        value={lastName}
-        name="last_name"
-        type="text"
-        placeholder="Your Last Name"
-      />
+      <div class="form-label">Last Name</div>
+      <input class="form-input" value={lastName} name="last_name" type="text" placeholder="Your Last Name" />
     </label>
-    {lastNameError && <div className="form-hint error">{lastNameError}</div>}
+    {lastNameError && <div class="form-hint error">{lastNameError}</div>}
   </>
 );
 
 const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
   <>
     <label>
-      <div className="form-label">Verification Code</div>
+      <div class="form-label">Verification Code</div>
       <input
-        className="form-input"
+        class="form-input"
         name="code"
         type="text"
         placeholder="6-digit code"
@@ -275,9 +271,9 @@ const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
       />
     </label>
     {error ? (
-      <div className="form-hint error">{error}</div>
+      <div class="form-hint error">{error}</div>
     ) : (
-      <div className="form-hint">We've sent a code over email. Please check!</div>
+      <div class="form-hint">{"We've sent a code over email. Please check!"}</div>
     )}
   </>
 );
@@ -285,10 +281,10 @@ const CodeInput = ({ autoFocus = false, value = null, error = null }) => (
 const Turnstile = ({ error = null, siteKey }) => (
   <>
     <label>
-      <div className="form-label">Human Verification</div>
-      <div className="cf-turnstile" data-sitekey={siteKey} data-theme="light" />
+      <div class="form-label">Human Verification</div>
+      <div class="cf-turnstile" data-sitekey={siteKey} data-theme="light" />
     </label>
-    {error && <div className="form-hint error">{error}</div>}
+    {error && <div class="form-hint error">{error}</div>}
   </>
 );
 
@@ -301,9 +297,11 @@ const FormHeader = ({ title, tagline }) => (
 
 const FormFooter = () => (
   <footer>
-    <input type="submit" className="button" value="Continue" />
+    <input type="submit" class="button" value="Continue" />
     <p>
-      By signing in you agree to our <Outlink href="/privacy-policy">privacy policy</Outlink> and{" "}
+      {"By signing in you agree to our "}
+      <Outlink href="/privacy-policy">privacy policy</Outlink>
+      {" and "}
       <Outlink href="/terms-of-service">terms of service</Outlink>.
     </p>
   </footer>

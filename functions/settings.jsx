@@ -130,12 +130,12 @@ function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <div className="container small">
-        <header className="page-header">
+      <div class="container small">
+        <header class="page-header">
           <Breadcrumb items={[{ label: "Home", href: "/" }]} />
-          <h1 className="page-heading">Account Settings</h1>
+          <h1 class="page-heading">Account Settings</h1>
         </header>
-        <form className="form" method="post" enctype="multipart/form-data">
+        <form class="form" method="post" enctype="multipart/form-data">
           <header>
             {status === FormStatus.ERROR && (
               <Alert
@@ -151,56 +151,50 @@ function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors
 
           <fieldset>
             <label>
-              <div className="form-label">{FieldLabels.first_name}</div>
+              <div class="form-label">{FieldLabels.first_name}</div>
               <input
-                className="form-input"
+                class="form-input"
                 name={FieldNames.first_name}
                 type="text"
                 value={currentUser.first_name}
               />
             </label>
-            {formErrors?.first_name && <div className="form-hint error">{formErrors?.first_name}</div>}
+            {formErrors?.first_name && <div class="form-hint error">{formErrors?.first_name}</div>}
             <label>
-              <div className="form-label">{FieldLabels.last_name}</div>
+              <div class="form-label">{FieldLabels.last_name}</div>
               <input
-                className="form-input"
+                class="form-input"
                 name={FieldNames.last_name}
                 type="text"
                 value={currentUser.last_name}
               />
             </label>
-            {formErrors?.last_name && <div className="form-hint error">{formErrors?.last_name}</div>}
+            {formErrors?.last_name && <div class="form-hint error">{formErrors?.last_name}</div>}
             <label>
-              <div className="form-label">{FieldLabels.email}</div>
+              <div class="form-label">{FieldLabels.email}</div>
               {userEmails.map((row) => (
-                <input
-                  className="form-input"
-                  name={FieldNames.email}
-                  type="text"
-                  value={row.email}
-                  disabled
-                />
+                <input class="form-input" name={FieldNames.email} type="text" value={row.email} disabled />
               ))}
             </label>
-            <div className="form-hint">{FieldHints.email}</div>
+            <div class="form-hint">{FieldHints.email}</div>
             <label>
-              <div className="form-label">{FieldLabels.avatar_url}</div>
-              <img className="form-round-image" height="40" src={currentUser.avatar_url} />
+              <div class="form-label">{FieldLabels.avatar_url}</div>
+              <img class="form-round-image" height="40" src={currentUser.avatar_url} />
               <input
-                className="form-input"
+                class="form-input"
                 name={FieldNames.avatar_url}
                 type="file"
                 accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
               />
             </label>
             {formErrors?.avatar_url ? (
-              <div className="form-hint error">{formErrors?.avatar_url}</div>
+              <div class="form-hint error">{formErrors?.avatar_url}</div>
             ) : (
-              <div className="form-hint">{FieldHints.avatar_url}</div>
+              <div class="form-hint">{FieldHints.avatar_url}</div>
             )}
           </fieldset>
           <footer>
-            <input type="submit" className="button" value="Save Settings" />
+            <input type="submit" class="button" value="Save Settings" />
           </footer>
         </form>
       </div>

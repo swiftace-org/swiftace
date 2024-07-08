@@ -17,7 +17,9 @@
     "printWidth": 110
   },
   "devDependencies": {
-    "stylelint": "^16.2.1",
-    "stylelint-config-standard": "^36.0.0"
+    "@eslint/js": "^9.6.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.3",
+    "globals": "^15.8.0"
   }
 }

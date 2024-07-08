@@ -8,7 +8,12 @@ import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudfla
 import jsx from "lib/utils/jsx";
 
 export const onRequestGet = safeguard(async function ({ request, env }) {
-  const { CACHE_KV: cacheKv, DB: database } = env;
+  const { CACHE_KV: cacheKv, DB: database, IS_LOCAL } = env;
+
+  if (!IS_LOCAL) {
+    return new Response(null, { status: 404, statusText: "Not Found" });
+  }
+
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
 
