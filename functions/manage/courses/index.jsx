@@ -27,7 +27,7 @@ export const onRequest = safeguard(async function ({ request, env }) {
     return makeHtmlResponse(<ManageCoursesPage {...baseProps} courses={courses} />);
   }
 
-  // TODO - handle the case where form data does not contain sort order
+  // TODO - [ ] handle the case where form data does not contain sort order
 
   const formData = await request.formData();
   const courseIds = courses.map((c) => c.id);
@@ -50,7 +50,7 @@ export const onRequest = safeguard(async function ({ request, env }) {
     WHERE courses.id = idso.id;
   `;
 
-  const result = await database.prepare(query).run();
+  await database.prepare(query).run();
   const newCourses = await selectCoursesForAdmin({ database });
 
   // TODO - Show success message that courses were sorted
