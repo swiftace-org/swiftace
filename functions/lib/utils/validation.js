@@ -7,9 +7,7 @@ export function assert(displayTag, condition, message, data) {
 }
 
 export function assertAll(displayTag, conditionsAndMessages, overallMessage = "Error") {
-  const errors = conditionsAndMessages
-    .filter(([condition]) => !condition)
-    .map(([_, message]) => message);
+  const errors = conditionsAndMessages.filter(([condition]) => !condition).map(([_, message]) => message);
   const combinedMessage = `${overallMessage}\n-${errors.join("\n-")}`;
   assert(displayTag, errors.length === 0, combinedMessage);
 }

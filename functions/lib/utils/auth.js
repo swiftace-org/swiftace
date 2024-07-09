@@ -34,7 +34,10 @@ export async function getCurrentUserId({ request, database }) {
   const token = getSessionToken({ request });
   if (!token) return null;
   const tokenHash = await hashSessionToken(token);
-  const session = await database.prepare(`SELECT user_id FROM user_sessions WHERE token_hash = ? LIMIT 1;`).bind(tokenHash).first();
+  const session = await database
+    .prepare(`SELECT user_id FROM user_sessions WHERE token_hash = ? LIMIT 1;`)
+    .bind(tokenHash)
+    .first();
   return session?.user_id;
 }
 
@@ -59,18 +62,25 @@ export async function getUserEmails({ user, database }) {
 }
 
 export function createSessionCookie({ sessionToken, isLocal, maxAge }) {
-  return `SESSION_TOKEN=${sessionToken}; Max-Age=${maxAge}; Path="/"; HttpOnly; SameSite=Strict; ${isLocal ? "" : "Secure"}`;
+  return `SESSION_TOKEN=${sessionToken}; Max-Age=${maxAge}; Path="/"; HttpOnly; SameSite=Strict; ${
+    isLocal ? "" : "Secure"
+  }`;
 }
 
 export function createLogoutCookie({ isLocal }) {
-  return `SESSION_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path="/"; HttpOnly; SameSite=Strict; ${isLocal ? "" : "Secure"}`;
+  return `SESSION_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path="/"; HttpOnly; SameSite=Strict; ${
+    isLocal ? "" : "Secure"
+  }`;
 }
 
 export async function createUserSession({ userId, database }) {
   if (!userId) return;
   const sessionToken = await crypto.randomUUID();
   const sessionTokenHash = await hashSessionToken(sessionToken);
-  await database.prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`).bind(sessionTokenHash, userId).run();
+  await database
+    .prepare(`INSERT INTO user_sessions (token_hash, user_id) VALUES (?, ?)`)
+    .bind(sessionTokenHash, userId)
+    .run();
   return { sessionToken };
 }
 
@@ -79,11 +89,15 @@ export async function deleteUserSessions({ userId, database }) {
 }
 
 export async function deleteExpiredUserSessions({ userId, database, maxAge }) {
-  return database.prepare(`DELETE FROM user_sessions WHERE user_id = ? AND created_at < strftime('%s', 'now') - ?;`).bind(userId, maxAge).execute();
+  return database
+    .prepare(`DELETE FROM user_sessions WHERE user_id = ? AND created_at < strftime('%s', 'now') - ?;`)
+    .bind(userId, maxAge)
+    .execute();
 }
 
 export function validateEmail(email) {
-  const EMAIL_REGEX = /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
+  const EMAIL_REGEX =
+    /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 
   if (!email) return false;
 
