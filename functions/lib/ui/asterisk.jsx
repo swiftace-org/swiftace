@@ -1,4 +1,4 @@
-const { default: jsx } = require("lib/utils/jsx");
+import jsx from "lib/utils/jsx";
 
 export function Asterisk({ title = "Required" }) {
   return (
