@@ -11,7 +11,7 @@ const ManageCourses = {
     return tableBody;
   },
 
-  enableReorder: function (event) {
+  enableReorder: function () {
     const tableBody = ManageCourses.getTableBody();
     if (!tableBody) return false;
 

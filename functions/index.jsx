@@ -52,7 +52,7 @@ function HomePage({ siteSettings, currentUser, courses }) {
   );
 }
 
-async function selectCoursesWithStats({ env, userId }) {
+async function selectCoursesWithStats({ env }) {
   const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC';`).all();
 
   const courses = output.results;

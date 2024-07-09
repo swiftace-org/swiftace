@@ -23,4 +23,8 @@ export default [
       },
     },
   },
+  {
+    files: ["public/js/**/*.js"],
+    languageOptions: { globals: globals.browser, parserOptions: { ecmaFeatures: { jsx: false } } },
+  },
 ];
