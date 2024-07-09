@@ -5,23 +5,43 @@ import { getCurrentUser } from "lib/utils/auth";
 import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
+/** TODO
+ * - [ ] Add placeholder image/color for course cover image if not present
+ * - [ ] Create and use assertions for site settings and current user
+ * - [ ] Fetch courses properly for logged in user
+ * - [ ] Sort courses using the sort_order column
+ */
+
 export const onRequestGet = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
-  const { site_title, site_description, site_tagline, site_favicon_url, site_logo_url } = await getSiteSettings({ cacheKv });
+
+  const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
 
   const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
   const sortedCourses = sortCoursesForUser(courses);
   return makeHtmlResponse(
-    <RootLayout title={`${site_title} - ${site_tagline}`} description={site_description} faviconUrl={site_favicon_url} styles={["ui", "home"]}>
+    <HomePage siteSettings={siteSettings} currentUser={currentUser} courses={sortedCourses} />
+  );
+});
+
+function HomePage({ siteSettings, currentUser, courses }) {
+  const { site_title, site_description, site_tagline, site_favicon_url, site_logo_url } = siteSettings;
+  return (
+    <RootLayout
+      title={`${site_title} - ${site_tagline}`}
+      description={site_description}
+      faviconUrl={site_favicon_url}
+      styles={["ui", "home"]}
+    >
       <MainNav logoUrl={site_logo_url} siteTitle={site_title} currentUser={currentUser} />
-      <main className="ui-container">
-        <header className="home-header">
-          <h1 className="ui-page-heading">Courses - {site_title}</h1>
-          <p>{site_tagline}</p>
+      <main class="container">
+        <header class="page-header">
+          <h1 class="page-heading">Courses - {site_title}</h1>
+          <p class="page-subheading">{site_tagline}</p>
         </header>
-        <ul className="home-courses">
-          {sortedCourses.map((course) => (
+        <ul class="home-courses">
+          {courses.map((course) => (
             <li>
               <CourseCard course={course} />
             </li>
@@ -30,9 +50,9 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
       </main>
     </RootLayout>
   );
-});
+}
 
-async function selectCoursesWithStats({ env, userId }) {
+async function selectCoursesWithStats({ env }) {
   const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC';`).all();
 
   const courses = output.results;

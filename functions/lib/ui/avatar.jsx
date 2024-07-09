@@ -1,18 +1,22 @@
 import jsx from "lib/utils/jsx";
 
-function makeFullName({ firstName, lastName }) {
-  return lastName ? `${firstName} ${lastName}` : firstName;
-}
+/** TODO:
+ * - [ ] Add a "large" variant (64px)
+ */
 
 export function Avatar({ avatar, firstName, lastName }) {
   const name = makeFullName({ firstName, lastName });
   return avatar ? (
-    <img className="ui-avatar" src={avatar} alt={name} title={name} height="32" width="32" />
+    <img class="avatar" src={avatar} alt={name} title={name} height="32" width="32" />
   ) : (
-    <div className="ui-avatar" title={name}>
+    <div class="avatar" title={name}>
       {makeInitials({ name })}
     </div>
   );
+}
+
+function makeFullName({ firstName, lastName }) {
+  return lastName ? `${firstName} ${lastName}` : firstName;
 }
 
 const makeInitials = ({ name = "" }) => {

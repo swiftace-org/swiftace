@@ -248,3 +248,7 @@ video {
 form {
   margin-block-end: 0;
 }
+
+.cf-turnstile {
+  height: 65px;
+}

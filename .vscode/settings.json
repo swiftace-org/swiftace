@@ -4,9 +4,5 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.associations": {
     "*.md.txt": "markdown"
-  },
-  "stylelint.config": {
-    "extends": "stylelint-config-standard",
-    "rules": {}
   }
 }

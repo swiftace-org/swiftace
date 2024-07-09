@@ -1,4 +1,4 @@
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { EditCourseForm, parseCourseForm, uploadCourseCover } from "lib/ui/edit-course-form";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
@@ -10,6 +10,8 @@ import jsx from "lib/utils/jsx";
 
 /** TODO:
  * - [ ] Support removing cover image
+ * - [ ] Add JavaScript preview
+ * - [ ] Indicate when cover image is not present (and don't show error preview)
  */
 
 export const onRequest = safeguard(async function ({ request, env, params }) {
@@ -112,9 +114,7 @@ export const onRequest = safeguard(async function ({ request, env, params }) {
     });
   }
 
-  return makeHtmlResponse(
-    <ManageCoursePage {...baseProps} course={updatedCourse} values={updatedCourse} />
-  );
+  return makeHtmlResponse(<ManageCoursePage {...baseProps} course={updatedCourse} values={updatedCourse} />);
 });
 
 function ManageCoursePage({
@@ -137,16 +137,16 @@ function ManageCoursePage({
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <main className="ui-container-sm">
-        <header className="ui-page-header">
-          <Breadcrumbs
+      <main class="container small">
+        <header class="page-header">
+          <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },
               { label: "Courses", href: "/manage/courses" },
             ]}
           />
-          <h1 className="ui-page-heading">{course.title}</h1>
+          <h1 class="page-heading">{course.title}</h1>
         </header>
         <EditCourseForm
           values={values}

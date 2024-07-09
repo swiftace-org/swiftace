@@ -1,4 +1,4 @@
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { EditCourseForm, parseCourseForm, uploadCourseCover } from "lib/ui/edit-course-form";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
@@ -123,16 +123,16 @@ function NewCoursePage({
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <main className="ui-container-sm">
-        <header className="ui-page-header">
-          <Breadcrumbs
+      <main class="container small">
+        <header class="page-header">
+          <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },
               { label: "Courses", href: "/manage/courses" },
             ]}
           />
-          <h1 className="ui-page-heading">New Course</h1>
+          <h1 class="page-heading">New Course</h1>
         </header>
         <EditCourseForm
           values={values}

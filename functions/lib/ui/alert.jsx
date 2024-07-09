@@ -1,14 +1,14 @@
 import jsx from "lib/utils/jsx";
 
 const VariantToClass = {
-  neutral: "ui-alert",
-  error: "ui-alert-error",
-  success: "ui-alert-success",
+  neutral: "",
+  error: "error",
+  success: "success",
 };
 
 export function Alert({ title, message, variant = "neutral" }) {
   return (
-    <aside className={VariantToClass[variant]}>
+    <aside class={`alert ${VariantToClass[variant]}`} role="alert">
       <h4>{title}</h4>
       <p>{message}</p>
     </aside>

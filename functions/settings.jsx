@@ -1,5 +1,5 @@
 import { Alert, AlertVariant } from "lib/ui/alert";
-import { Breadcrumbs } from "lib/ui/breadcrumbs";
+import { Breadcrumb } from "lib/ui/breadcrumb";
 import { MainNav } from "lib/ui/main-nav";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { RootLayout } from "lib/ui/root-layout";
@@ -38,11 +38,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   const userEmails = await getUserEmails({ user: currentUser, database });
 
   return makeHtmlResponse(
-    <AccountSettingsPage
-      siteSettings={siteSettings}
-      currentUser={currentUser}
-      userEmails={userEmails}
-    />
+    <AccountSettingsPage siteSettings={siteSettings} currentUser={currentUser} userEmails={userEmails} />
   );
 });
 
@@ -77,9 +73,7 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     avatar_url = currentUser.avatar_url;
   }
 
-  const status = Object.values(formErrors).some((value) => value)
-    ? FormStatus.ERROR
-    : FormStatus.SUCCESS;
+  const status = Object.values(formErrors).some((value) => value) ? FormStatus.ERROR : FormStatus.SUCCESS;
   if (status === "error") {
     return makeHtmlResponse(
       <AccountSettingsPage
@@ -124,13 +118,7 @@ const FieldHints = {
   email: "Your email cannot be updated.",
 };
 
-function AccountSettingsPage({
-  siteSettings,
-  currentUser,
-  userEmails,
-  formErrors = null,
-  status = null,
-}) {
+function AccountSettingsPage({ siteSettings, currentUser, userEmails, formErrors = null, status = null }) {
   return (
     <RootLayout
       title={`Account Settings - ${siteSettings.site_title}`}
@@ -142,81 +130,71 @@ function AccountSettingsPage({
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <div className="ui-container-sm">
-        <header className="ui-page-header">
-          <Breadcrumbs items={[{ label: "Home", href: "/" }]} />
-          <h1 className="ui-page-heading">Account Settings</h1>
+      <div class="container small">
+        <header class="page-header">
+          <Breadcrumb items={[{ label: "Home", href: "/" }]} />
+          <h1 class="page-heading">Account Settings</h1>
         </header>
-        <form className="ui-form" method="post" enctype="multipart/form-data">
-          {status === FormStatus.ERROR && (
-            <Alert
-              title="Error"
-              message="Settings were not saved. Please fix the errors."
-              variant={AlertVariant.ERROR}
-            />
-          )}
-          {status === FormStatus.SUCCESS && (
-            <Alert
-              title="Success"
-              message="Settings saved successfully."
-              variant={AlertVariant.SUCCESS}
-            />
-          )}
+        <form class="form" method="post" enctype="multipart/form-data">
+          <header>
+            {status === FormStatus.ERROR && (
+              <Alert
+                title="Error"
+                message="Settings were not saved. Please fix the errors."
+                variant={AlertVariant.ERROR}
+              />
+            )}
+            {status === FormStatus.SUCCESS && (
+              <Alert title="Success" message="Settings saved successfully." variant={AlertVariant.SUCCESS} />
+            )}
+          </header>
 
           <fieldset>
             <label>
-              <div className="ui-form-label">{FieldLabels.first_name}</div>
+              <div class="form-label">{FieldLabels.first_name}</div>
               <input
-                className="ui-form-input"
+                class="form-input"
                 name={FieldNames.first_name}
                 type="text"
                 value={currentUser.first_name}
               />
             </label>
-            {formErrors?.first_name && (
-              <div className="ui-form-error">{formErrors?.first_name}</div>
-            )}
+            {formErrors?.first_name && <div class="form-hint error">{formErrors?.first_name}</div>}
             <label>
-              <div className="ui-form-label">{FieldLabels.last_name}</div>
+              <div class="form-label">{FieldLabels.last_name}</div>
               <input
-                className="ui-form-input"
+                class="form-input"
                 name={FieldNames.last_name}
                 type="text"
                 value={currentUser.last_name}
               />
             </label>
-            {formErrors?.last_name && <div className="ui-form-error">{formErrors?.last_name}</div>}
+            {formErrors?.last_name && <div class="form-hint error">{formErrors?.last_name}</div>}
             <label>
-              <div className="ui-form-label">{FieldLabels.email}</div>
+              <div class="form-label">{FieldLabels.email}</div>
               {userEmails.map((row) => (
-                <input
-                  className="ui-form-input"
-                  name={FieldNames.email}
-                  type="text"
-                  value={row.email}
-                  disabled
-                />
+                <input class="form-input" name={FieldNames.email} type="text" value={row.email} disabled />
               ))}
             </label>
-            <div className="ui-form-hint">{FieldHints.email}</div>
+            <div class="form-hint">{FieldHints.email}</div>
             <label>
-              <div className="ui-form-label">{FieldLabels.avatar_url}</div>
-              <img className="ui-form-round-image" height="40" src={currentUser.avatar_url} />
+              <div class="form-label">{FieldLabels.avatar_url}</div>
+              <img class="form-round-image" height="40" src={currentUser.avatar_url} />
               <input
-                className="ui-form-input"
+                class="form-input"
                 name={FieldNames.avatar_url}
                 type="file"
                 accept="image/jpeg, image/png, image/gif, image/svg+xml, image/webp"
               />
             </label>
             {formErrors?.avatar_url ? (
-              <div className="ui-form-error">{formErrors?.avatar_url}</div>
+              <div class="form-hint error">{formErrors?.avatar_url}</div>
             ) : (
-              <div className="ui-form-hint">{FieldHints.avatar_url}</div>
+              <div class="form-hint">{FieldHints.avatar_url}</div>
             )}
           </fieldset>
           <footer>
-            <input type="submit" className="ui-button" value="Save Settings" />
+            <input type="submit" class="button" value="Save Settings" />
           </footer>
         </form>
       </div>

@@ -1,6 +1,13 @@
 import jsx from "lib/utils/jsx";
 
-export function RootLayout({ title, description, children, metaImage = null, faviconUrl = null, styles = ["ui"] }) {
+export function RootLayout({
+  title,
+  description,
+  children,
+  metaImage = null,
+  faviconUrl = null,
+  styles = ["ui"],
+}) {
   return (
     <html lang="en">
       <head>
@@ -21,14 +28,22 @@ export function RootLayout({ title, description, children, metaImage = null, fav
         <link rel="icon" href={faviconUrl} />
         <title>{title}</title>
 
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"></link>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+          rel="stylesheet"
+        ></link>
         <link href="/css/variables.css" rel="stylesheet" />
         <link href="/css/normalize.css" rel="stylesheet" />
         {styles.map((style) => (
           <link href={`/css/${style}.css`} rel="stylesheet" />
         ))}
 
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" crossOrigin="anonymous" async defer></script>
+        <script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          crossorigin="anonymous"
+          async
+          defer
+        ></script>
         <script src="/js/index.js" async defer></script>
       </head>
       <body>{children}</body>
