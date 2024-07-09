@@ -4,6 +4,11 @@ import { Alert, AlertVariant } from "./alert";
 import { Asterisk } from "./asterisk";
 import { uploadFile } from "lib/utils/cloudflare";
 
+/** TODO
+ * - [ ] Show a preview/link to existing video
+ * - [ ] Update uploaded images using JavaScript
+ */
+
 export function EditCourseForm({
   values,
   errors,
@@ -15,7 +20,7 @@ export function EditCourseForm({
 }) {
   return (
     <form
-      className="ui-form"
+      class="form"
       action={action}
       method="post"
       enctype="multipart/form-data"
@@ -25,11 +30,7 @@ export function EditCourseForm({
         <Alert title="Error" message={statusMessage} variant={AlertVariant.ERROR} />
       )}
       {status === FormStatus.SUCCESS && (
-        <Alert
-          title="Success"
-          message="Course saved successfully."
-          variant={AlertVariant.SUCCESS}
-        />
+        <Alert title="Success" message="Course saved successfully." variant={AlertVariant.SUCCESS} />
       )}
 
       <fieldset>
@@ -43,7 +44,7 @@ export function EditCourseForm({
         <AdditionalInfo value={values?.additional_info} error={errors?.additional_info} />
       </fieldset>
       <footer>
-        <input type="submit" className="ui-button" value={submitLabel} />
+        <input type="submit" class="button" value={submitLabel} />
       </footer>
     </form>
   );
@@ -144,12 +145,12 @@ function TitleField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">
+        <div class="form-label">
           {FieldLabels.title}
           <Asterisk />
         </div>
         <input
-          className="ui-form-input"
+          class="form-input"
           name={FieldNames.title}
           type="text"
           value={value}
@@ -158,11 +159,7 @@ function TitleField({ value, error }) {
           required
         />
       </label>
-      {error ? (
-        <div className="ui-form-error">{error}</div>
-      ) : (
-        <div className="ui-form-hint">{FieldHints.title}</div>
-      )}
+      {error ? <div class="form-hint error">{error}</div> : <div class="form-hint">{FieldHints.title}</div>}
     </>
   );
 }
@@ -171,12 +168,12 @@ function SlugField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">
+        <div class="form-label">
           {FieldLabels.slug}
           <Asterisk />
         </div>
         <input
-          className="ui-form-input"
+          class="form-input"
           name={FieldNames.slug}
           type="text"
           value={value}
@@ -186,11 +183,7 @@ function SlugField({ value, error }) {
           required
         />
       </label>
-      {error ? (
-        <div className="ui-form-error">{error}</div>
-      ) : (
-        <div className="ui-form-hint">{FieldHints.slug}</div>
-      )}
+      {error ? <div class="form-hint error">{error}</div> : <div class="form-hint">{FieldHints.slug}</div>}
     </>
   );
 }
@@ -199,11 +192,11 @@ function PrivacyField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">
+        <div class="form-label">
           {FieldLabels.privacy}
           <Asterisk />
         </div>
-        <select className="ui-form-input" name={FieldNames.privacy} required>
+        <select class="form-input" name={FieldNames.privacy} required>
           {PrivacyOptions.map((op) => (
             <option value={op.value} selected={value === op.value}>
               {op.label}
@@ -211,7 +204,7 @@ function PrivacyField({ value, error }) {
           ))}
         </select>
       </label>
-      {error && <div className="ui-form-error">{error}</div>}
+      {error && <div class="form-hint error">{error}</div>}
     </>
   );
 }
@@ -220,9 +213,9 @@ function OverviewField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.overview}</div>
+        <div class="form-label">{FieldLabels.overview}</div>
         <textarea
-          className="ui-form-input"
+          class="form-input"
           name={FieldNames.overview}
           rows={3}
           maxlength={FieldLengths.overview}
@@ -232,9 +225,9 @@ function OverviewField({ value, error }) {
         </textarea>
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.overview}</div>
+        <div class="form-hint">{FieldHints.overview}</div>
       )}
     </>
   );
@@ -244,9 +237,9 @@ function DescriptionField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.description}</div>
+        <div class="form-label">{FieldLabels.description}</div>
         <textarea
-          className="ui-form-input"
+          class="form-input"
           name={FieldNames.description}
           rows={5}
           maxlength={FieldLengths.description}
@@ -256,9 +249,9 @@ function DescriptionField({ value, error }) {
         </textarea>
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.description}</div>
+        <div class="form-hint">{FieldHints.description}</div>
       )}
     </>
   );
@@ -268,9 +261,9 @@ function AdditionalInfo({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.additional_info}</div>
+        <div class="form-label">{FieldLabels.additional_info}</div>
         <textarea
-          className="ui-form-input"
+          class="form-input"
           name={FieldNames.additional_info}
           rows={5}
           maxlength={FieldLengths.additional_info}
@@ -280,9 +273,9 @@ function AdditionalInfo({ value, error }) {
         </textarea>
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.additional_info}</div>
+        <div class="form-hint">{FieldHints.additional_info}</div>
       )}
     </>
   );
@@ -292,14 +285,14 @@ function CoverImageField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.cover_url}</div>
-        <img className="ui-form-image-preview" title={value} alt={value} src={value} />
-        <input className="ui-form-input" name={FieldNames.cover_url} type="file" />
+        <div class="form-label">{FieldLabels.cover_url}</div>
+        <img class="form-image-preview" title={value} alt={value} src={value} />
+        <input class="form-input" name={FieldNames.cover_url} type="file" />
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.cover_url}</div>
+        <div class="form-hint">{FieldHints.cover_url}</div>
       )}
     </>
   );
@@ -309,9 +302,9 @@ function PromoVideoField({ value, error }) {
   return (
     <>
       <label>
-        <div className="ui-form-label">{FieldLabels.promo_video_url}</div>
+        <div class="form-label">{FieldLabels.promo_video_url}</div>
         <input
-          className="ui-form-input"
+          class="form-input"
           name={FieldNames.promo_video_url}
           type="url"
           value={value}
@@ -320,9 +313,9 @@ function PromoVideoField({ value, error }) {
         />
       </label>
       {error ? (
-        <div className="ui-form-error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="ui-form-hint">{FieldHints.promo_video_url}</div>
+        <div class="form-hint">{FieldHints.promo_video_url}</div>
       )}
     </>
   );

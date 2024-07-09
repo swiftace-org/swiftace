@@ -4,15 +4,15 @@ import { Avatar } from "./avatar";
 export function MainNav({ currentUser = null, logoUrl = null, siteTitle = null, hideSignIn = false }) {
   return (
     <>
-      <header className="main-nav">
+      <header class="main-nav">
         <a href="/">
-          <img height="28" className="main-nav-logo" src={logoUrl} alt={siteTitle} />
+          <img height="28" class="main-nav-logo" src={logoUrl} alt={siteTitle} />
         </a>
         <nav>
           {currentUser ? (
             <ProfileDropdown currentUser={currentUser} />
           ) : !hideSignIn ? (
-            <a className="main-nav-link" href="/login">
+            <a class="main-nav-link" href="/login">
               Sign In
             </a>
           ) : null}
@@ -25,7 +25,7 @@ export function MainNav({ currentUser = null, logoUrl = null, siteTitle = null, 
 
 export function ProfileDropdown({ currentUser }) {
   return (
-    <div className="dropdown right">
+    <div class="dropdown right">
       <button>
         <Avatar
           avatar={currentUser.avatar_url}
@@ -35,18 +35,18 @@ export function ProfileDropdown({ currentUser }) {
       </button>
       <ul>
         <li>
-          <a className="dropdown-link" href="/settings">
+          <a class="dropdown-link" href="/settings">
             Settings
           </a>
         </li>
         <li>
-          <a className="dropdown-link" href="/logout">
+          <a class="dropdown-link" href="/logout">
             Sign Out
           </a>
         </li>
         {currentUser.is_admin && (
           <li>
-            <a className="dropdown-link" href="/manage">
+            <a class="dropdown-link" href="/manage">
               Manage
             </a>
           </li>

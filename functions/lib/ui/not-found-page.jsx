@@ -1,6 +1,5 @@
 import jsx from "lib/utils/jsx";
 import { MainNav } from "./main-nav";
-import { NotFound } from "./not-found";
 import { RootLayout } from "./root-layout";
 
 export const NotFoundPage = ({ siteSettings, currentUser }) => {
@@ -17,5 +16,28 @@ export const NotFoundPage = ({ siteSettings, currentUser }) => {
       />
       <NotFound currentUser={currentUser} />
     </RootLayout>
+  );
+};
+
+export const NotFound = ({ currentUser = null }) => {
+  return (
+    <div class="container small">
+      <header class="page-header">
+        <h1 class="page-heading">Page Not Found</h1>
+        <p class="page-subheading">Sorry, this page does not exist or is private.</p>
+      </header>
+      <section class="page-section">
+        <div class="button-row">
+          <a class="button wide" href="/">
+            Home
+          </a>
+          {!currentUser && (
+            <a class="button outline wide" href="/login">
+              Sign In
+            </a>
+          )}
+        </div>
+      </section>
+    </div>
   );
 };

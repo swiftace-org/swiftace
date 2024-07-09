@@ -229,7 +229,7 @@ const EmailInput = ({ disabled = false, value = null, error = null }) => (
         autoFocus={!disabled}
       />
     </label>
-    {error && <div class="form-error">{error}</div>}
+    {error && <div class="form-hint error">{error}</div>}
   </>
 );
 

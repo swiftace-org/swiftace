@@ -19,7 +19,7 @@ export function Breadcrumb({ items }) {
   });
 
   return (
-    <nav aria-label="breadcrumb" className="breadcrumb">
+    <nav aria-label="breadcrumb" class="breadcrumb">
       <ul>
         {items.map((item) => (
           <li>

@@ -7,9 +7,9 @@ import jsx from "lib/utils/jsx";
 export function Avatar({ avatar, firstName, lastName }) {
   const name = makeFullName({ firstName, lastName });
   return avatar ? (
-    <img className="avatar" src={avatar} alt={name} title={name} height="32" width="32" />
+    <img class="avatar" src={avatar} alt={name} title={name} height="32" width="32" />
   ) : (
-    <div className="avatar" title={name}>
+    <div class="avatar" title={name}>
       {makeInitials({ name })}
     </div>
   );

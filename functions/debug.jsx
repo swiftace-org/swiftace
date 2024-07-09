@@ -1,7 +1,6 @@
 import { Breadcrumb } from "lib/ui/breadcrumb";
 import { CourseCard } from "lib/ui/course-card";
 import { MainNav } from "lib/ui/main-nav";
-import { NotFound } from "lib/ui/not-found";
 import { RootLayout } from "lib/ui/root-layout";
 import { getCurrentUser } from "lib/utils/auth";
 import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
@@ -40,7 +39,6 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   return makeHtmlResponse(
     <RootLayout title={siteSettings.site_title} description={siteSettings.site_description}>
       <MainNav siteTitle={siteSettings.title} currentUser={user} logoUrl={siteSettings.site_logo_url} />
-      <NotFound />
 
       <div class="page-section">
         <Breadcrumb

@@ -8,7 +8,7 @@ const VariantToClass = {
 
 export function Alert({ title, message, variant = "neutral" }) {
   return (
-    <aside className={`alert ${VariantToClass[variant]}`} role="alert">
+    <aside class={`alert ${VariantToClass[variant]}`} role="alert">
       <h4>{title}</h4>
       <p>{message}</p>
     </aside>

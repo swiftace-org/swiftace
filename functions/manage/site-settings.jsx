@@ -408,9 +408,9 @@ function OTPExpiryInput({ value, error = null }) {
         <input class="form-input" name={FieldNames.otp_expiry_seconds} type="number" value={value} />
       </label>
       {error ? (
-        <div className="form-hint error">{error}</div>
+        <div class="form-hint error">{error}</div>
       ) : (
-        <div className="form-hint">{FieldHints.otp_expiry_seconds}</div>
+        <div class="form-hint">{FieldHints.otp_expiry_seconds}</div>
       )}
     </>
   );

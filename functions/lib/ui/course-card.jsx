@@ -36,7 +36,7 @@ export function CourseCard({ course }) {
   const badgeText = course.certificate_slug ? "Completed" : course.enrolled_at ? "Enrolled" : "";
 
   return (
-    <a href={`/course/${course.slug}`} className="course-card">
+    <a href={`/course/${course.slug}`} class="course-card">
       <img src={course.cover_url} height="180" width="320" alt={course.title} />
       <section>
         <h2>{course.title}</h2>
@@ -45,7 +45,7 @@ export function CourseCard({ course }) {
           {course.total_lessons && (
             <li title={`${truncateCount(course.total_lessons)} lessons`}>
               <img
-                className="icon"
+                class="icon"
                 src="/img/icons/presentation-chart-line.svg"
                 alt="Lessons"
                 height="18"
@@ -57,7 +57,7 @@ export function CourseCard({ course }) {
           {course.total_assignments && (
             <li title={`${truncateCount(course.total_assignments)} assignment(s)`}>
               <img
-                className="icon"
+                class="icon"
                 src="/img/icons/clipboard-document-list.svg"
                 alt="Assignments"
                 height="16"
@@ -68,7 +68,7 @@ export function CourseCard({ course }) {
           )}
           {badgeText && (
             <li>
-              <span className="badge">{badgeText}</span>
+              <span class="badge">{badgeText}</span>
             </li>
           )}
         </ul>

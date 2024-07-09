@@ -13,7 +13,7 @@ export default [
       "react/prop-types": 0,
       "react/no-unknown-property": [
         "error",
-        { ignore: ["class", "enctype", "maxlength", "onsubmit", "for", "onclick"] },
+        { ignore: ["class", "enctype", "maxlength", "onsubmit", "for", "onclick", "crossorigin"] },
       ],
       "react/jsx-key": 0,
     },

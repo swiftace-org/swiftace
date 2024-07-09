@@ -123,8 +123,8 @@ function NewCoursePage({
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <main className="ui-container-sm">
-        <header className="ui-page-header">
+      <main class="container small">
+        <header class="page-header">
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
@@ -132,7 +132,7 @@ function NewCoursePage({
               { label: "Courses", href: "/manage/courses" },
             ]}
           />
-          <h1 className="ui-page-heading">New Course</h1>
+          <h1 class="page-heading">New Course</h1>
         </header>
         <EditCourseForm
           values={values}

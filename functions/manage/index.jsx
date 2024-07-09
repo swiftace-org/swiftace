@@ -29,30 +29,30 @@ function ManagePage({ siteSettings, currentUser }) {
         currentUser={currentUser}
         siteTitle={siteSettings.site_title}
       />
-      <main className="container small">
-        <header className="page-header">
+      <main class="container small">
+        <header class="page-header">
           <Breadcrumb items={[{ label: "Home", href: "/" }]} />
-          <h1 className="page-heading">Manage - {siteSettings.site_title}</h1>
+          <h1 class="page-heading">Manage - {siteSettings.site_title}</h1>
         </header>
-        <section className="page-section">
+        <section class="page-section">
           <ul>
             <li>
-              <a className="link" href="/manage/courses">
+              <a class="link" href="/manage/courses">
                 Manage Courses
               </a>
             </li>
             <li>
-              <a className="link" href="/manage/site-settings">
+              <a class="link" href="/manage/site-settings">
                 Site Settings
               </a>
             </li>
             <li>
-              <a className="link" href="/manage/secrets">
+              <a class="link" href="/manage/secrets">
                 Site Secrets
               </a>
             </li>
             <li>
-              <a className="link" href="/manage/admins">
+              <a class="link" href="/manage/admins">
                 Manage Admins
               </a>
             </li>
