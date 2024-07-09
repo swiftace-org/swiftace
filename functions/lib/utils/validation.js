@@ -1,4 +1,12 @@
-export function assert(displayTag, condition, message, data) {
+export function assert({ tag, check, error, data }) {
+  if (!check) {
+    const serializedData = data !== undefined ? "\n" + JSON.stringify(data, null, 2) + "\n" : "";
+    const finalMessage = serializedData ? `[${tag}] ${error}\n${serializedData}` : `[${tag}] ${error}`;
+    throw new Error(finalMessage);
+  }
+}
+
+export function assertOld(displayTag, condition, message, data) {
   if (!condition) {
     const serializedData = data !== undefined ? "\n" + JSON.stringify(data, null, 2) + "\n" : "";
     const finalMessage = `[${displayTag}] ${message}\n${serializedData}`;
@@ -9,7 +17,7 @@ export function assert(displayTag, condition, message, data) {
 export function assertAll(displayTag, conditionsAndMessages, overallMessage = "Error") {
   const errors = conditionsAndMessages.filter(([condition]) => !condition).map(([_, message]) => message);
   const combinedMessage = `${overallMessage}\n-${errors.join("\n-")}`;
-  assert(displayTag, errors.length === 0, combinedMessage);
+  assertOld(displayTag, errors.length === 0, combinedMessage);
 }
 
 export function validateSameKeys(object1, object2) {
@@ -38,4 +46,8 @@ export function validateUrlPath(urlPath) {
 
 export function validateUrlOrPath(url) {
   return validateUrl(url) || validateUrlPath(url);
+}
+
+export function undefinedOrNull(input) {
+  return [undefined, null].includes(input);
 }

@@ -1,6 +1,11 @@
 import jsx from "lib/utils/jsx";
 import { assert } from "lib/utils/validation";
 
+/** TODO:
+ * - [ ] Trim title and message before asserting or using them
+ * - [ ] Create a set of pages to test components is various states
+ */
+
 const VariantToClass = {
   neutral: "",
   error: "error",
@@ -9,13 +14,26 @@ const VariantToClass = {
 
 export function Alert({ title, message, variant = "neutral" }) {
   const tag = "Alert";
-  assert(tag, typeof title === "string", "'title' must be a string", { title });
-  assert(tag, title.length > 0, "'title' must not be empty", { title });
-  assert(tag, typeof message === "string", "'message' must be a string", { message });
-  assert(tag, message.length > 0, "'message' must not be empty", { message });
-  assert(tag, variant in VariantToClass, "'variant' must be one of the allowed values", {
-    variant,
-    allowedValues: Object.values(AlertVariant),
+  assert({
+    tag,
+    check: typeof title === "string" && title.length > 0,
+    error: "'title' must be a non-empty string",
+    data: { title },
+  });
+  assert({
+    tag,
+    check: typeof message === "string" && message.length > 0,
+    error: "'message' must be a non-empty string",
+    data: { message },
+  });
+  assert({
+    tag,
+    check: variant in VariantToClass,
+    error: "'variant' must be one of the allowed values",
+    data: {
+      variant,
+      allowedValues: Object.values(AlertVariant),
+    },
   });
 
   return (

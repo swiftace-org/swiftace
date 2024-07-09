@@ -115,13 +115,12 @@ export const onRequestPost = safeguard(async function ({ request, env }) {
     session_expiry_seconds: null,
     otp_expiry_seconds: null,
   };
-  assert(
-    "POST /site-settings",
-    validateSameKeys(newSettings, errors),
-    `'newSettings' and 'errors' must have the same keys. \nnewSettings: ${Object.keys(newSettings).join(
-      ", "
-    )}\nerrors:: ${Object.keys(errors).join(", ")}`
-  );
+  assert({
+    tag: "POST /site-settings",
+    check: validateSameKeys(newSettings, errors),
+    error: `'newSettings' and 'errors' must have the same set of keys`,
+    data: { newSettings, errors },
+  });
 
   const status = Object.values(errors).some((value) => value) ? FormStatus.ERROR : FormStatus.SUCCESS;
 

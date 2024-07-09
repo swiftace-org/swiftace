@@ -7,18 +7,32 @@ import { assert, validateUrlOrPath } from "lib/utils/validation";
 
 export function Avatar({ avatar, firstName, lastName }) {
   const tag = "Avatar";
-  assert(tag, typeof firstName === "string", "'firstName' must be a string", { firstName });
-  assert(tag, firstName.length > 0, "'firstName' must not be empty", { firstName });
-  assert(
+  assert({
     tag,
-    typeof lastName === "string" || lastName === undefined,
-    "'lastName' must be a string or undefined",
-    { lastName }
-  );
-  assert(tag, avatar === undefined || typeof avatar === "string", "'avatar' must be a string or undefined", {
-    avatar,
+    check: typeof firstName === "string" && firstName.length > 0,
+    error: "'firstName' must be a non-empty string",
+    data: { firstName },
   });
-  assert(tag, validateUrlOrPath(avatar), "'avatar' must be a valid URL or URL path");
+  assert({
+    tag,
+    check: typeof lastName === "string" || lastName === undefined,
+    error: "'lastName' must be a string or undefined",
+    data: { lastName },
+  });
+  assert({
+    tag,
+    check: avatar === undefined || typeof avatar === "string",
+    error: "'avatar' must be a string or undefined",
+    data: { avatar },
+  });
+  if (avatar) {
+    assert({
+      tag,
+      check: validateUrlOrPath(avatar),
+      error: "'avatar' must be a valid URL or URL path",
+      data: { avatar },
+    });
+  }
 
   const name = makeFullName({ firstName, lastName });
   return avatar ? (

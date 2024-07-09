@@ -9,13 +9,33 @@ import jsx from "lib/utils/jsx";
 
 export function Breadcrumb({ items }) {
   const tag = "Breadcrumb";
-  assert(tag, Array.isArray(items), "'items' should be an array", { items });
-  assert(tag, items.length > 0, "'items' should have at least one element", { items });
+  assert({
+    tag,
+    check: Array.isArray(items) && items.length > 0,
+    error: "'items' should be a non-empty array",
+    data: { items },
+  });
+
   items.forEach((item, index) => {
     const data = { item, index };
-    assert(tag, typeof item === "object", `Item at index ${index} must be an object`, data);
-    assert(tag, typeof item.label === "string", `Item at index ${index} must have a string label`, data);
-    assert(tag, typeof item.href === "string", `Item at index ${index} must have a string href`, data);
+    assert({
+      tag,
+      check: typeof item === "object",
+      error: `Item at index ${index} must be an object`,
+      data,
+    });
+    assert({
+      tag,
+      check: typeof item.label === "string",
+      error: `Item at index ${index} must have a string label`,
+      data,
+    });
+    assert({
+      tag,
+      check: typeof item.href === "string",
+      error: `Item at index ${index} must have a string href`,
+      data,
+    });
   });
 
   return (

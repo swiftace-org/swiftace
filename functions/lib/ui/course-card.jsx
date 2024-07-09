@@ -1,37 +1,76 @@
-import { assert } from "lib/utils/validation";
+import { assert, undefinedOrNull } from "lib/utils/validation";
 import jsx from "lib/utils/jsx";
+
+/** TODO:
+ * - [ ] Add JSDoc string
+ * - [ ] Add check for valid unix timestamp
+ */
 
 export function CourseCard({ course }) {
   const tag = "CourseCard";
-  assert(tag, course && typeof course === "object", "'course' must be an object", { course });
-  assert(tag, typeof course.slug === "string", "'course.slug' must be a string", { course });
-  assert(tag, typeof course.cover_url === "string", "'course.cover_url' must be a string", { course });
-  assert(tag, typeof course.title === "string", "'course.title' must be a string", { course });
-  assert(tag, typeof course.overview === "string", "'course.overview' must be a string", { course });
-  assert(
+
+  assert({
     tag,
-    [undefined, null].includes(course.total_lessons) || typeof course.total_lessons === "number",
-    "course.total_lessons must be a number or undefined",
-    { course }
-  );
-  assert(
+    check: course && typeof course === "object",
+    error: "'course' must be an object",
+    data: { course },
+  });
+
+  assert({
     tag,
-    [undefined, null].includes(course.total_assignments) || typeof course.total_assignments === "number",
-    "course.total_assignments must be a number or undefined",
-    { course }
-  );
-  assert(
+    check: typeof course.slug === "string",
+    error: "'course.slug' must be a string",
+    data: { course },
+  });
+
+  assert({
     tag,
-    [undefined, null].includes(course.certificate_slug) || typeof course.certificate_slug === "string",
-    "course.certificate_slug must be a string or undefined",
-    { course }
-  );
-  assert(
+    check: typeof course.cover_url === "string",
+    error: "'course.cover_url' must be a string",
+    data: { course },
+  });
+
+  assert({
     tag,
-    [undefined, null].includes(course.enrolled_at) || typeof course.enrolled_at === "number",
-    "course.enrolled_at must be a number (UNIX timestamp) or undefined",
-    { course }
-  );
+    check: typeof course.title === "string",
+    error: "'course.title' must be a string",
+    data: { course },
+  });
+
+  assert({
+    tag,
+    check: typeof course.overview === "string",
+    error: "'course.overview' must be a string",
+    data: { course },
+  });
+
+  assert({
+    tag,
+    check: undefinedOrNull(course.total_lessons) || typeof course.total_lessons === "number",
+    error: "'course.total_lessons' must be a number or undefined/null",
+    data: { course },
+  });
+
+  assert({
+    tag,
+    check: undefinedOrNull(course.total_assignments) || typeof course.total_assignments === "number",
+    error: "'course.total_assignments' must be a number or undefined/null",
+    data: { course },
+  });
+
+  assert({
+    tag,
+    check: undefinedOrNull(course.certificate_slug) || typeof course.certificate_slug === "string",
+    error: "'course.certificate_slug' must be a string or undefined/null",
+    data: { course },
+  });
+
+  assert({
+    tag,
+    check: undefinedOrNull(course.enrolled_at) || typeof course.enrolled_at === "number",
+    error: "course.enrolled_at must be a number (UNIX timestamp) or undefined/null",
+    data: { course },
+  });
 
   const badgeText = course.certificate_slug ? "Completed" : course.enrolled_at ? "Enrolled" : "";
 

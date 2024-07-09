@@ -81,9 +81,19 @@ const DefaultSiteSettings = {
 };
 
 export async function getSiteSettings({ cacheKv }) {
-  const fn = "getSiteSettings";
-  assert(fn, typeof cacheKv === "object" && cacheKv != null, "'cacheKv' must be a non-null object");
-  assert(fn, typeof cacheKv.get === "function", "'cacheKv' must have a 'get' function");
+  const tag = "getSiteSettings";
+
+  assert({
+    tag,
+    check: typeof cacheKv === "object" && cacheKv != null,
+    error: "'cacheKv' must be a non-null object",
+  });
+
+  assert({
+    tag,
+    check: typeof cacheKv.get === "function",
+    error: "'cacheKv' must have a 'get' function",
+  });
 
   const savedSettings = (await cacheKv.get(CachePrefix.SITE_SETTINGS, { type: "json" })) ?? {};
   const siteSettings = { ...DefaultSiteSettings, ...savedSettings };
