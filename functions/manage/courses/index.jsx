@@ -1,5 +1,6 @@
 import { Breadcrumb } from "lib/ui/breadcrumb";
 import { NotFoundPage } from "lib/ui/not-found-page";
+import { Outlink } from "lib/ui/outlink";
 import { PrivacyDisplay } from "lib/utils/constants";
 
 const { MainNav } = require("lib/ui/main-nav");
@@ -10,6 +11,7 @@ const { default: jsx } = require("lib/utils/jsx");
 
 /** TODO:
  * - [ ] Add pagiation beyond 1000 courses (at some point)
+ * - [ ] Write a blog post on drag drop with pure JavaScript
  */
 
 export const onRequest = safeguard(async function ({ request, env }) {
@@ -73,18 +75,18 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
         siteTitle={siteSettings.site_title}
         logoUrl={siteSettings.site_logo_url}
       />
-      <main className="ui-container-sm">
-        <header className="ui-page-header">
+      <main class="container small">
+        <header class="page-header">
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Manage", href: "/manage" },
             ]}
           />
-          <h1 className="ui-page-heading">Courses</h1>
+          <h1 class="page-heading">Courses</h1>
         </header>
-        <section>
-          <table className="manage-courses-table">
+        <section class="page-section">
+          <table class="table manage-courses-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -96,23 +98,18 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
             <tbody>
               {courses.map((course) => (
                 <tr data-course-id={course.id}>
-                  <td>{course.id}</td>
+                  <td>
+                    <span class="manage-courses-drag-handle">⋮⋮</span> {course.id}
+                  </td>
                   <td>{course.title}</td>
                   <td>{PrivacyDisplay[course.privacy]}</td>
                   <td>
-                    <ul className="manage-courses-actions">
+                    <ul class="manage-courses-actions">
                       <li>
-                        <a className="ui-link" href={`/course/${course.slug}`} target="_blank">
-                          View
-                        </a>
+                        <Outlink href={`/course/${course.slug}`}>View</Outlink>
                       </li>
                       <li>
-                        <a className="ui-link" href={`/manage/courses/${course.slug}`}>
-                          Manage
-                        </a>
-                      </li>
-                      <li>
-                        <span className="manage-courses-drag-handle">⋮⋮</span>
+                        <Outlink href={`/manage/courses/${course.slug}`}>Manage</Outlink>
                       </li>
                     </ul>
                   </td>
@@ -120,21 +117,21 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
               ))}
             </tbody>
           </table>
-          <div className="ui-button-row manage-courses-default-buttons">
-            <button className="ui-button-outline" onclick="ManageCourses.enableReorder(event);">
+          <div class="button-row manage-courses-default-buttons">
+            <button class="button outline wide" onclick="ManageCourses.enableReorder(event);">
               ⋮⋮ Reorder
             </button>
-            <a href={`/manage/courses/new`} className="ui-button-outline">
+            <a href={`/manage/courses/new`} class="button outline wide">
               + New Course
             </a>
           </div>
-          <div className="ui-button-row manage-courses-ordering-buttons">
-            <a href={`/manage/courses`} className="ui-button-outline">
+          <div class="button-row manage-courses-ordering-buttons">
+            <a href={`/manage/courses`} class="button outline wide">
               ✕ Reset Order
             </a>
             <form action="/manage/courses" method="post">
               <input type="hidden" name="sorted_course_ids" value="" />
-              <input type="submit" className="ui-button-outline" value="⋮⋮ Save Order" />
+              <input type="submit" class="button outline wide" value="⋮⋮ Save Order" />
             </form>
           </div>
         </section>

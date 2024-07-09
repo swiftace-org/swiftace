@@ -435,6 +435,25 @@
   }
 }
 
+/* Bordred table with padding */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.table > thead > tr > th {
+  border-width: 1px;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.table > tbody > tr > td {
+  border-width: 1px;
+  padding: 0.5rem;
+  line-height: 1.5;
+}
+
 /* Video (iframe embed or preview image) */
 .video {
   width: 100%; /* Adjust as needed */
