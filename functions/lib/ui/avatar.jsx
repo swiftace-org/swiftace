@@ -1,5 +1,5 @@
 import jsx from "lib/utils/jsx";
-import { assert, validateUrlOrPath } from "lib/utils/validation";
+import { assert, undefinedOrNull, isUrlOrPath } from "lib/utils/validation";
 
 /** TODO:
  * - [ ] Add a "large" variant (64px)
@@ -15,20 +15,20 @@ export function Avatar({ avatar, firstName, lastName }) {
   });
   assert({
     tag,
-    check: typeof lastName === "string" || lastName === undefined,
-    error: "'lastName' must be a string or undefined",
+    check: undefinedOrNull(lastName) || typeof lastName === "string",
+    error: "'lastName' must be a string or undefined/null",
     data: { lastName },
   });
   assert({
     tag,
-    check: avatar === undefined || typeof avatar === "string",
+    check: undefinedOrNull(avatar) || typeof avatar === "string",
     error: "'avatar' must be a string or undefined",
     data: { avatar },
   });
   if (avatar) {
     assert({
       tag,
-      check: validateUrlOrPath(avatar),
+      check: isUrlOrPath(avatar),
       error: "'avatar' must be a valid URL or URL path",
       data: { avatar },
     });

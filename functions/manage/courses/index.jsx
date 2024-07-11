@@ -2,12 +2,11 @@ import { Breadcrumb } from "lib/ui/breadcrumb";
 import { NotFoundPage } from "lib/ui/not-found-page";
 import { Outlink } from "lib/ui/outlink";
 import { PrivacyDisplay } from "lib/utils/constants";
-
-const { MainNav } = require("lib/ui/main-nav");
-const { RootLayout } = require("lib/ui/root-layout");
-const { getCurrentUser } = require("lib/utils/auth");
-const { safeguard, getSiteSettings, makeHtmlResponse } = require("lib/utils/cloudflare");
-const { default: jsx } = require("lib/utils/jsx");
+import { MainNav } from "lib/ui/main-nav";
+import { RootLayout } from "lib/ui/root-layout";
+import { getCurrentUser } from "lib/utils/auth";
+import { safeguard, getSiteSettings, makeHtmlResponse } from "lib/utils/cloudflare";
+import jsx from "lib/utils/jsx";
 
 /** TODO:
  * - [ ] Add pagiation beyond 1000 courses (at some point)

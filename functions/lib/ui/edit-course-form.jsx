@@ -3,35 +3,87 @@ import jsx from "lib/utils/jsx";
 import { Alert, AlertVariant } from "./alert";
 import { Asterisk } from "./asterisk";
 import { uploadFile } from "lib/utils/cloudflare";
+import { assert, isNonEmptyString, isObject, isUrlOrPath, undefinedOrNull } from "lib/utils/validation";
 
 /** TODO
  * - [ ] Show a preview/link to existing video
  * - [ ] Update uploaded images using JavaScript
  */
 
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function EditCourseForm({
+  action,
   values,
   errors,
+  submitLabel,
   status = null,
   statusMessage = null,
-  submitLabel,
-  confirmMessage,
-  action,
+  confirmMessage = null,
 }) {
+  const tag = "EditCourseForm";
+  assert({
+    tag,
+    check: isNonEmptyString(action) && isUrlOrPath(action),
+    error: "'action' must be a valid URL or URL path",
+    data: { action },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(values) || isObject(values),
+    error: "'values' must be undefined/null or an object",
+    data: { values },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(errors) || isObject(errors),
+    error: "'errors' must be undefined/null or an object",
+    data: { errors },
+  });
+  assert({
+    tag,
+    check: isNonEmptyString(submitLabel, { trim: true }),
+    error: "'submitLabel' must be a non-empty string",
+    data: { submitLabel },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(confirmMessage) || isNonEmptyString(confirmMessage),
+    error: "'confirmMessage' must be undefined/null or a non-empty string",
+  });
+  const statusAllowedValues = Object.values(FormStatus);
+  assert({
+    tag,
+    check:
+      (undefinedOrNull(status) && undefinedOrNull(statusMessage)) ||
+      (statusAllowedValues.includes(status) && isNonEmptyString(statusMessage, { trim: true })),
+    error:
+      "'status' and 'statusMessage' must both be empty, or 'status' must be an allowed value and 'statusMessage' a non-empty string",
+    data: { status, statusMessage, statusAllowedValues },
+  });
   return (
     <form
       class="form"
       action={action}
       method="post"
       enctype="multipart/form-data"
-      onsubmit={`return window.confirm("${confirmMessage}")`}
+      onsubmit={confirmMessage && `return window.confirm(${JSON.stringify(escapeHtml(confirmMessage))})`}
     >
-      {status === FormStatus.ERROR && (
-        <Alert title="Error" message={statusMessage} variant={AlertVariant.ERROR} />
-      )}
-      {status === FormStatus.SUCCESS && (
-        <Alert title="Success" message="Course saved successfully." variant={AlertVariant.SUCCESS} />
-      )}
+      <header>
+        {status === FormStatus.ERROR && (
+          <Alert title="Error" message={statusMessage} variant={AlertVariant.ERROR} />
+        )}
+        {status === FormStatus.SUCCESS && (
+          <Alert title="Success" message={statusMessage} variant={AlertVariant.SUCCESS} />
+        )}
+      </header>
 
       <fieldset>
         <TitleField value={values?.title} error={errors?.title} />

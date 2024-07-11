@@ -114,7 +114,15 @@ export const onRequest = safeguard(async function ({ request, env, params }) {
     });
   }
 
-  return makeHtmlResponse(<ManageCoursePage {...baseProps} course={updatedCourse} values={updatedCourse} />);
+  return makeHtmlResponse(
+    <ManageCoursePage
+      {...baseProps}
+      course={updatedCourse}
+      values={updatedCourse}
+      status={FormStatus.SUCCESS}
+      statusMessage={"Course details saved."}
+    />
+  );
 });
 
 function ManageCoursePage({

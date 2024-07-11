@@ -1,4 +1,4 @@
-import { assert, assertAll, validateUrlOrPath } from "./validation";
+import { assert, assertAll, isUrlOrPath } from "./validation";
 import { CachePrefix } from "./constants";
 
 export async function validateTurnstile({ env, turnstileToken }) {
@@ -117,16 +117,14 @@ export function assertSiteSettings(displayTag, siteSettings, message) {
         typeof siteSettings.site_description === "string" && siteSettings.site_description.trim() !== "",
         "'site_description' must be a non-empty string",
       ],
-      [validateUrlOrPath(siteSettings.site_favicon_url), "'site_favicon_url' must be a valid URL or path"],
-      [validateUrlOrPath(siteSettings.site_logo_url), "'site_logo_url' must be a valid URL or path"],
+      [isUrlOrPath(siteSettings.site_favicon_url), "'site_favicon_url' must be a valid URL or path"],
+      [isUrlOrPath(siteSettings.site_logo_url), "'site_logo_url' must be a valid URL or path"],
       [
-        siteSettings.terms_of_service_raw_url === null ||
-          validateUrlOrPath(siteSettings.terms_of_service_raw_url),
+        siteSettings.terms_of_service_raw_url === null || isUrlOrPath(siteSettings.terms_of_service_raw_url),
         "'terms_of_service_raw_url' must be null or a valid URL or path",
       ],
       [
-        siteSettings.privacy_policy_raw_url === null ||
-          validateUrlOrPath(siteSettings.privacy_policy_raw_url),
+        siteSettings.privacy_policy_raw_url === null || isUrlOrPath(siteSettings.privacy_policy_raw_url),
         "'privacy_policy_raw_url' must be null or a valid URL or path",
       ],
       [

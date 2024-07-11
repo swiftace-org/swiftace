@@ -1,7 +1,30 @@
 import jsx from "lib/utils/jsx";
 import { Avatar } from "./avatar";
+import { assert, isObject, isUrlOrPath, undefinedOrNull } from "lib/utils/validation";
 
-export function MainNav({ currentUser = null, logoUrl = null, siteTitle = null, hideSignIn = false }) {
+export function MainNav({ currentUser, logoUrl, siteTitle, hideSignIn }) {
+  const tag = "MainNav";
+  assert({
+    tag,
+    check: undefinedOrNull(logoUrl) || (typeof logoUrl === "string" && isUrlOrPath(logoUrl)),
+    error: "'logoUrl' must be undefined/null or a valid URL or URL path",
+    data: { logoUrl },
+  });
+
+  assert({
+    tag,
+    check: undefinedOrNull(siteTitle) || (typeof siteTitle === "string" && siteTitle.length > 0),
+    error: "'siteTitle' must be undefined/null or a non-empty string",
+    data: { siteTitle },
+  });
+
+  assert({
+    tag,
+    check: undefinedOrNull(hideSignIn) || typeof hideSignIn === "boolean",
+    error: "'hideSignIn' must be undefined/null or a boolean",
+    data: { hideSignIn },
+  });
+
   return (
     <>
       <header class="main-nav">
@@ -24,6 +47,14 @@ export function MainNav({ currentUser = null, logoUrl = null, siteTitle = null, 
 }
 
 export function ProfileDropdown({ currentUser }) {
+  const tag = "ProfileDropdown";
+  assert({
+    tag,
+    check: isObject(currentUser),
+    error: "'currentUser' must be an object",
+    data: { currentUser },
+  });
+
   return (
     <div class="dropdown right">
       <button>

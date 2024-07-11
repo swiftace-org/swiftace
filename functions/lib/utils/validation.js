@@ -26,7 +26,7 @@ export function validateSameKeys(object1, object2) {
   return keys1.length === keys2.length && keys1.every((key, index) => key === keys2[index]);
 }
 
-export function validateUrl(url) {
+export function isUrl(url) {
   try {
     new URL(url);
     return true;
@@ -35,7 +35,7 @@ export function validateUrl(url) {
   }
 }
 
-export function validateUrlPath(urlPath) {
+export function isUrlPath(urlPath) {
   try {
     new URL(urlPath, "http://example.com");
     return true;
@@ -44,10 +44,18 @@ export function validateUrlPath(urlPath) {
   }
 }
 
-export function validateUrlOrPath(url) {
-  return validateUrl(url) || validateUrlPath(url);
+export function isUrlOrPath(url) {
+  return isUrl(url) || isUrlPath(url);
 }
 
 export function undefinedOrNull(input) {
   return [undefined, null].includes(input);
+}
+
+export function isObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function isNonEmptyString(str, { trim } = {}) {
+  return typeof str === "string" && (trim ? str.trim().length > 0 : str.length > 0);
 }

@@ -1,4 +1,9 @@
 import jsx from "lib/utils/jsx";
+import { assert, undefinedOrNull, isUrlOrPath } from "lib/utils/validation";
+
+/** TODO:
+ * - [ ] Trim the title then perform empty check
+ */
 
 export function RootLayout({
   title,
@@ -8,6 +13,38 @@ export function RootLayout({
   faviconUrl = null,
   styles = ["ui"],
 }) {
+  const tag = "RootLayout";
+  assert({
+    tag,
+    check: typeof title === "string" && title.length > 0,
+    error: "'title' must be a non-empty string",
+    data: { title },
+  });
+  assert({
+    tag,
+    check: typeof description === "string" && description.length > 0,
+    error: "'description' must be non-empty string",
+    data: { description },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(metaImage) || (typeof metaImage === "string" && isUrlOrPath(metaImage)),
+    error: "'metaImage' must be null/undefined or a valid URL",
+    data: { metaImage },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(faviconUrl) || (typeof faviconUrl === "string" && isUrlOrPath(faviconUrl)),
+    error: "'favicon' must be null/undefined or a valid URL",
+    data: { faviconUrl },
+  });
+  assert({
+    tag,
+    check: Array.isArray(styles) && styles.every((item) => typeof item === "string"),
+    error: "'styles' must be an array of strings",
+    data: { styles },
+  });
+
   return (
     <html lang="en">
       <head>
@@ -25,7 +62,7 @@ export function RootLayout({
           <link rel="preload" as="style" href={`/css/${style}.css`} media="screen" />
         ))}
 
-        <link rel="icon" href={faviconUrl} />
+        {faviconUrl && <link rel="icon" href={faviconUrl} />}
         <title>{title}</title>
 
         <link
