@@ -10,6 +10,8 @@ import jsx from "lib/utils/jsx";
  * - [ ] Create and use assertions for site settings and current user
  * - [ ] Fetch courses properly for logged in user
  * - [ ] Sort courses using the sort_order column
+ * - [ ] Add assertions so that database never gets into an inconsistent state
+ * - [ ] Add limits to all SQL queries (1000 can be used where there are multiple returns)
  */
 
 export const onRequestGet = safeguard(async function ({ request, env }) {

@@ -8,6 +8,7 @@ import { assert, isNonEmptyString, isObject, isUrlOrPath, undefinedOrNull } from
 /** TODO
  * - [ ] Show a preview/link to existing video
  * - [ ] Update uploaded images using JavaScript
+ * - [ ] Do you need deeper assertions for value (e.g. non-empty string, conforming to pattern, etc.)
  */
 
 function escapeHtml(unsafe) {
@@ -66,7 +67,7 @@ export function EditCourseForm({
       (statusAllowedValues.includes(status) && isNonEmptyString(statusMessage, { trim: true })),
     error:
       "'status' and 'statusMessage' must both be empty, or 'status' must be an allowed value and 'statusMessage' a non-empty string",
-    data: { status, statusMessage, statusAllowedValues },
+    data: { status, statusAllowedValues, statusMessage },
   });
   return (
     <form
@@ -93,7 +94,7 @@ export function EditCourseForm({
         <CoverImageField value={values?.cover_url} error={errors?.slug} />
         <PromoVideoField value={values?.promo_video_url} error={errors?.promo_video_url} />
         <DescriptionField value={values?.description} error={errors?.description} />
-        <AdditionalInfo value={values?.additional_info} error={errors?.additional_info} />
+        <AdditionalInfoField value={values?.additional_info} error={errors?.additional_info} />
       </fieldset>
       <footer>
         <input type="submit" class="button" value={submitLabel} />
@@ -194,6 +195,19 @@ const PrivacyOptions = [
 ];
 
 function TitleField({ value, error }) {
+  const tag = "TitleField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
   return (
     <>
       <label>
@@ -217,6 +231,19 @@ function TitleField({ value, error }) {
 }
 
 function SlugField({ value, error }) {
+  const tag = "SlugField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
   return (
     <>
       <label>
@@ -241,6 +268,19 @@ function SlugField({ value, error }) {
 }
 
 function PrivacyField({ value, error }) {
+  const tag = "PrivacyField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || PrivacyOptions.some((op) => op.value === value),
+    error: "'value' must be undefined/null or one the allowed privacy options",
+    data: { value, PrivacyOptions },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
   return (
     <>
       <label>
@@ -262,6 +302,20 @@ function PrivacyField({ value, error }) {
 }
 
 function OverviewField({ value, error }) {
+  const tag = "OverviewField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
+
   return (
     <>
       <label>
@@ -286,6 +340,19 @@ function OverviewField({ value, error }) {
 }
 
 function DescriptionField({ value, error }) {
+  const tag = "DescriptionField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
   return (
     <>
       <label>
@@ -309,7 +376,20 @@ function DescriptionField({ value, error }) {
   );
 }
 
-function AdditionalInfo({ value, error }) {
+function AdditionalInfoField({ value, error }) {
+  const tag = "AdditionalInfo";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
   return (
     <>
       <label>
@@ -334,6 +414,20 @@ function AdditionalInfo({ value, error }) {
 }
 
 function CoverImageField({ value, error }) {
+  const tag = "CoverImageField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
+
   return (
     <>
       <label>
@@ -351,6 +445,19 @@ function CoverImageField({ value, error }) {
 }
 
 function PromoVideoField({ value, error }) {
+  const tag = "PromoVideoField";
+  assert({
+    tag,
+    check: undefinedOrNull(value) || typeof value == "string",
+    error: "'value' must be undefined/null or a string",
+    data: { value },
+  });
+  assert({
+    tag,
+    check: undefinedOrNull(error) || typeof error == "string",
+    error: "'error' must be undefined/null or a string",
+    data: { error },
+  });
   return (
     <>
       <label>
