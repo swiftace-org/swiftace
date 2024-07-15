@@ -14,7 +14,7 @@ import jsx from "lib/utils/jsx";
  * - [ ] Indicate when cover image is not present (and don't show error preview)
  */
 
-export const onRequest = safeguard(async function ({ request, env, params }) {
+export const onManageCourse = safeguard(async function ({ request, env, params }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }

@@ -35,7 +35,7 @@ import { Outlink } from "lib/ui/outlink";
  * - [ ] Maybe look into using cloudflare images for image serving (??)
  */
 
-export const onRequestGet = safeguard(async function ({ request, env }) {
+export const onGetSiteSettings = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<div>Not Found</div>);
@@ -44,7 +44,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   return makeHtmlResponse(<SiteSettingsPage siteSettings={siteSettings} currentUser={currentUser} />);
 });
 
-export const onRequestPost = safeguard(async function ({ request, env }) {
+export const onPostSiteSettings = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, FILE_STORE: fileStore } = env;
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<div>Not Found</div>);

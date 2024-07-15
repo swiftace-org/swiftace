@@ -28,7 +28,7 @@ import jsx from "lib/utils/jsx";
  * - [ ] Resize avatarimage to a small size
  */
 
-export const onRequestGet = safeguard(async function ({ request, env }) {
+export const onGetSettings = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
 
@@ -42,7 +42,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
   );
 });
 
-export const onRequestPost = safeguard(async function ({ request, env }) {
+export const onPostSettings = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, FILE_STORE: fileStore } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
 

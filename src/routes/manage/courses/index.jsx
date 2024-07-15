@@ -13,7 +13,7 @@ import jsx from "lib/utils/jsx";
  * - [ ] Write a blog post on drag drop with pure JavaScript
  */
 
-export const onRequest = safeguard(async function ({ request, env }) {
+export const onGetManageCourses = safeguard(async function ({ request, env }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -108,7 +108,9 @@ function ManageCoursesPage({ siteSettings, currentUser, courses }) {
                         <Outlink href={`/course/${course.slug}`}>View</Outlink>
                       </li>
                       <li>
-                        <Outlink href={`/manage/courses/${course.slug}`}>Manage</Outlink>
+                        <a className="link" href={`/manage/courses/${course.slug}`}>
+                          Manage
+                        </a>
                       </li>
                     </ul>
                   </td>

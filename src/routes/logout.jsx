@@ -1,7 +1,7 @@
 import { createLogoutCookie, deleteUserSessions, getCurrentUserId } from "lib/utils/auth";
 import { safeguard } from "lib/utils/cloudflare";
 
-export const onRequestGet = safeguard(async function ({ request, env }) {
+export const onLogout = safeguard(async function ({ request, env }) {
   const { DB: database, IS_LOCAL: isLocal } = env;
   const currentUserId = await getCurrentUserId({ request, database });
   await deleteUserSessions({ userId: currentUserId, database });

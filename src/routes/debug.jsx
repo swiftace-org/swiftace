@@ -6,7 +6,7 @@ import { getCurrentUser } from "lib/utils/auth";
 import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
 import jsx from "lib/utils/jsx";
 
-export const onRequestGet = safeguard(async function ({ request, env }) {
+export const onGetDebug = safeguard(async function ({ request, env }) {
   const { CACHE_KV: cacheKv, DB: database, IS_LOCAL } = env;
 
   if (!IS_LOCAL) {
@@ -15,7 +15,7 @@ export const onRequestGet = safeguard(async function ({ request, env }) {
 
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
-  console.log({ currentUser });
+  console.error({ currentUser });
 
   const course = {
     slug: "react-fundamentals",

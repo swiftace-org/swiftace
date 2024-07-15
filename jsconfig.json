@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "./functions",
+    "baseUrl": "./src",
     "jsx": "react",
     "jsxFactory": "jsx",
     "jsxFragmentFactory": "jsx.Fragment"

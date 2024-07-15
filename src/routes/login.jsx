@@ -8,19 +8,15 @@ import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from 
 import { CachePrefix } from "lib/utils/constants";
 import jsx from "lib/utils/jsx";
 
-export const onRequestGet = safeguard(async function ({ request, env }) {
+export const onGetLogin = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } =
+    await getSiteSettings({ cacheKv });
   const currentUser = await auth.getCurrentUser({ request, database });
   if (currentUser) {
     return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
   }
-  return makeHtmlResponse(<LoginPage siteSettings={siteSettings} turnstileSiteKey={turnstileSiteKey} />);
-});
-
-export const LoginPage = ({ siteSettings, turnstileSiteKey }) => {
-  const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } = siteSettings;
-  return (
+  return makeHtmlResponse(
     <RootLayout
       title={`Sign In / Sign Up - ${site_title}`}
       description={site_description}
@@ -38,9 +34,9 @@ export const LoginPage = ({ siteSettings, turnstileSiteKey }) => {
       </form>
     </RootLayout>
   );
-};
+});
 
-export const onRequestPost = safeguard(async function ({ request, env, waitUntil }) {
+export const onPostLogin = safeguard(async function ({ request, env, ctx }) {
   const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
   const {
     site_title,
@@ -111,7 +107,7 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   // Generate a new stored code if not present
   if (!storedCode) {
     storedCode = auth.generateVerificationCode();
-    waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: otp_expiry_seconds }));
+    ctx.waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: otp_expiry_seconds }));
   }
 
   // Send verification code email & show the next screen
@@ -168,8 +164,14 @@ export const onRequestPost = safeguard(async function ({ request, env, waitUntil
   const { sessionToken } = await auth.createUserSession({ userId: user.id, database });
 
   // Delete verification code & expired sessions
-  waitUntil(cacheKv.delete(cacheKey));
-  waitUntil(auth.deleteExpiredUserSessions({ userId: user.id, database, maxAge: session_expiry_seconds }));
+  ctx.waitUntil(cacheKv.delete(cacheKey));
+  ctx.waitUntil(
+    auth.deleteExpiredUserSessions({
+      userId: user.id,
+      database,
+      maxAge: session_expiry_seconds,
+    })
+  );
 
   // Set session token in cookie and redirect to "/"
   return new Response(null, {

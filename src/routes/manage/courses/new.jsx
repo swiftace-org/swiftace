@@ -14,7 +14,7 @@ import jsx from "lib/utils/jsx";
  * - [ ] Create a common path for serving files e.g. /files/a/long/key.ext?t=1243
  */
 
-export const onRequest = safeguard(async function ({ request, env }) {
+export const onNewCourse = safeguard(async function ({ request, env }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }

@@ -10,7 +10,7 @@ import jsx from "lib/utils/jsx";
  * - [ ] Create a page for saving encrypted secrets (instead of in dev.vars)
  */
 
-export const onRequest = safeguard(async function ({ request, env }) {
+export const onGetManage = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });

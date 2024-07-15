@@ -12,9 +12,10 @@ import jsx from "lib/utils/jsx";
  * - [ ] Sort courses using the sort_order column
  * - [ ] Add assertions so that database never gets into an inconsistent state
  * - [ ] Add limits to all SQL queries (1000 can be used where there are multiple returns)
+ * - [ ] Add an error boundary component
  */
 
-export const onRequestGet = safeguard(async function ({ request, env }) {
+export const onGetHome = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
 
   const siteSettings = await getSiteSettings({ cacheKv });
