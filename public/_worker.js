@@ -9,7 +9,7 @@
 
 import { onGetDebug } from "routes/debug";
 import { onGetFile } from "routes/files/[[path]]";
-import { onGetHome } from "routes/home";
+import { onGetHome } from "routes";
 import { onGetLogin, onPostLogin } from "routes/login";
 import { onLogout } from "routes/logout";
 import { onGetManage } from "routes/manage";
