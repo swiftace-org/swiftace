@@ -1,5 +1,10 @@
 /** TODO
  * - [ ] Send the uploaded favicon for /favicon.ico
+ * - [ ] Move the logic from safeguard into this file
+ * - [ ] Set up a proper not found page
+ * - [ ] Pass database, keyValueStore, and fileStore as params
+ * - [ ] Add routes for terms of service and privacy policy
+ * - [ ] Set up some form of advanced Regex router?
  */
 
 import { onGetDebug } from "routes/debug";
