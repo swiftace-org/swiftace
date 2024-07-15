@@ -34,6 +34,11 @@ function onRequest({ request, env, ctx }) {
     return env.ASSETS.fetch(request);
   }
 
+  // Files from FileStore
+  if (path.startsWith("/files")) {
+    return onGetFile({ request, env, ctx, params: { path: path.replace(/^\/files\//, "").split("/") } });
+  }
+
   // Home
   if (path === "/" && method === "GET") {
     return onGetHome({ request, env, ctx });
@@ -57,11 +62,6 @@ function onRequest({ request, env, ctx }) {
   // Logout
   if (path === "/logout") {
     return onLogout({ request, env, ctx });
-  }
-
-  // Files
-  if (path.startsWith("/files")) {
-    return onGetFile({ request, env, ctx, params: { path: path.replace(/^\/files\//, "").split("/") } });
   }
 
   // Settings
