@@ -5,114 +5,49 @@
  * - [ ] Pass database, keyValueStore, and fileStore as params
  * - [ ] Add routes for terms of service and privacy policy
  * - [ ] Set up some form of advanced Regex router?
+ * - [ ] Move static file fetching to _routes.json
+ * - [ ] Write extensive test for matchRoute
+ * - [ ] Write assertions for `matchRoute`
+ * - [ ] Add proper caching for files
  */
 
 import { onGetDebug } from "pages/debug";
 import { onGetFile } from "pages/files/[[path]]";
 import { onGetHome } from "pages";
 import { onGetLogin, onPostLogin } from "pages/login";
-import { onLogout } from "pages/logout";
+import { onGetLogout } from "pages/logout";
 import { onGetManage } from "pages/manage";
 import { onGetManageCourses } from "pages/manage/courses";
 import { onManageCourse } from "pages/manage/courses/[slug]";
 import { onNewCourse } from "pages/manage/courses/new";
 import { onGetSiteSettings, onPostSiteSettings } from "pages/manage/site-settings";
 import { onGetSettings, onPostSettings } from "pages/settings";
+import { matchRoute } from "lib/routing";
 
-function onRequest({ request, env, ctx }) {
+const Routes = [
+  { path: "/files/[...path]", method: "GET", handler: onGetFile },
+  { path: "/", method: "GET", handler: onGetHome },
+  { path: "/debug", method: "GET", handler: onGetDebug },
+  { path: "/login", method: "GET", handler: onGetLogin },
+  { path: "/login", method: "POST", handler: onPostLogin },
+  { path: "/logout", method: "GET", handler: onGetLogout },
+  { path: "/settings", method: "GET", handler: onGetSettings },
+  { path: "/settings", method: "POST", handler: onPostSettings },
+  { path: "/manage", method: "GET", handler: onGetManage },
+  { path: "/manage/site-settings", method: "GET", handler: onGetSiteSettings },
+  { path: "/manage/site-settings", method: "POST", handler: onPostSiteSettings },
+  { path: "/manage/courses", method: "GET", handler: onGetManageCourses },
+  { path: "/manage/courses/new", method: ["GET", "POST"], handler: onNewCourse },
+  { path: "/manage/courses/[slug]", method: ["GET", "POST"], handler: onManageCourse },
+];
+
+async function onRequest(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
-
-  // Static Files
-  if (path.startsWith("/js") || path.startsWith("/css") || path.startsWith("/img")) {
-    return env.ASSETS.fetch(request);
-  }
-
-  // Favicon
-  if (path === "/favicon.ico") {
-    return env.ASSETS.fetch(request);
-  }
-
-  // Files from FileStore
-  if (path.startsWith("/files")) {
-    return onGetFile({ request, env, ctx, params: { path: path.replace(/^\/files\//, "").split("/") } });
-  }
-
-  // Home
-  if (path === "/" && method === "GET") {
-    return onGetHome({ request, env, ctx });
-  }
-
-  // Debug
-  if (path === "/debug" && method === "GET") {
-    return onGetDebug({ request, env, ctx });
-  }
-
-  // Login
-  if (path === "/login") {
-    if (method === "GET") {
-      return onGetLogin({ request, env, ctx });
-    }
-    if (method === "POST") {
-      return onPostLogin({ request, env, ctx });
-    }
-  }
-
-  // Logout
-  if (path === "/logout") {
-    return onLogout({ request, env, ctx });
-  }
-
-  // Settings
-  if (path.startsWith("/settings")) {
-    if (method === "GET") {
-      return onGetSettings({ request, env, ctx });
-    }
-    if (method === "POST") {
-      return onPostSettings({ request, env, ctx });
-    }
-  }
-
-  if (path.startsWith("/manage")) {
-    const subpath = path.replace(/^\/manage/, "");
-
-    if (subpath === "" && method === "GET") {
-      return onGetManage({ request, env, ctx });
-    }
-
-    if (subpath === "/site-settings") {
-      if (method === "GET") {
-        return onGetSiteSettings({ request, env, ctx });
-      }
-      if (method === "POST") {
-        return onPostSiteSettings({ request, env, ctx });
-      }
-    }
-
-    if (subpath.startsWith("/courses")) {
-      const courseSubpath = subpath.replace(/^\/courses/, "");
-
-      if (courseSubpath === "" && method === "GET") {
-        return onGetManageCourses({ request, env, ctx });
-      }
-
-      if (courseSubpath === "/new") {
-        return onNewCourse({ request, env, ctx });
-      }
-
-      const courseSlug = courseSubpath.split("/")[1];
-      if (courseSlug) {
-        return onManageCourse({ request, env, ctx, params: { slug: courseSlug } });
-      }
-    }
-  }
-
+  const { handler, params } = matchRoute({ path, method, routes: Routes });
+  if (handler) return handler({ request, env, ctx, params });
   return new Response(null, { status: 404, statusText: "Not Found" });
 }
 
-export default {
-  async fetch(request, env, ctx) {
-    return onRequest({ request, env, ctx });
-  },
-};
+export default { fetch: onRequest };

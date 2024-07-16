@@ -92,7 +92,7 @@ export async function deleteExpiredUserSessions({ userId, database, maxAge }) {
   return database
     .prepare(`DELETE FROM user_sessions WHERE user_id = ? AND created_at < strftime('%s', 'now') - ?;`)
     .bind(userId, maxAge)
-    .execute();
+    .run();
 }
 
 export function validateEmail(email) {
