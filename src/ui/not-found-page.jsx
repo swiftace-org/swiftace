@@ -1,7 +1,7 @@
-import jsx from "lib/utils/jsx";
+import jsx from "lib/jsx";
 import { MainNav } from "./main-nav";
 import { RootLayout } from "./root-layout";
-import { assert, isObject } from "lib/utils/validation";
+import { assert, isObject } from "lib/validation";
 
 export const NotFoundPage = ({ siteSettings, currentUser }) => {
   const tag = "NotFoundPage";

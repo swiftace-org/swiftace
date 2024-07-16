@@ -1,5 +1,5 @@
-import jsx from "lib/utils/jsx";
-import { assert } from "lib/utils/validation";
+import jsx from "lib/jsx";
+import { assert } from "lib/validation";
 
 /** TODO:
  * - [ ] Trim title and message before asserting or using them

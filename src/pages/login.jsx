@@ -1,12 +1,12 @@
 import { SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { MainNav } from "lib/ui/main-nav";
-import { Outlink } from "lib/ui/outlink";
-import { RootLayout } from "lib/ui/root-layout";
-import * as auth from "lib/utils/auth";
-import { makeSes } from "lib/utils/aws";
-import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/utils/cloudflare";
-import { CachePrefix } from "lib/utils/constants";
-import jsx from "lib/utils/jsx";
+import { MainNav } from "ui/main-nav";
+import { Outlink } from "ui/outlink";
+import { RootLayout } from "ui/root-layout";
+import * as auth from "lib/auth";
+import { makeSes } from "lib/aws";
+import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/cloudflare";
+import { CachePrefix } from "lib/constants";
+import jsx from "lib/jsx";
 
 export const onGetLogin = safeguard(async function ({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;

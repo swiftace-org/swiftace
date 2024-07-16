@@ -1,6 +1,6 @@
-import jsx from "lib/utils/jsx";
+import jsx from "lib/jsx";
 import { Avatar } from "./avatar";
-import { assert, isObject, isUrlOrPath, undefinedOrNull } from "lib/utils/validation";
+import { assert, isObject, isUrlOrPath, undefinedOrNull } from "lib/validation";
 
 export function MainNav({ currentUser, logoUrl, siteTitle, hideSignIn }) {
   const tag = "MainNav";

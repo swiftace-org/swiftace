@@ -1,5 +1,5 @@
-import jsx from "lib/utils/jsx";
-import { assert, undefinedOrNull, isUrlOrPath } from "lib/utils/validation";
+import jsx from "lib/jsx";
+import { assert, undefinedOrNull, isUrlOrPath } from "lib/validation";
 
 /** TODO:
  * - [ ] Add a "large" variant (64px)

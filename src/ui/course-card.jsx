@@ -1,5 +1,5 @@
-import { assert, undefinedOrNull } from "lib/utils/validation";
-import jsx from "lib/utils/jsx";
+import { assert, undefinedOrNull } from "lib/validation";
+import jsx from "lib/jsx";
 
 /** TODO:
  * - [ ] Add JSDoc string

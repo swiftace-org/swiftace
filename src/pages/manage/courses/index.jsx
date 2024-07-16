@@ -1,12 +1,12 @@
-import { Breadcrumb } from "lib/ui/breadcrumb";
-import { NotFoundPage } from "lib/ui/not-found-page";
-import { Outlink } from "lib/ui/outlink";
-import { PrivacyDisplay } from "lib/utils/constants";
-import { MainNav } from "lib/ui/main-nav";
-import { RootLayout } from "lib/ui/root-layout";
-import { getCurrentUser } from "lib/utils/auth";
-import { safeguard, getSiteSettings, makeHtmlResponse } from "lib/utils/cloudflare";
-import jsx from "lib/utils/jsx";
+import { Breadcrumb } from "ui/breadcrumb";
+import { NotFoundPage } from "ui/not-found-page";
+import { Outlink } from "ui/outlink";
+import { PrivacyDisplay } from "lib/constants";
+import { MainNav } from "ui/main-nav";
+import { RootLayout } from "ui/root-layout";
+import { getCurrentUser } from "lib/auth";
+import { safeguard, getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
+import jsx from "lib/jsx";
 
 /** TODO:
  * - [ ] Add pagiation beyond 1000 courses (at some point)

@@ -7,17 +7,17 @@
  * - [ ] Set up some form of advanced Regex router?
  */
 
-import { onGetDebug } from "routes/debug";
-import { onGetFile } from "routes/files/[[path]]";
-import { onGetHome } from "routes";
-import { onGetLogin, onPostLogin } from "routes/login";
-import { onLogout } from "routes/logout";
-import { onGetManage } from "routes/manage";
-import { onGetManageCourses } from "routes/manage/courses";
-import { onManageCourse } from "routes/manage/courses/[slug]";
-import { onNewCourse } from "routes/manage/courses/new";
-import { onGetSiteSettings, onPostSiteSettings } from "routes/manage/site-settings";
-import { onGetSettings, onPostSettings } from "routes/settings";
+import { onGetDebug } from "pages/debug";
+import { onGetFile } from "pages/files/[[path]]";
+import { onGetHome } from "pages";
+import { onGetLogin, onPostLogin } from "pages/login";
+import { onLogout } from "pages/logout";
+import { onGetManage } from "pages/manage";
+import { onGetManageCourses } from "pages/manage/courses";
+import { onManageCourse } from "pages/manage/courses/[slug]";
+import { onNewCourse } from "pages/manage/courses/new";
+import { onGetSiteSettings, onPostSiteSettings } from "pages/manage/site-settings";
+import { onGetSettings, onPostSettings } from "pages/settings";
 
 function onRequest({ request, env, ctx }) {
   const url = new URL(request.url);

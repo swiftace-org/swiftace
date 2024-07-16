@@ -1,12 +1,12 @@
-import { Breadcrumb } from "lib/ui/breadcrumb";
-import { EditCourseForm, parseCourseForm, uploadCourseCover } from "lib/ui/edit-course-form";
-import { MainNav } from "lib/ui/main-nav";
-import { NotFoundPage } from "lib/ui/not-found-page";
-import { RootLayout } from "lib/ui/root-layout";
-import { getCurrentUser } from "lib/utils/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
-import { FormStatus } from "lib/utils/constants";
-import jsx from "lib/utils/jsx";
+import { Breadcrumb } from "ui/breadcrumb";
+import { EditCourseForm, parseCourseForm, uploadCourseCover } from "ui/edit-course-form";
+import { MainNav } from "ui/main-nav";
+import { NotFoundPage } from "ui/not-found-page";
+import { RootLayout } from "ui/root-layout";
+import { getCurrentUser } from "lib/auth";
+import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import { FormStatus } from "lib/constants";
+import jsx from "lib/jsx";
 
 /** TODO:
  * - [ ] Support removing cover image

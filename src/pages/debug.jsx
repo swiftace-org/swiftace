@@ -1,10 +1,10 @@
-import { Breadcrumb } from "lib/ui/breadcrumb";
-import { CourseCard } from "lib/ui/course-card";
-import { MainNav } from "lib/ui/main-nav";
-import { RootLayout } from "lib/ui/root-layout";
-import { getCurrentUser } from "lib/utils/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/utils/cloudflare";
-import jsx from "lib/utils/jsx";
+import { Breadcrumb } from "ui/breadcrumb";
+import { CourseCard } from "ui/course-card";
+import { MainNav } from "ui/main-nav";
+import { RootLayout } from "ui/root-layout";
+import { getCurrentUser } from "lib/auth";
+import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import jsx from "lib/jsx";
 
 export const onGetDebug = safeguard(async function ({ request, env }) {
   const { CACHE_KV: cacheKv, DB: database, IS_LOCAL } = env;

@@ -1,5 +1,5 @@
-import { assert } from "lib/utils/validation";
-import jsx from "lib/utils/jsx";
+import { assert } from "lib/validation";
+import jsx from "lib/jsx";
 
 /** TODO
  * - [ ] Make breadcrumbs brown by default

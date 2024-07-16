@@ -1,5 +1,5 @@
-import { safeguard } from "lib/utils/cloudflare";
-import { FilePrefix } from "lib/utils/constants";
+import { safeguard } from "lib/cloudflare";
+import { FilePrefix } from "lib/constants";
 
 /** TODO:
  * - [ ] Check that the MIME type matches the extension

@@ -1,7 +1,7 @@
-import jsx from "lib/utils/jsx";
-import { assert, undefinedOrNull } from "lib/utils/validation";
+import jsx from "lib/jsx";
+import { assert, undefinedOrNull } from "lib/validation";
 
-export function Outlink({ href, children }) {
+export function Outlink({ href, children, class: className = "link" }) {
   const tag = "Outlink";
   assert({
     tag,
@@ -17,7 +17,7 @@ export function Outlink({ href, children }) {
   });
 
   return (
-    <a href={href} rel="noopener noreferrer nofollow" target="_blank" class="link">
+    <a href={href} rel="noopener noreferrer nofollow" target="_blank" class={className}>
       {children}
     </a>
   );

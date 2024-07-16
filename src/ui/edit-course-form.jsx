@@ -1,9 +1,9 @@
-import { FilePrefix, FormStatus } from "lib/utils/constants";
-import jsx from "lib/utils/jsx";
+import { FilePrefix, FormStatus } from "lib/constants";
+import jsx from "lib/jsx";
 import { Alert, AlertVariant } from "./alert";
 import { Asterisk } from "./asterisk";
-import { uploadFile } from "lib/utils/cloudflare";
-import { assert, isNonEmptyString, isObject, isUrlOrPath, undefinedOrNull } from "lib/utils/validation";
+import { uploadFile } from "lib/cloudflare";
+import { assert, isNonEmptyString, isObject, isUrlOrPath, undefinedOrNull } from "lib/validation";
 
 /** TODO
  * - [ ] Show a preview/link to existing video
