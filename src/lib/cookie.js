@@ -22,6 +22,7 @@ var __toString = Object.prototype.toString;
  * obs-text      = %x80-FF
  */
 
+// eslint-disable-next-line no-control-regex
 var fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 
 /**

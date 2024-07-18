@@ -20,6 +20,7 @@ export default [
     settings: {
       react: {
         pragma: "jsx",
+        version: "18.3.1",
       },
     },
   },

@@ -97,6 +97,7 @@ export async function deleteExpiredUserSessions({ userId, database, maxAge }) {
 
 export function validateEmail(email) {
   const EMAIL_REGEX =
+    // eslint-disable-next-line no-useless-escape
     /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 
   if (!email) return false;
