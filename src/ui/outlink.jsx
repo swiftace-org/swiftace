@@ -1,5 +1,5 @@
 import jsx from "lib/jsx";
-import { assert, undefinedOrNull } from "lib/validation";
+import { assert, undefinedOrNull } from "lib/assertion";
 
 export function Outlink({ href, children, class: className = "link" }) {
   const tag = "Outlink";

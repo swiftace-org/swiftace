@@ -47,7 +47,7 @@ export function isUrlOrPath(url) {
 }
 
 export function undefinedOrNull(input) {
-  return [undefined, null].includes(input);
+  return input === undefined || input === null;
 }
 
 export function isObject(value) {

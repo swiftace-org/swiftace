@@ -1,4 +1,4 @@
-import { assert } from "lib/validation";
+import { assert } from "lib/assertion";
 import jsx from "lib/jsx";
 
 /** TODO

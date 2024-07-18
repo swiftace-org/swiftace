@@ -10,6 +10,8 @@
  * - [ ] Write assertions for `matchRoute`
  * - [ ] Add proper caching for files
  * - [ ] Write more detailed assertions for datbase, kvStore, and fileStore
+ * - [ ] Add assertions literally everywhere
+ * - [ ] Add "Method Not Allowed" error in matchRoute
  */
 
 import { onGetDebug } from "pages/debug";
@@ -26,7 +28,7 @@ import { onGetSettings, onPostSettings } from "pages/settings";
 import { matchRoute } from "lib/routing";
 import { makeErrorResponse } from "lib/cloudflare";
 import { EnvKeys } from "lib/constants";
-import { assertEnvKeys } from "lib/validation";
+import { assertEnvKeys } from "lib/assertion";
 
 const Routes = [
   { path: "/files/[...path]", method: "GET", handler: onGetFile },

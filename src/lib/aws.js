@@ -1,6 +1,6 @@
 import { SESv2Client } from "@aws-sdk/client-sesv2";
 import { EnvKeys } from "./constants";
-import { assertEnvKeys } from "./validation";
+import { assertEnvKeys } from "./assertion";
 
 export function makeSes({ env }) {
   assertEnvKeys({

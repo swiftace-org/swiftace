@@ -3,7 +3,7 @@ import jsx from "lib/jsx";
 import { Alert, AlertVariant } from "./alert";
 import { Asterisk } from "./asterisk";
 import { uploadFile } from "lib/cloudflare";
-import { assert, isNonEmptyString, isObject, isUrlOrPath, undefinedOrNull } from "lib/validation";
+import { assert, isNonEmptyString, isObject, isUrlOrPath, undefinedOrNull } from "lib/assertion";
 
 /** TODO
  * - [ ] Show a preview/link to existing video

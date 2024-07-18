@@ -1,4 +1,4 @@
-import { assert } from "./validation";
+import { assert } from "./assertion";
 import { CachePrefix } from "./constants";
 
 export async function validateTurnstile({ turnstileSecretKey, turnstileToken }) {
