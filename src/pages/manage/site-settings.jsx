@@ -4,7 +4,7 @@ import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
 import { assert, validateSameKeys } from "lib/validation";
 import { getCurrentUser } from "lib/auth";
-import { assertSiteSettings, getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/cloudflare";
+import { assertSiteSettings, getSiteSettings, makeHtmlResponse, uploadFile } from "lib/cloudflare";
 import { SiteAssetFilename, CachePrefix, FilePrefix, FormStatus } from "lib/constants";
 import jsx from "lib/jsx";
 import { Outlink } from "ui/outlink";
@@ -26,16 +26,16 @@ import { Outlink } from "ui/outlink";
  * - [ ] Maybe look into using cloudflare images for image serving (??)
  */
 
-export const onGetSiteSettings = safeguard(async function ({ request, env }) {
+export async function onGetSiteSettings({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<div>Not Found</div>);
 
   const siteSettings = await getSiteSettings({ cacheKv });
   return makeHtmlResponse(<SiteSettingsPage siteSettings={siteSettings} currentUser={currentUser} />);
-});
+}
 
-export const onPostSiteSettings = safeguard(async function ({ request, env }) {
+export async function onPostSiteSettings({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, FILE_STORE: fileStore } = env;
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<div>Not Found</div>);
@@ -119,7 +119,7 @@ export const onPostSiteSettings = safeguard(async function ({ request, env }) {
   return makeHtmlResponse(
     <SiteSettingsPage siteSettings={newSettings} errors={errors} currentUser={currentUser} status={status} />
   );
-});
+}
 
 function SiteSettingsPage({ siteSettings: S, currentUser, errors: E = null, status = null }) {
   return (

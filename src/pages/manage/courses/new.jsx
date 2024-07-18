@@ -4,7 +4,7 @@ import { MainNav } from "ui/main-nav";
 import { NotFoundPage } from "ui/not-found-page";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import { FormStatus } from "lib/constants";
 import jsx from "lib/jsx";
 
@@ -14,7 +14,7 @@ import jsx from "lib/jsx";
  * - [ ] Create a common path for serving files e.g. /files/a/long/key.ext?t=1243
  */
 
-export const onNewCourse = safeguard(async function ({ request, env }) {
+export async function onNewCourse({ request, env }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -102,7 +102,7 @@ export const onNewCourse = safeguard(async function ({ request, env }) {
     statusText: "Found",
     headers: { Location: `/manage/course/${values.slug}` },
   });
-});
+}
 
 function NewCoursePage({
   currentUser,

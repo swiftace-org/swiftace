@@ -4,7 +4,7 @@ import { MainNav } from "ui/main-nav";
 import { NotFoundPage } from "ui/not-found-page";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import { FormStatus } from "lib/constants";
 import jsx from "lib/jsx";
 
@@ -14,7 +14,7 @@ import jsx from "lib/jsx";
  * - [ ] Indicate when cover image is not present (and don't show error preview)
  */
 
-export const onManageCourse = safeguard(async function ({ request, env, params }) {
+export async function onManageCourse({ request, env, params }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -123,7 +123,7 @@ export const onManageCourse = safeguard(async function ({ request, env, params }
       statusMessage={"Course details saved."}
     />
   );
-});
+}
 
 function ManageCoursePage({
   siteSettings,

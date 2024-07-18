@@ -16,18 +16,6 @@ export async function validateTurnstile({ env, turnstileToken }) {
   return turnstileOutcome?.success;
 }
 
-export function safeguard(handler) {
-  return async function (ctx) {
-    try {
-      const requiredVars = ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV", "FILE_STORE"];
-      ensureEnvVars({ env: ctx.env, func: "safeguard", names: requiredVars });
-      return await handler(ctx);
-    } catch (error) {
-      return makeErrorResponse({ error, status: 500 });
-    }
-  };
-}
-
 export function makeHtmlResponse(element, options) {
   return new Response(element, {
     headers: { "content-type": "text/html;charset=UTF-8", ...options?.headers },

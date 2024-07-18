@@ -3,10 +3,10 @@ import { CourseCard } from "ui/course-card";
 import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import jsx from "lib/jsx";
 
-export const onGetDebug = safeguard(async function ({ request, env }) {
+export async function onGetDebug({ request, env }) {
   const { CACHE_KV: cacheKv, DB: database, IS_LOCAL } = env;
 
   if (!IS_LOCAL) {
@@ -54,4 +54,4 @@ export const onGetDebug = safeguard(async function ({ request, env }) {
       </div>
     </RootLayout>
   );
-});
+}

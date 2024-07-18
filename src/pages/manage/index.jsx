@@ -2,7 +2,7 @@ import { Breadcrumb } from "ui/breadcrumb";
 import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import jsx from "lib/jsx";
 
 /** TODO:
@@ -10,12 +10,12 @@ import jsx from "lib/jsx";
  * - [ ] Create a page for saving encrypted secrets (instead of in dev.vars)
  */
 
-export const onGetManage = safeguard(async function ({ request, env }) {
+export async function onGetManage({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
   const currentUser = await getCurrentUser({ request, database });
   return makeHtmlResponse(<ManagePage siteSettings={siteSettings} currentUser={currentUser} />);
-});
+}
 
 function ManagePage({ siteSettings, currentUser }) {
   return (

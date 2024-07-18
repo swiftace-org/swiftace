@@ -4,7 +4,7 @@ import { MainNav } from "ui/main-nav";
 import { NotFoundPage } from "ui/not-found-page";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser, getUserEmails } from "lib/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard, uploadFile } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse, uploadFile } from "lib/cloudflare";
 import { FilePrefix } from "lib/constants";
 import { FormStatus } from "lib/constants";
 import jsx from "lib/jsx";
@@ -28,7 +28,7 @@ import jsx from "lib/jsx";
  * - [ ] Resize avatarimage to a small size
  */
 
-export const onGetSettings = safeguard(async function ({ request, env }) {
+export async function onGetSettings({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
 
@@ -40,9 +40,9 @@ export const onGetSettings = safeguard(async function ({ request, env }) {
   return makeHtmlResponse(
     <AccountSettingsPage siteSettings={siteSettings} currentUser={currentUser} userEmails={userEmails} />
   );
-});
+}
 
-export const onPostSettings = safeguard(async function ({ request, env }) {
+export async function onPostSettings({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, FILE_STORE: fileStore } = env;
   const siteSettings = await getSiteSettings({ cacheKv });
 
@@ -97,7 +97,7 @@ export const onPostSettings = safeguard(async function ({ request, env }) {
       status={status}
     />
   );
-});
+}
 
 const FieldNames = {
   first_name: "first_name",

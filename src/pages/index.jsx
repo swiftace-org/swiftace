@@ -2,7 +2,7 @@ import { CourseCard } from "ui/course-card";
 import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
-import { getSiteSettings, makeHtmlResponse, safeguard } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import jsx from "lib/jsx";
 
 /** TODO
@@ -15,7 +15,7 @@ import jsx from "lib/jsx";
  * - [ ] Add an error boundary component
  */
 
-export const onGetHome = safeguard(async function ({ request, env }) {
+export async function onGetHome({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv } = env;
 
   const siteSettings = await getSiteSettings({ cacheKv });
@@ -26,7 +26,7 @@ export const onGetHome = safeguard(async function ({ request, env }) {
   return makeHtmlResponse(
     <HomePage siteSettings={siteSettings} currentUser={currentUser} courses={sortedCourses} />
   );
-});
+}
 
 function HomePage({ siteSettings, currentUser, courses }) {
   const { site_title, site_description, site_tagline, site_favicon_url, site_logo_url } = siteSettings;

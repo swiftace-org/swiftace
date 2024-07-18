@@ -4,11 +4,11 @@ import { Outlink } from "ui/outlink";
 import { RootLayout } from "ui/root-layout";
 import * as auth from "lib/auth";
 import { makeSes } from "lib/aws";
-import { getSiteSettings, makeHtmlResponse, safeguard, validateTurnstile } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse, validateTurnstile } from "lib/cloudflare";
 import { CachePrefix } from "lib/constants";
 import jsx from "lib/jsx";
 
-export const onGetLogin = safeguard(async function ({ request, env }) {
+export async function onGetLogin({ request, env }) {
   const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
   const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } =
     await getSiteSettings({ cacheKv });
@@ -34,9 +34,9 @@ export const onGetLogin = safeguard(async function ({ request, env }) {
       </form>
     </RootLayout>
   );
-});
+}
 
-export const onPostLogin = safeguard(async function ({ request, env, ctx }) {
+export async function onPostLogin({ request, env, ctx }) {
   const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
   const {
     site_title,
@@ -186,7 +186,7 @@ export const onPostLogin = safeguard(async function ({ request, env, ctx }) {
       }),
     },
   });
-});
+}
 
 function sendLoginEmail({ env, email, code }) {
   const ses = makeSes({ env });

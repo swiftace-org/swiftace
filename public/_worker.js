@@ -1,6 +1,5 @@
 /** TODO
  * - [ ] Send the uploaded favicon for /favicon.ico
- * - [ ] Move the logic from safeguard into this file
  * - [ ] Set up a proper not found page
  * - [ ] Pass database, keyValueStore, and fileStore as params
  * - [ ] Add routes for terms of service and privacy policy
@@ -12,7 +11,7 @@
  */
 
 import { onGetDebug } from "pages/debug";
-import { onGetFile } from "pages/files/[[path]]";
+import { onGetFile } from "pages/files/[...path]";
 import { onGetHome } from "pages";
 import { onGetLogin, onPostLogin } from "pages/login";
 import { onGetLogout } from "pages/logout";
@@ -23,6 +22,7 @@ import { onNewCourse } from "pages/manage/courses/new";
 import { onGetSiteSettings, onPostSiteSettings } from "pages/manage/site-settings";
 import { onGetSettings, onPostSettings } from "pages/settings";
 import { matchRoute } from "lib/routing";
+import { ensureEnvVars, makeErrorResponse } from "lib/cloudflare";
 
 const Routes = [
   { path: "/files/[...path]", method: "GET", handler: onGetFile },
@@ -46,7 +46,15 @@ async function onRequest(request, env, ctx) {
   const path = url.pathname;
   const method = request.method;
   const { handler, params } = matchRoute({ path, method, routes: Routes });
-  if (handler) return handler({ request, env, ctx, params });
+  if (handler) {
+    try {
+      const requiredVars = ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV", "FILE_STORE"];
+      ensureEnvVars({ env, func: "onRequest", names: requiredVars });
+      return await handler({ request, env, ctx, params });
+    } catch (error) {
+      return makeErrorResponse({ error, status: 500 });
+    }
+  }
   return new Response(null, { status: 404, statusText: "Not Found" });
 }
 

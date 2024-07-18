@@ -5,7 +5,7 @@ import { PrivacyDisplay } from "lib/constants";
 import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
-import { safeguard, getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import jsx from "lib/jsx";
 
 /** TODO:
@@ -13,7 +13,7 @@ import jsx from "lib/jsx";
  * - [ ] Write a blog post on drag drop with pure JavaScript
  */
 
-export const onGetManageCourses = safeguard(async function ({ request, env }) {
+export async function onGetManageCourses({ request, env }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -59,7 +59,7 @@ export const onGetManageCourses = safeguard(async function ({ request, env }) {
   return makeHtmlResponse(
     <ManageCoursesPage siteSettings={siteSettings} currentUser={currentUser} courses={newCourses} />
   );
-});
+}
 
 function ManageCoursesPage({ siteSettings, currentUser, courses }) {
   return (
