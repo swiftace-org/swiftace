@@ -1,4 +1,4 @@
-import { assert, assertAll, isUrlOrPath } from "./validation";
+import { assert, assertAll, assertAllOld, isNonEmptyString, isUrlOrPath } from "./validation";
 import { CachePrefix } from "./constants";
 
 export async function validateTurnstile({ turnstileSecretKey, turnstileToken }) {
@@ -78,45 +78,6 @@ export async function getSiteSettings({ kvStore }) {
   const siteSettings = { ...DefaultSiteSettings, ...savedSettings };
 
   return siteSettings;
-}
-
-export function assertSiteSettings(displayTag, siteSettings, message) {
-  assertAll(
-    displayTag,
-    [
-      [
-        typeof siteSettings.site_title === "string" && siteSettings.site_title.trim() !== "",
-        "'site_title' must be a non-empty string",
-      ],
-      [
-        typeof siteSettings.site_tagline === "string" && siteSettings.site_tagline.trim() !== "",
-        "'site_tagline' must be a non-empty string",
-      ],
-      [
-        typeof siteSettings.site_description === "string" && siteSettings.site_description.trim() !== "",
-        "'site_description' must be a non-empty string",
-      ],
-      [isUrlOrPath(siteSettings.site_favicon_url), "'site_favicon_url' must be a valid URL or path"],
-      [isUrlOrPath(siteSettings.site_logo_url), "'site_logo_url' must be a valid URL or path"],
-      [
-        siteSettings.terms_of_service_raw_url === null || isUrlOrPath(siteSettings.terms_of_service_raw_url),
-        "'terms_of_service_raw_url' must be null or a valid URL or path",
-      ],
-      [
-        siteSettings.privacy_policy_raw_url === null || isUrlOrPath(siteSettings.privacy_policy_raw_url),
-        "'privacy_policy_raw_url' must be null or a valid URL or path",
-      ],
-      [
-        typeof siteSettings.session_expiry_seconds === "number" && siteSettings.session_expiry_seconds > 0,
-        "'session_expiry_seconds' must be a positive number",
-      ],
-      [
-        typeof siteSettings.otp_expiry_seconds === "number" && siteSettings.otp_expiry_seconds > 0,
-        "'otp_expiry_seconds' must be a positive number",
-      ],
-    ],
-    message
-  );
 }
 
 export async function uploadFile({ fileStore, file, key, maxSize = null }) {

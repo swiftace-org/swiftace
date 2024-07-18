@@ -6,6 +6,18 @@ export function assert({ tag, check, error, data }) {
   }
 }
 
+export function assertAll({ tag, asserts }) {
+  const errorMessages = [];
+  for (const assertion of asserts) {
+    const { check, error, data } = assertion;
+    if (!check) {
+      const serializedData = data !== undefined ? "\n" + JSON.stringify(data, null, 2) + "\n" : "";
+      errorMessages.push(serializedData ? `[${tag}] ${error}\n${serializedData}` : `[${tag}] ${error}`);
+    }
+  }
+  throw new Error("Failed assetion(s)\n\n" + errorMessages.join("\n"));
+}
+
 export function assertOld(displayTag, condition, message, data) {
   if (!condition) {
     const serializedData = data !== undefined ? "\n" + JSON.stringify(data, null, 2) + "\n" : "";
@@ -14,7 +26,7 @@ export function assertOld(displayTag, condition, message, data) {
   }
 }
 
-export function assertAll(displayTag, conditionsAndMessages, overallMessage = "Error") {
+export function assertAllOld(displayTag, conditionsAndMessages, overallMessage = "Error") {
   const errors = conditionsAndMessages.filter(([condition]) => !condition).map(([_, message]) => message);
   const combinedMessage = `${overallMessage}\n-${errors.join("\n-")}`;
   assertOld(displayTag, errors.length === 0, combinedMessage);
@@ -61,6 +73,12 @@ export function isNonEmptyString(str, { trim } = {}) {
 }
 
 export function assertEnvKeys({ tag, env, keys }) {
+  assert({
+    tag: "assertEnvKeys",
+    check: isObject(env),
+    error: "'env' must be an object",
+    data: { typeOfEnv: typeof env },
+  });
   const missing = keys.filter((key) => !(key in env));
   assert({
     tag,

@@ -4,7 +4,7 @@ import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
 import { assert, validateSameKeys } from "lib/validation";
 import { getCurrentUser } from "lib/auth";
-import { assertSiteSettings, getSiteSettings, makeHtmlResponse, uploadFile } from "lib/cloudflare";
+import { getSiteSettings, makeHtmlResponse, uploadFile } from "lib/cloudflare";
 import { SiteAssetFilename, CachePrefix, FilePrefix, FormStatus } from "lib/constants";
 import jsx from "lib/jsx";
 import { Outlink } from "ui/outlink";
@@ -87,11 +87,6 @@ export async function onPostSiteSettings({ request, database, kvStore, fileStore
     otp_expiry_seconds:
       parseInt(formData.get(FieldNames.otp_expiry_seconds)?.trim()) ?? siteSettings.otp_expiry_seconds,
   };
-  assertSiteSettings(
-    "POST /site-settings",
-    newSettings,
-    `'newSiteSettings' is invalid.\n\n${JSON.stringify(newSettings, null, 2)}\n`
-  );
 
   const errors = {
     site_title: null,
