@@ -94,26 +94,3 @@ export async function deleteExpiredUserSessions({ userId, database, maxAge }) {
     .bind(userId, maxAge)
     .run();
 }
-
-export function validateEmail(email) {
-  const EMAIL_REGEX =
-    // eslint-disable-next-line no-useless-escape
-    /^[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
-
-  if (!email) return false;
-
-  const emailParts = email.split("@");
-
-  if (emailParts.length !== 2) return false;
-
-  const account = emailParts[0];
-  if (account.length > 64) return false;
-
-  const address = emailParts[1];
-  if (address.length > 255) return false;
-
-  const domainParts = address.split(".");
-  if (domainParts.some((part) => part.length > 63)) return false;
-
-  return EMAIL_REGEX.test(email);
-}

@@ -3,6 +3,7 @@ import { MainNav } from "ui/main-nav";
 import { Outlink } from "ui/outlink";
 import { RootLayout } from "ui/root-layout";
 import * as auth from "lib/auth";
+import * as assertion from "lib/assertion";
 import { makeSes } from "lib/aws";
 import { getSiteSettings, makeHtmlResponse, validateTurnstile } from "lib/cloudflare";
 import { CachePrefix, EnvKeys } from "lib/constants";
@@ -75,7 +76,11 @@ export async function onPostLogin({ request, env, waitUntil, kvStore, database }
   );
 
   // Reject if email is not provided or invalid
-  const emailError = !email ? "Email is required." : !auth.validateEmail(email) ? "Email is invalid" : null;
+  const emailError = !email
+    ? "Email is required."
+    : !assertion.isValidEmail(email)
+    ? "Email is invalid"
+    : null;
   if (emailError) {
     return makeHtmlResponse(
       <LoginFrame>

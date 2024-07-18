@@ -2,7 +2,7 @@ import { Alert } from "ui/alert";
 import { Breadcrumb } from "ui/breadcrumb";
 import { MainNav } from "ui/main-nav";
 import { RootLayout } from "ui/root-layout";
-import { assert, validateSameKeys } from "lib/assertion";
+import { assert, haveSameKeys } from "lib/assertion";
 import { getCurrentUser } from "lib/auth";
 import { getSiteSettings, makeHtmlResponse, uploadFile } from "lib/cloudflare";
 import { SiteAssetFilename, CachePrefix, FilePrefix, FormStatus } from "lib/constants";
@@ -101,7 +101,7 @@ export async function onPostSiteSettings({ request, database, kvStore, fileStore
   };
   assert({
     tag: "POST /site-settings",
-    check: validateSameKeys(newSettings, errors),
+    check: haveSameKeys(newSettings, errors),
     error: `'newSettings' and 'errors' must have the same set of keys`,
     data: { newSettings, errors },
   });

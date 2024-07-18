@@ -1,5 +1,5 @@
 import jsx from "lib/jsx";
-import { assert, undefinedOrNull, isUrlOrPath } from "lib/assertion";
+import { assert, undefinedOrNull } from "lib/assertion";
 
 /** TODO:
  * - [ ] Add a "large" variant (64px)
@@ -22,17 +22,9 @@ export function Avatar({ avatar, firstName, lastName }) {
   assert({
     tag,
     check: undefinedOrNull(avatar) || typeof avatar === "string",
-    error: "'avatar' must be a string or undefined",
+    error: "'avatar' must be a string or undefined/null",
     data: { avatar },
   });
-  if (avatar) {
-    assert({
-      tag,
-      check: isUrlOrPath(avatar),
-      error: "'avatar' must be a valid URL or URL path",
-      data: { avatar },
-    });
-  }
 
   const name = makeFullName({ firstName, lastName });
   return avatar ? (

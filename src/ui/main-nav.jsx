@@ -1,13 +1,13 @@
 import jsx from "lib/jsx";
 import { Avatar } from "./avatar";
-import { assert, isObject, isUrlOrPath, undefinedOrNull } from "lib/assertion";
+import { assert, isObject, undefinedOrNull } from "lib/assertion";
 
 export function MainNav({ currentUser, logoUrl, siteTitle, hideSignIn }) {
   const tag = "MainNav";
   assert({
     tag,
-    check: undefinedOrNull(logoUrl) || (typeof logoUrl === "string" && isUrlOrPath(logoUrl)),
-    error: "'logoUrl' must be undefined/null or a valid URL or URL path",
+    check: undefinedOrNull(logoUrl) || typeof logoUrl === "string",
+    error: "'logoUrl' must be undefined/null or a string",
     data: { logoUrl },
   });
 

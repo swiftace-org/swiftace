@@ -1,5 +1,5 @@
 import jsx from "lib/jsx";
-import { assert, undefinedOrNull, isUrlOrPath } from "lib/assertion";
+import { assert, undefinedOrNull, isNonEmptyString } from "lib/assertion";
 
 /** TODO:
  * - [ ] Trim the title then perform empty check
@@ -28,14 +28,14 @@ export function RootLayout({
   });
   assert({
     tag,
-    check: undefinedOrNull(metaImage) || (typeof metaImage === "string" && isUrlOrPath(metaImage)),
-    error: "'metaImage' must be null/undefined or a valid URL",
+    check: undefinedOrNull(metaImage) || isNonEmptyString(metaImage),
+    error: "'metaImage' must be null/undefined or a non-empty string",
     data: { metaImage },
   });
   assert({
     tag,
-    check: undefinedOrNull(faviconUrl) || (typeof faviconUrl === "string" && isUrlOrPath(faviconUrl)),
-    error: "'favicon' must be null/undefined or a valid URL",
+    check: undefinedOrNull(faviconUrl) || isNonEmptyString(faviconUrl),
+    error: "'faviconUrl' must be null/undefined or a non-empty string",
     data: { faviconUrl },
   });
   assert({
