@@ -8,7 +8,8 @@
     "reset-db": "npx trash-cli .wrangler/state/v3/d1",
     "gen-db-migration": "sh -c 'mkdir -p migrations && echo \"-- Migration number: $1    $(date -u +'%Y-%m-%dT%H:%M:%S.000Z')\" > \"migrations/$1_$2.sql\"' --",
     "eslint": "eslint src/ public/_worker.js",
-    "prettier": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json}' 'public/_worker.js'"
+    "prettier": "npx prettier --write 'src/**/*.{js,jsx,ts,tsx,json}' 'public/_worker.js'",
+    "test": "npx vitest --dir ./src"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.515.0",
@@ -23,7 +24,6 @@
     "@eslint/js": "^9.6.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.3",
-    "globals": "^15.8.0",
-    "prettier": "^3.3.3"
+    "globals": "^15.8.0"
   }
 }
