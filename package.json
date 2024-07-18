@@ -6,7 +6,8 @@
     "apply-db-migrations": "npx wrangler d1 migrations apply swiftace-db --local -c d1.toml",
     "query-db": "npx wrangler d1 execute swiftace-db --local -c d1.toml",
     "reset-db": "npx trash-cli .wrangler/state/v3/d1",
-    "gen-db-migration": "sh -c 'mkdir -p migrations && echo \"-- Migration number: $1    $(date -u +'%Y-%m-%dT%H:%M:%S.000Z')\" > \"migrations/$1_$2.sql\"' --"
+    "gen-db-migration": "sh -c 'mkdir -p migrations && echo \"-- Migration number: $1    $(date -u +'%Y-%m-%dT%H:%M:%S.000Z')\" > \"migrations/$1_$2.sql\"' --",
+    "lint": "eslint src/ public/_worker.js"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.515.0",

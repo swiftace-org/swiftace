@@ -18,20 +18,6 @@ export function assertAll({ tag, asserts }) {
   throw new Error("Failed assetion(s)\n\n" + errorMessages.join("\n"));
 }
 
-export function assertOld(displayTag, condition, message, data) {
-  if (!condition) {
-    const serializedData = data !== undefined ? "\n" + JSON.stringify(data, null, 2) + "\n" : "";
-    const finalMessage = `[${displayTag}] ${message}\n${serializedData}`;
-    throw new Error(finalMessage);
-  }
-}
-
-export function assertAllOld(displayTag, conditionsAndMessages, overallMessage = "Error") {
-  const errors = conditionsAndMessages.filter(([condition]) => !condition).map(([_, message]) => message);
-  const combinedMessage = `${overallMessage}\n-${errors.join("\n-")}`;
-  assertOld(displayTag, errors.length === 0, combinedMessage);
-}
-
 export function validateSameKeys(object1, object2) {
   const keys1 = Object.keys(object1).sort();
   const keys2 = Object.keys(object2).sort();
