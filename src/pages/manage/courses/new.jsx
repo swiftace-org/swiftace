@@ -14,13 +14,12 @@ import jsx from "lib/jsx";
  * - [ ] Create a common path for serving files e.g. /files/a/long/key.ext?t=1243
  */
 
-export async function onNewCourse({ request, env }) {
+export async function onNewCourse({ request, kvStore, fileStore, database }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { CACHE_KV: cacheKv, DB: database, FILE_STORE: fileStore } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ kvStore });
   const currentUser = await getCurrentUser({ request, database });
   const baseProps = { siteSettings, currentUser };
 

@@ -5,13 +5,13 @@ import { RootLayout } from "ui/root-layout";
 import * as auth from "lib/auth";
 import { makeSes } from "lib/aws";
 import { getSiteSettings, makeHtmlResponse, validateTurnstile } from "lib/cloudflare";
-import { CachePrefix } from "lib/constants";
+import { CachePrefix, EnvKeys } from "lib/constants";
 import jsx from "lib/jsx";
 
-export async function onGetLogin({ request, env }) {
-  const { DB: database, CACHE_KV: cacheKv, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
+export async function onGetLogin({ request, env, database, kvStore }) {
+  const turnstileSiteKey = env[EnvKeys.turnstileSiteKey];
   const { site_title, site_tagline, site_description, site_favicon_url, site_logo_url } =
-    await getSiteSettings({ cacheKv });
+    await getSiteSettings({ kvStore });
   const currentUser = await auth.getCurrentUser({ request, database });
   if (currentUser) {
     return new Response(null, { status: 302, statusText: "Found", headers: { Location: "/" } });
@@ -36,8 +36,10 @@ export async function onGetLogin({ request, env }) {
   );
 }
 
-export async function onPostLogin({ request, env, ctx }) {
-  const { DB: database, CACHE_KV: cacheKv, IS_LOCAL: isLocal, TURNSTILE_SITE_KEY: turnstileSiteKey } = env;
+export async function onPostLogin({ request, env, waitUntil, kvStore, database }) {
+  const isLocal = env[EnvKeys.isLocal];
+  const turnstileSecretKey = env[EnvKeys.turnstileSecretKey];
+  const turnstileSiteKey = env[EnvKeys.turnstileSiteKey];
   const {
     site_title,
     site_tagline,
@@ -47,7 +49,7 @@ export async function onPostLogin({ request, env, ctx }) {
     session_expiry_seconds,
     otp_expiry_seconds,
   } = await getSiteSettings({
-    cacheKv,
+    kvStore,
   });
   const formData = await request.formData();
   const email = formData.get("email")?.trim();
@@ -84,7 +86,7 @@ export async function onPostLogin({ request, env, ctx }) {
   }
 
   // Reject if Turnstile token is invalid
-  const isTurnstileValid = await validateTurnstile({ env, turnstileToken });
+  const isTurnstileValid = await validateTurnstile({ turnstileSecretKey, turnstileToken });
   if (!isTurnstileValid) {
     return makeHtmlResponse(
       <LoginFrame>
@@ -102,12 +104,12 @@ export async function onPostLogin({ request, env, ctx }) {
 
   // Retrieved stored verfication code if present
   const cacheKey = `${CachePrefix.EMAIL_VERIFICATION_CODE}/${email}`;
-  let storedCode = await cacheKv.get(cacheKey);
+  let storedCode = await kvStore.get(cacheKey);
 
   // Generate a new stored code if not present
   if (!storedCode) {
     storedCode = auth.generateVerificationCode();
-    ctx.waitUntil(cacheKv.put(cacheKey, storedCode, { expirationTtl: otp_expiry_seconds }));
+    waitUntil(kvStore.put(cacheKey, storedCode, { expirationTtl: otp_expiry_seconds }));
   }
 
   // Send verification code email & show the next screen
@@ -164,8 +166,8 @@ export async function onPostLogin({ request, env, ctx }) {
   const { sessionToken } = await auth.createUserSession({ userId: user.id, database });
 
   // Delete verification code & expired sessions
-  ctx.waitUntil(cacheKv.delete(cacheKey));
-  ctx.waitUntil(
+  waitUntil(kvStore.delete(cacheKey));
+  waitUntil(
     auth.deleteExpiredUserSessions({
       userId: user.id,
       database,
@@ -190,9 +192,10 @@ export async function onPostLogin({ request, env, ctx }) {
 
 function sendLoginEmail({ env, email, code }) {
   const ses = makeSes({ env });
+  const fromEmail = env[EnvKeys.awsFromEmail];
   return ses.send(
     new SendEmailCommand({
-      FromEmailAddress: env.AWS_FROM_EMAIL,
+      FromEmailAddress: fromEmail,
       Destination: { ToAddresses: [email] },
       Content: {
         Simple: {

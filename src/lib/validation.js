@@ -59,3 +59,12 @@ export function isObject(value) {
 export function isNonEmptyString(str, { trim } = {}) {
   return typeof str === "string" && (trim ? str.trim().length > 0 : str.length > 0);
 }
+
+export function assertEnvKeys({ tag, env, keys }) {
+  const missing = keys.filter((key) => !(key in env));
+  assert({
+    tag,
+    check: missing.length === 0,
+    error: `${missing.join(", ")} not configured in environment`,
+  });
+}

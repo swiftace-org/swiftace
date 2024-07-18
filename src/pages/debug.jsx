@@ -5,15 +5,14 @@ import { RootLayout } from "ui/root-layout";
 import { getCurrentUser } from "lib/auth";
 import { getSiteSettings, makeHtmlResponse } from "lib/cloudflare";
 import jsx from "lib/jsx";
+import { EnvKeys } from "lib/constants";
 
-export async function onGetDebug({ request, env }) {
-  const { CACHE_KV: cacheKv, DB: database, IS_LOCAL } = env;
-
-  if (!IS_LOCAL) {
+export async function onGetDebug({ request, env, kvStore, database }) {
+  if (!env[EnvKeys.isLocal]) {
     return new Response(null, { status: 404, statusText: "Not Found" });
   }
 
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ kvStore });
   const currentUser = await getCurrentUser({ request, database });
   console.error({ currentUser });
 

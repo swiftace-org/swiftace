@@ -13,15 +13,14 @@ import jsx from "lib/jsx";
  * - [ ] Add assertions so that database never gets into an inconsistent state
  * - [ ] Add limits to all SQL queries (1000 can be used where there are multiple returns)
  * - [ ] Add an error boundary component
+ * - [ ] Use HTTPS for local development (set up a certificate)
  */
 
-export async function onGetHome({ request, env }) {
-  const { DB: database, CACHE_KV: cacheKv } = env;
-
-  const siteSettings = await getSiteSettings({ cacheKv });
+export async function onGetHome({ request, kvStore, database }) {
+  const siteSettings = await getSiteSettings({ kvStore });
   const currentUser = await getCurrentUser({ request, database });
 
-  const courses = await selectCoursesWithStats({ env, userId: currentUser?.id });
+  const courses = await selectCoursesWithStats({ database });
   const sortedCourses = sortCoursesForUser(courses);
   return makeHtmlResponse(
     <HomePage siteSettings={siteSettings} currentUser={currentUser} courses={sortedCourses} />
@@ -55,8 +54,8 @@ function HomePage({ siteSettings, currentUser, courses }) {
   );
 }
 
-async function selectCoursesWithStats({ env }) {
-  const output = await env.DB.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC';`).all();
+async function selectCoursesWithStats({ database }) {
+  const output = await database.prepare(`SELECT * FROM courses WHERE privacy = 'PUBLIC';`).all();
 
   const courses = output.results;
 

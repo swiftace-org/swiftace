@@ -1,13 +1,15 @@
 /** TODO
+ * - [ ] Rename
  * - [ ] Send the uploaded favicon for /favicon.ico
  * - [ ] Set up a proper not found page
- * - [ ] Pass database, keyValueStore, and fileStore as params
+ * - [ ] Pass database, kvStore, and fileStore as params
  * - [ ] Add routes for terms of service and privacy policy
  * - [ ] Set up some form of advanced Regex router?
  * - [ ] Move static file fetching to _routes.json
  * - [ ] Write extensive test for matchRoute
  * - [ ] Write assertions for `matchRoute`
  * - [ ] Add proper caching for files
+ * - [ ] Write more detailed assertions for datbase, kvStore, and fileStore
  */
 
 import { onGetDebug } from "pages/debug";
@@ -22,7 +24,9 @@ import { onNewCourse } from "pages/manage/courses/new";
 import { onGetSiteSettings, onPostSiteSettings } from "pages/manage/site-settings";
 import { onGetSettings, onPostSettings } from "pages/settings";
 import { matchRoute } from "lib/routing";
-import { ensureEnvVars, makeErrorResponse } from "lib/cloudflare";
+import { makeErrorResponse } from "lib/cloudflare";
+import { EnvKeys } from "lib/constants";
+import { assertEnvKeys } from "lib/validation";
 
 const Routes = [
   { path: "/files/[...path]", method: "GET", handler: onGetFile },
@@ -48,9 +52,12 @@ async function onRequest(request, env, ctx) {
   const { handler, params } = matchRoute({ path, method, routes: Routes });
   if (handler) {
     try {
-      const requiredVars = ["TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "DB", "CACHE_KV", "FILE_STORE"];
-      ensureEnvVars({ env, func: "onRequest", names: requiredVars });
-      return await handler({ request, env, ctx, params });
+      assertEnvKeys({ tag: "onRequest", env, keys: [EnvKeys.database, EnvKeys.kvStore, EnvKeys.fileStore] });
+      const database = env[EnvKeys.database];
+      const kvStore = env[EnvKeys.kvStore];
+      const fileStore = env[EnvKeys.fileStore];
+      const { waitUntil } = ctx;
+      return await handler({ request, params, database, kvStore, fileStore, waitUntil, env });
     } catch (error) {
       return makeErrorResponse({ error, status: 500 });
     }

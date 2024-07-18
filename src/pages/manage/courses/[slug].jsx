@@ -14,13 +14,12 @@ import jsx from "lib/jsx";
  * - [ ] Indicate when cover image is not present (and don't show error preview)
  */
 
-export async function onManageCourse({ request, env, params }) {
+export async function onManageCourse({ request, params, kvStore, database, fileStore }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { CACHE_KV: cacheKv, DB: database, FILE_STORE: fileStore } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ kvStore });
   const currentUser = await getCurrentUser({ request, database });
   const baseProps = { siteSettings, currentUser };
   if (!currentUser || !currentUser?.is_admin) {

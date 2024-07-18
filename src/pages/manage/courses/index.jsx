@@ -13,12 +13,11 @@ import jsx from "lib/jsx";
  * - [ ] Write a blog post on drag drop with pure JavaScript
  */
 
-export async function onGetManageCourses({ request, env }) {
+export async function onGetManageCourses({ request, kvStore, database }) {
   if (!["GET", "POST"].includes(request.method)) {
     return new Response("Method Not Allowed", { status: 405 });
   }
-  const { CACHE_KV: cacheKv, DB: database } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ kvStore });
   const currentUser = await getCurrentUser({ request, database });
   const baseProps = { siteSettings, currentUser };
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<NotFoundPage {...baseProps} />);

@@ -28,9 +28,8 @@ import jsx from "lib/jsx";
  * - [ ] Resize avatarimage to a small size
  */
 
-export async function onGetSettings({ request, env }) {
-  const { DB: database, CACHE_KV: cacheKv } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+export async function onGetSettings({ request, kvStore, database }) {
+  const siteSettings = await getSiteSettings({ kvStore });
 
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser)
@@ -42,9 +41,8 @@ export async function onGetSettings({ request, env }) {
   );
 }
 
-export async function onPostSettings({ request, env }) {
-  const { DB: database, CACHE_KV: cacheKv, FILE_STORE: fileStore } = env;
-  const siteSettings = await getSiteSettings({ cacheKv });
+export async function onPostSettings({ request, database, kvStore, fileStore }) {
+  const siteSettings = await getSiteSettings({ kvStore });
 
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser)

@@ -26,21 +26,19 @@ import { Outlink } from "ui/outlink";
  * - [ ] Maybe look into using cloudflare images for image serving (??)
  */
 
-export async function onGetSiteSettings({ request, env }) {
-  const { DB: database, CACHE_KV: cacheKv } = env;
+export async function onGetSiteSettings({ request, database, kvStore }) {
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<div>Not Found</div>);
 
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ kvStore });
   return makeHtmlResponse(<SiteSettingsPage siteSettings={siteSettings} currentUser={currentUser} />);
 }
 
-export async function onPostSiteSettings({ request, env }) {
-  const { DB: database, CACHE_KV: cacheKv, FILE_STORE: fileStore } = env;
+export async function onPostSiteSettings({ request, database, kvStore, fileStore }) {
   const currentUser = await getCurrentUser({ request, database });
   if (!currentUser || !currentUser?.is_admin) return makeHtmlResponse(<div>Not Found</div>);
 
-  const siteSettings = await getSiteSettings({ cacheKv });
+  const siteSettings = await getSiteSettings({ kvStore });
   const formData = await request.formData();
 
   const [
@@ -115,7 +113,7 @@ export async function onPostSiteSettings({ request, env }) {
 
   const status = Object.values(errors).some((value) => value) ? FormStatus.ERROR : FormStatus.SUCCESS;
 
-  await cacheKv.put(CachePrefix.SITE_SETTINGS, JSON.stringify(newSettings));
+  await kvStore.put(CachePrefix.SITE_SETTINGS, JSON.stringify(newSettings));
   return makeHtmlResponse(
     <SiteSettingsPage siteSettings={newSettings} errors={errors} currentUser={currentUser} status={status} />
   );

@@ -1,9 +1,9 @@
 import { assert, assertAll, isUrlOrPath } from "./validation";
 import { CachePrefix } from "./constants";
 
-export async function validateTurnstile({ env, turnstileToken }) {
+export async function validateTurnstile({ turnstileSecretKey, turnstileToken }) {
   let formData = new FormData();
-  formData.append("secret", env.TURNSTILE_SECRET_KEY);
+  formData.append("secret", turnstileSecretKey);
   formData.append("response", turnstileToken);
 
   const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -30,15 +30,6 @@ export function makeErrorResponse({ error, status }) {
       status,
     }
   );
-}
-
-export function ensureEnvVars({ env, func, names }) {
-  const missing = names.filter((name) => !env[name]);
-  if (missing.length > 0) throw new Error(`[${func}] ${missing.join(", ")} not configured.`);
-}
-
-export function ensureEnvVar({ env, func, name }) {
-  if (!env[name]) throw new Error(`[${func}] ${name} not configured.`);
 }
 
 /**
@@ -68,22 +59,22 @@ const DefaultSiteSettings = {
   otp_expiry_seconds: 10 * 60, // 10 minutes
 };
 
-export async function getSiteSettings({ cacheKv }) {
+export async function getSiteSettings({ kvStore }) {
   const tag = "getSiteSettings";
 
   assert({
     tag,
-    check: typeof cacheKv === "object" && cacheKv != null,
-    error: "'cacheKv' must be a non-null object",
+    check: typeof kvStore === "object" && kvStore != null,
+    error: "'kvStore' must be a non-null object",
   });
 
   assert({
     tag,
-    check: typeof cacheKv.get === "function",
-    error: "'cacheKv' must have a 'get' function",
+    check: typeof kvStore.get === "function",
+    error: "'kvStore' must have a 'get' function",
   });
 
-  const savedSettings = (await cacheKv.get(CachePrefix.SITE_SETTINGS, { type: "json" })) ?? {};
+  const savedSettings = (await kvStore.get(CachePrefix.SITE_SETTINGS, { type: "json" })) ?? {};
   const siteSettings = { ...DefaultSiteSettings, ...savedSettings };
 
   return siteSettings;

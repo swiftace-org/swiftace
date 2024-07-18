@@ -1,3 +1,16 @@
+export const EnvKeys = {
+  turnstileSiteKey: "TURNSTILE_SITE_KEY",
+  turnstileSecretKey: "TURNSTILE_SECRET_KEY",
+  kvStore: "KV_STORE",
+  fileStore: "FILE_STORE",
+  database: "DATABASE",
+  awsRegion: "AWS_REGION",
+  awsAccessKeyId: "AWS_ACCESS_KEY_ID",
+  awsSecretAccessKey: "AWS_SECRET_ACCESS_KEY",
+  awsFromEmail: "AWS_FROM_EMAIL",
+  isLocal: "IS_LOCAL",
+};
+
 export const FormStatus = {
   ERROR: "error",
   SUCCESS: "success",
