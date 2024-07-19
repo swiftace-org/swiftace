@@ -11,6 +11,18 @@ export function assert({ tag, check, error, data }) {
   }
 }
 
+export function undefinedOrNull(input) {
+  return input === undefined || input === null;
+}
+
+export function isObject(input) {
+  return !!input && typeof input === "object" && !Array.isArray(input);
+}
+
+export function isNonEmptyString(input, { trim } = {}) {
+  return typeof input === "string" && (trim ? input.trim().length > 0 : input.length > 0);
+}
+
 export function assertAll({ tag, asserts }) {
   const errorMessages = [];
   for (const assertion of asserts) {
@@ -23,24 +35,6 @@ export function assertAll({ tag, asserts }) {
   if (errorMessages.length > 0) {
     throw new Error(`[${tag}] Failed assertion(s)\n\n` + errorMessages.join("\n"));
   }
-}
-
-export function haveSameKeys(object1, object2) {
-  const keys1 = Object.keys(object1).sort();
-  const keys2 = Object.keys(object2).sort();
-  return keys1.length === keys2.length && keys1.every((key, index) => key === keys2[index]);
-}
-
-export function undefinedOrNull(input) {
-  return input === undefined || input === null;
-}
-
-export function isObject(input) {
-  return !!input && typeof input === "object" && !Array.isArray(input);
-}
-
-export function isNonEmptyString(input, { trim } = {}) {
-  return typeof input === "string" && (trim ? input.trim().length > 0 : input.length > 0);
 }
 
 export function assertEnvKeys({ tag, env, keys }) {
@@ -56,14 +50,15 @@ export function assertEnvKeys({ tag, env, keys }) {
     error: "'keys' must be an array of strings",
     data: { keys },
   });
-  const missingKeys = keys.filter((key) => !(key in env));
+  const missingVariables = keys.filter((key) => !(key in env));
   assert({
     tag,
-    check: missingKeys.length === 0,
+    check: missingVariables.length === 0,
     error: "Environment variable(s) not configured",
-    data: { missingKeys },
+    data: { missingVariables },
   });
 }
+
 export function isValidEmail(email) {
   const EMAIL_REGEX =
     // eslint-disable-next-line no-useless-escape
@@ -85,4 +80,22 @@ export function isValidEmail(email) {
   if (domainParts.some((part) => part.length > 63)) return false;
 
   return EMAIL_REGEX.test(email);
+}
+
+export function haveSameKeys(input1, input2) {
+  assert({
+    tag: "haveSameKeys",
+    check: isObject(input1),
+    error: "'input1' must be an object",
+    data: { input1 },
+  });
+  assert({
+    tag: "haveSameKeys",
+    check: isObject(input2),
+    error: "'input2' must be an object",
+    data: { input2 },
+  });
+  const keys1 = Object.keys(input1).sort();
+  const keys2 = Object.keys(input2).sort();
+  return keys1.length === keys2.length && keys1.every((key, index) => key === keys2[index]);
 }
