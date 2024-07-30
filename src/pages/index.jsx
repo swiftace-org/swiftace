@@ -14,6 +14,7 @@ import jsx from "lib/jsx";
  * - [ ] Add limits to all SQL queries (1000 can be used where there are multiple returns)
  * - [ ] Add an error boundary component
  * - [ ] Use HTTPS for local development (set up a certificate)
+ * - [ ] Remove AWS SES and implement email sending from first principles (??)
  */
 
 export async function onGetHome({ request, kvStore, database }) {

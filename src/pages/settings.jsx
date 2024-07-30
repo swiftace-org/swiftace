@@ -32,9 +32,10 @@ export async function onGetSettings({ request, kvStore, database }) {
   const siteSettings = await getSiteSettings({ kvStore });
 
   const currentUser = await getCurrentUser({ request, database });
-  if (!currentUser)
+  if (!currentUser) {
     return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
-  const userEmails = await getUserEmails({ user: currentUser, database });
+  }
+  const userEmails = await getUserEmails({ user: currentUser.id, database });
 
   return makeHtmlResponse(
     <AccountSettingsPage siteSettings={siteSettings} currentUser={currentUser} userEmails={userEmails} />
@@ -45,9 +46,10 @@ export async function onPostSettings({ request, database, kvStore, fileStore }) 
   const siteSettings = await getSiteSettings({ kvStore });
 
   const currentUser = await getCurrentUser({ request, database });
-  if (!currentUser)
+  if (!currentUser) {
     return makeHtmlResponse(<NotFoundPage siteSettings={siteSettings} currentUser={currentUser} />);
-  const userEmails = await getUserEmails({ user: currentUser, database });
+  }
+  const userEmails = await getUserEmails({ user: currentUser.id, database });
 
   const formData = await request.formData();
   const formErrors = {};
