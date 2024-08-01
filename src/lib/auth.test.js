@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
+import { createSQLiteDB } from "@miniflare/shared";
+import { D1Database, D1DatabaseAPI } from "@miniflare/d1";
 import {
   generateVerificationCode,
   getCookieSessionToken,
@@ -10,10 +12,7 @@ import {
   hashSessionToken,
 } from "./auth";
 
-import { createSQLiteDB } from "@miniflare/shared";
-import { D1Database, D1DatabaseAPI } from "@miniflare/d1";
-
-describe("generateVerificationCode", () => {
+describe(generateVerificationCode.name, () => {
   it("generates a 6-digit verification code", () => {
     const code = generateVerificationCode();
     expect(code).toMatch(/^\d{6}$/);
@@ -26,7 +25,7 @@ describe("generateVerificationCode", () => {
   });
 });
 
-describe("hashSessionToken", () => {
+describe(hashSessionToken.name, () => {
   it("should hash a valid token correctly", async () => {
     const token = "validToken123";
     const hash = await hashSessionToken(token);
@@ -34,7 +33,7 @@ describe("hashSessionToken", () => {
   });
 
   it("should throw an error for invalid inputs", async () => {
-    const errorMessage = "Token must be a non-empty string";
+    const errorMessage = "'token' must be a non-empty string";
 
     await expect(hashSessionToken("  ")).rejects.toThrow(errorMessage);
     await expect(hashSessionToken(null)).rejects.toThrow(errorMessage);
@@ -59,7 +58,7 @@ describe("hashSessionToken", () => {
   });
 });
 
-describe("getHeaderSessionToken", () => {
+describe(getHeaderSessionToken.name, () => {
   it("extracts Bearer token correctly", () => {
     const headers = new Headers({ Authorization: "Bearer token123" });
     expect(getHeaderSessionToken(headers)).toBe("token123");
@@ -74,8 +73,8 @@ describe("getHeaderSessionToken", () => {
   });
 
   it("throws an error for invalid requestHeaders", () => {
-    expect(() => getHeaderSessionToken({})).toThrow("'headers' must have a valid 'get' method");
-    expect(() => getHeaderSessionToken(null)).toThrow("'headers' must have a valid 'get' method");
+    expect(() => getHeaderSessionToken({})).toThrow("'headers' must be an instance of 'Headers'");
+    expect(() => getHeaderSessionToken(null)).toThrow("'headers' must be an instance of 'Headers'");
   });
 });
 
@@ -104,7 +103,7 @@ describe("getCookieSessionToken", () => {
   });
 
   it("throws an error if requestHeaders doesn't have a get method", () => {
-    expect(() => getCookieSessionToken({})).toThrow("'headers' must have a valid 'get' method");
+    expect(() => getCookieSessionToken({})).toThrow("'headers' must be an instance of 'Headers'");
   });
 });
 
@@ -157,20 +156,24 @@ describe("getCurrentUserId", () => {
   });
 
   it("returns null when no session token is present", async () => {
-    const request = { headers: new Headers() };
+    const request = new Request("https://example.com");
     const result = await getCurrentUserId({ request, database });
     expect(result).toBeUndefined();
   });
 
   it("returns user_id when a valid session token is present", async () => {
-    const request = { headers: new Headers({ Authorization: `Bearer ${validToken1}` }) };
+    const request = new Request("https://example.com", {
+      headers: { Authorization: `Bearer ${validToken1}` },
+    });
     const result = await getCurrentUserId({ request, database });
     expect(result).toBe(userId);
   });
 
   it("returns null when the session token is not found in database", async () => {
     const invalidToken = "invalid_token";
-    const request = { headers: new Headers({ Authorization: `Bearer ${invalidToken}` }) };
+    const request = new Request("https://example.com", {
+      headers: { Authorization: `Bearer ${invalidToken}` },
+    });
     const result = await getCurrentUserId({ request, database: database });
     expect(result).toBeUndefined();
   });
@@ -228,9 +231,8 @@ describe("getCurrentUser", () => {
   });
 
   it("should return user data for a valid token (admin user)", async () => {
-    const headers = new Headers();
-    headers.set("Authorization", "Bearer validToken1");
-    const request = { headers };
+    const headers = new Headers({ Authorization: "Bearer validToken1" });
+    const request = new Request("https://example.com", { headers });
     const user = await getCurrentUser({ request, database });
     expect(user).toEqual({
       id: 1,
@@ -242,9 +244,8 @@ describe("getCurrentUser", () => {
   });
 
   it("should return user data for a valid token (non-admin user)", async () => {
-    const headers = new Headers();
-    headers.set("Authorization", "Bearer validToken2");
-    const request = { headers };
+    const headers = new Headers({ Authorization: "Bearer validToken2" });
+    const request = new Request("https://example.com", { headers });
     const user = await getCurrentUser({ request, database });
     expect(user).toEqual({
       id: 2,
@@ -256,15 +257,14 @@ describe("getCurrentUser", () => {
   });
 
   it("should return null for an invalid token", async () => {
-    const headers = new Headers();
-    headers.set("Authorization", "Bearer invalidToken");
-    const request = { headers };
+    const headers = new Headers({ Authorization: "Bearer invalidToken" });
+    const request = new Request("https://example.com", { headers });
     const user = await getCurrentUser({ request, database });
     expect(user).toBeNull();
   });
 
   it("should return null if no token is provided", async () => {
-    const request = { headers: new Headers() };
+    const request = new Request("https://example.com");
     const user = await getCurrentUser({ request, database });
     expect(user).toBeNull();
   });
@@ -316,8 +316,8 @@ describe("getUserEmails", () => {
     await expect(getUserEmails({ userId: "hello", database })).rejects.toThrow(message);
   });
 
-  it("should throw if 'database' does not have a valid 'prepare' method", async () => {
-    const message = "'database' must have a valid 'prepare' method";
+  it("should throw if 'database' is not an instance of 'D1Database'", async () => {
+    const message = "'database' must be an instance of 'D1Database'";
     await expect(getUserEmails({ userId: 1 })).rejects.toThrow(message);
     await expect(getUserEmails({ userId: 1, database: { exec: () => {} } })).rejects.toThrow(message);
   });

@@ -1,4 +1,4 @@
-import { assert, isNonEmptyString, isObject } from "./assertion";
+import { assert, assertInstanceOf, assertNonEmptyString } from "./assertion";
 import { parse } from "./cookie";
 
 export function generateVerificationCode() {
@@ -8,12 +8,7 @@ export function generateVerificationCode() {
 }
 
 export async function hashSessionToken(token) {
-  assert({
-    tag: "hashSessionToken",
-    check: isNonEmptyString(token, { trim: true }),
-    error: "Token must be a non-empty string",
-    data: { token },
-  });
+  assertNonEmptyString({ tag: hashSessionToken.name, trim: true, token });
   const encoder = new TextEncoder();
   const data = encoder.encode(token);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -23,22 +18,14 @@ export async function hashSessionToken(token) {
 }
 
 export function getHeaderSessionToken(headers) {
-  assert({
-    tag: "getHeaderSessionToken",
-    check: typeof headers?.get === "function",
-    error: "'headers' must have a valid 'get' method",
-  });
+  assertInstanceOf({ tag: getHeaderSessionToken.name, headers, cls: Headers });
   const authHeader = headers.get("Authorization");
   const token = authHeader?.substring(0, 6) == "Bearer" ? authHeader.substring(6).trim() : "";
   return token;
 }
 
 export function getCookieSessionToken(headers) {
-  assert({
-    tag: "getCookieSessionToken",
-    check: typeof headers?.get === "function",
-    error: "'headers' must have a valid 'get' method",
-  });
+  assertInstanceOf({ tag: getCookieSessionToken.name, headers, cls: Headers });
   const cookie = parse(headers.get("Cookie") || "");
   return cookie?.SESSION_TOKEN;
 }
@@ -48,6 +35,9 @@ export function getSessionToken(headers) {
 }
 
 export async function getCurrentUserId({ request, database }) {
+  const tag = getCurrentUserId.name;
+  assertInstanceOf({ tag, request, cls: Request });
+  assertInstanceOf({ tag, database, cls: "D1Database" });
   const token = getSessionToken(request.headers);
   if (!token) return;
   const tokenHash = await hashSessionToken(token);
@@ -59,6 +49,9 @@ export async function getCurrentUserId({ request, database }) {
 }
 
 export async function getCurrentUser({ request, database }) {
+  const tag = getCurrentUser.name;
+  assertInstanceOf({ tag, request, cls: Request });
+  assertInstanceOf({ tag, database, cls: "D1Database" });
   const token = getSessionToken(request.headers);
   if (!token) return null;
   const tokenHash = await hashSessionToken(token);
@@ -80,17 +73,21 @@ export async function getUserEmails({ userId, database, limit = 10 }) {
     error: "'userId' must be a positive integer",
     data: { userId },
   });
-  assert({
-    tag,
-    check: isObject(database) && typeof database.prepare === "function",
-    error: "'database' must have a valid 'prepare' method",
-  });
+  assertInstanceOf({ tag, database, cls: "D1Database" });
   const query = `SELECT email FROM user_emails WHERE user_id = ?1 LIMIT ?2;`;
   const queryOutcome = await database.prepare(query).bind(userId, limit).all();
   return queryOutcome.results;
 }
 
 export function createSessionCookie({ sessionToken, isLocal, maxAge }) {
+  const tag = createSessionCookie.name;
+  assertNonEmptyString({ tag, trim: true, sessionToken });
+  assert({
+    tag,
+    check: Number.isInteger(maxAge) && maxAge > 0,
+    error: "'maxAge' must be a postive integer",
+    data: { maxAge },
+  });
   return `SESSION_TOKEN=${sessionToken}; Max-Age=${maxAge}; Path="/"; HttpOnly; SameSite=Strict; ${
     isLocal ? "" : "Secure"
   }`;

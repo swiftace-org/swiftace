@@ -99,3 +99,58 @@ export function haveSameKeys(input1, input2) {
   const keys2 = Object.keys(input2).sort();
   return keys1.length === keys2.length && keys1.every((key, index) => key === keys2[index]);
 }
+
+export function assertNonEmptyString({ tag, trim, ...rest }) {
+  const restKeys = Object.keys(rest);
+  const varName = restKeys[0];
+  assert({
+    tag: assertNonEmptyString.name,
+    check: restKeys.length === 1,
+    error: "Expected exactly one additional key other than 'tag' and 'trim'",
+    data: { additionalKeys: restKeys },
+  });
+  assert({
+    tag,
+    check: isNonEmptyString(rest[varName], { trim }),
+    error: `'${varName}' must be a non-empty string`,
+    data: rest,
+  });
+}
+
+function isClass(obj) {
+  const isCtorClass = obj.constructor && obj.constructor.toString().substring(0, 5) === "class";
+  if (obj.prototype === undefined) {
+    return isCtorClass;
+  }
+  const isPrototypeCtorClass =
+    obj.prototype.constructor &&
+    obj.prototype.constructor.toString &&
+    obj.prototype.constructor.toString().substring(0, 5) === "class";
+  return isCtorClass || isPrototypeCtorClass;
+}
+
+export function assertInstanceOf({ tag, cls, ...rest }) {
+  const restKeys = Object.keys(rest);
+  assert({
+    tag: assertInstanceOf.name,
+    check: restKeys.length === 1,
+    error: "Expected exactly one additional key other than 'tag' and 'cls'",
+    data: { additionalKeys: restKeys },
+  });
+  assert({
+    tag: assertInstanceOf.name,
+    check: isNonEmptyString(cls) || isClass(cls),
+    error: "'cls' must be a class or a string class name",
+    data: { "typeof cls": typeof cls },
+  });
+  const clsName = typeof cls === "string" ? cls : cls.name;
+  const varName = restKeys[0];
+  const varValue = rest[varName];
+  const varConstructorName = varValue?.constructor.name || typeof varValue;
+  assert({
+    tag,
+    check: typeof cls === "string" ? varConstructorName === cls : varValue instanceof cls,
+    error: `'${varName}' must be an instance of '${clsName}'`,
+    data: { receivedType: varConstructorName },
+  });
+}
