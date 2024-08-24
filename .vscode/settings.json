@@ -1,0 +1,5 @@
+{
+    "zig.zls.completionLabelDetails": false,
+    "zig.zls.enableArgumentPlaceholders": false,
+    "zig.zls.enableInlayHints": false
+}
