@@ -1,49 +1,34 @@
 const std = @import("std");
-const print = std.debug.print;
-const meta = std.meta;
-const testing = std.testing;
+const tst = std.testing;
+const mem = std.mem;
+const Allocator = mem.Allocator;
 
-pub fn main() void {
-    const recv_buf: [4096]u8 = undefined;
-    var idx = -1;
-    _ = &idx;
-    print("recv_buf.len: {}\n", .{recv_buf.len});
-    print("recv_buf[0..100]: {}\n", .{recv_buf[@max(idx, 0)]});
-}
+const Attribute = struct {
+    name: []const u8,
+    value: ?[]const u8,
 
-// pub fn isString(comptime input: anytype) bool {
-//     const str: []const u8 = "";
-//     return @TypeOf(str, input) == []const u8;
-// }
+    pub fn parseAll(allocator: Allocator, input: anytype) ![]const Attribute {
+        const input_type = @TypeOf(input);
+        const info = @typeInfo(input_type);
+        const fields = info.Struct.fields;
 
-// test "check if something is a string" {
-//     const str1 = "Hello, world";
-//     print("type of str1: {}\n", .{@TypeOf(str1)});
-//     try testing.expect(isString(str1));
+        var attributes = try allocator.alloc(Attribute, fields.len);
+        inline for (fields, 0..) |field, i| {
+            attributes[i] = Attribute{
+                .name = field.name,
+                .value = @field(input, field.name),
+            };
+        }
+        return attributes;
+    }
+};
 
-//     const str2: *const [12]u8 = "Hello, world";
-//     try testing.expect(isString(str2));
 
-//     const str3: []const u8 = "Hello, world";
-//     try testing.expect(isString(str3));
-    
-//     try testing.expect(!isString(23));
-// }
 
-// test "check string types equality" {
-//     const x = "Hello, world";
-//     print("type of x: {}", .{@TypeOf(x)});
-//     try testing.expect(@TypeOf(x) == []const u8);
-// }
-
-test "iterability" {
-    var list1 = std.ArrayList(u8).init(std.testing.allocator);
-    try list1.append(1);
-    try list1.append(2);
-    try list1.append(3);
-    try list1.append(4);
-    try list1.append(5);
-    defer list1.allocator.free(list1.allocatedSlice());
-
-    try testing.expect(list1.items[1] == 2);
+test "parsing anonymous structs into their components" {
+    const input = .{ .class = "hello", .style = "world"};
+    const attributes = try Attribute.parseAll(tst.allocator, input);
+    defer tst.allocator.free(attributes);
+    std.debug.print("attrs1[0].name: {s}\n", .{attributes[0].name});
+    try tst.expectEqual("class", attributes[0].name);
 }
