@@ -1,7 +1,9 @@
 const std = @import("std");
 const util = @import("util.zig");
+const Attribute = @import("./html/Attribute.zig");
 const mem = std.mem;
 const Allocator = mem.Allocator;
+const ArrayList = std.ArrayList;
 
 // TODOS
 // - [ ] For self closing tag, check that opening tag ends with "/>"
@@ -35,6 +37,14 @@ const Element = union(enum) {
 
     pub fn deinit(self: Element, allocator: Allocator) void {
         if (self == .tag) self.tag.deinit(allocator);
+    }
+
+    pub fn render(self: Element, result: *ArrayList(u8)) void {
+        switch (self) {
+            .raw => |raw| result.append(raw),
+            .tag => |tag| tag.render(result),
+            .nil => {},
+        }
     }
 };
 
@@ -93,6 +103,21 @@ const Tag = struct {
         allocator.free(self.contents);
     }
 
+    pub fn render(self: Tag, result: *ArrayList(u8)) void {
+        try result.append('<');
+        try result.append(self.name);
+        for (self.attributes) |attribute| {
+            try result.append(' ');
+            try attribute.render(result);
+        } 
+        try result.append('>');
+        if (self.is_void) return;
+        for (self.children) |element| try element.render(result);
+        try result.appendSlice("</");
+        try result.append(self.name);
+        try result.append(">");
+    }
+
     pub fn parseContents(allocator: Allocator, inputs: anytype) ![]const Element {
         const input_type: type = @TypeOf(inputs);
         const info = @typeInfo(input_type);
@@ -145,30 +170,6 @@ const Tag = struct {
             end_tag[1] != '/' or
             end_tag[end_tag.len - 1] != '>' or
             mem.eql(u8, name, end_tag[2 .. end_tag.len - 1]));
-    }
-};
-
-const Attribute = struct {
-    name: []const u8,
-    value: ?[]const u8,
-
-    pub fn initAll(allocator: Allocator, input: anytype) ![]const Attribute {
-        const input_type: type = @TypeOf(input);
-        const info = @typeInfo(input_type);
-        if (info != .Struct) @compileError("Expected a struct. Received: " ++ @typeName(input_type));
-
-        const fields = info.Struct.fields;
-        if (fields.len == 0) return &.{};
-        if (info.Struct.is_tuple) @compileError("Expected a non-tuple struct. Received: " ++ @typeName(input_type));
-
-        var attributes = try allocator.alloc(Attribute, fields.len);
-        inline for (fields, 0..) |field, i| {
-            attributes[i] = Attribute{
-                .name = field.name,
-                .value = @field(input, field.name),
-            };
-        }
-        return attributes;
     }
 };
 
@@ -359,3 +360,69 @@ test "Tag.isValidTagName" {
     try std.testing.expect(!Tag.isValidTagName("invalid\ntag")); // newline character
 
 }
+
+
+test "Attribute.render - name only" {
+    const attr = Attribute{ .name = "class", .value = null };
+    var result = ArrayList(u8).init(testing.allocator);
+    defer result.deinit();
+    try attr.render(&result);
+    try testing.expectEqualStrings("class", result.items);
+}
+
+test "Attribute.render - name and value" {
+    const attr = Attribute{ .name = "id", .value = "main-content" };
+    var result = ArrayList(u8).init(testing.allocator);
+    defer result.deinit();
+    try attr.render(&result);
+    try testing.expectEqualStrings("id=\"main-content\"", result.items);
+}
+
+test "Attribute.render - value with special characters" {
+    const attr = Attribute{ .name = "data", .value = "a < b & c > d" };
+    var result = ArrayList(u8).init(testing.allocator);
+    defer result.deinit();
+    try attr.render(&result);
+    try testing.expectEqualStrings("data=\"a &lt; b &amp; c &gt; d\"", result.items);
+}
+
+test "Attribute.render - value with quotes" {
+    const attr = Attribute{ .name = "title", .value = "He said: \"Hello!\"" };
+    var result = ArrayList(u8).init(testing.allocator);
+    defer result.deinit();
+    try attr.render(&result);
+    try testing.expectEqualStrings("title=\"He said: &quot;Hello!&quot;\"", result.items);
+}
+
+test "Attribute.render - value with single quotes" {
+    const attr = Attribute{ .name = "alt", .value = "It's a nice day" };
+    var result = ArrayList(u8).init(testing.allocator);
+    defer result.deinit();
+    
+    try attr.render(&result);
+    
+    try testing.expectEqualStrings("alt=\"It&#39;s a nice day\"", result.items);
+}
+
+test "Attribute.render - empty value" {
+    const attr = Attribute{ .name = "required", .value = "" };
+    var result = ArrayList(u8).init(testing.allocator);
+    defer result.deinit();
+    
+    try attr.render(&result);
+    
+    try testing.expectEqualStrings("required=\"\"", result.items);
+}
+
+// test "Attribute.render - undefined value" {
+//     const attrs = try Attribute.initAll(testing.allocator, .{ .required = undefined });
+//     defer testing.allocator.free(attrs);
+//     // _ = &attrs;
+//     // std.debug.print("attrs.len: {}\n", .{attrs.len});
+//     const attr = attrs[0];
+//     var result = ArrayList(u8).init(testing.allocator);
+//     defer result.deinit();
+//     try attr.render(&result);
+//     try testing.expectEqualStrings("required", result.items);
+//     try testing.expectEqual(attr.value, undefined);
+// }
