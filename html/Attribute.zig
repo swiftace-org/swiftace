@@ -14,22 +14,25 @@ name: []const u8,
 value: Value,
 
 // TODO: Add support for string hash maps
-// TODO: Should this be replaced with a hashmap (?)
+// TODO: Should this be replaced with a hashmap instead (?)
 
 pub fn initAll(allocator: Allocator, attr_struct: anytype) ![]const Attribute {
     const input_type: type = @TypeOf(attr_struct);
     const info = @typeInfo(input_type);
-    if (info != .Struct) @compileError("Expected a struct. Received: " ++ @typeName(input_type));
+    if (info != .Struct) @compileError("Expected non-tuple struct. Received: " ++ @typeName(input_type));
 
     const fields = info.Struct.fields;
     if (fields.len == 0) return &.{};
-    if (info.Struct.is_tuple) @compileError("Expected a non-tuple struct. Received: " ++ @typeName(input_type));
+    if (info.Struct.is_tuple) @compileError("Expected non-tuple struct. Received: " ++ @typeName(input_type));
 
     var attributes = try allocator.alloc(Attribute, fields.len);
+    errdefer allocator.free(attributes);
     inline for (fields, 0..) |field, i| {
-        const value = @field(attr_struct, field.name);
+        const name = field.name;
+        if (!isValidName(name)) return error.HtmlParseError;
+        const value = @field(attr_struct, name);
         attributes[i] = Attribute{
-            .name = field.name,
+            .name = name,
             .value = if (@TypeOf(value) == bool) .{ .present = value } else .{ .text = value },
         };
     }
@@ -40,7 +43,7 @@ pub fn deinitAll(allocator: Allocator, attributes: []const Attribute) void {
     return allocator.free(attributes);
 }
 
-pub fn isValidAttributeName(name: []const u8) bool {
+pub fn isValidName(name: []const u8) bool {
     if (name.len == 0) return false;
     for (name, 0..) |char, i| {
         if (i == 0) {
@@ -80,20 +83,31 @@ pub fn render(self: Attribute, result: *ArrayList(u8)) !void {
     }
 }
 
+pub fn renderAll(attributes: []const Attribute, result: *ArrayList(u8)) !void {
+    for (attributes) |attribute| {
+        if (attribute.value == .present and !attribute.value.present) continue;
+        try result.append(' ');
+        try attribute.render(result);
+    }
+}
+
 const testing = std.testing;
 const expectEqualDeep = testing.expectEqualDeep;
+const expectError = testing.expectError;
 
 test initAll {
+    const alloc = testing.allocator;
+
     // Empty struct should return an empty slice
     const expected1 = &.{};
-    const actual1 = try initAll(testing.allocator, .{});
-    defer deinitAll(testing.allocator, actual1);
+    const actual1 = try initAll(alloc, .{});
+    defer deinitAll(alloc, actual1);
     try expectEqualDeep(expected1, actual1);
 
     // Struct containing one text field
     const expected2: []const Attribute = &.{ .{ .name = "class", .value = Value{ .text = "container" } } };
-    const actual2 = try initAll(testing.allocator, .{ .class = "container" });
-    defer deinitAll(testing.allocator, actual2);
+    const actual2 = try initAll(alloc, .{ .class = "container" });
+    defer deinitAll(alloc, actual2);
     try expectEqualDeep(expected2, actual2);
 
     // Struct containing multiple fields (text and boolean)
@@ -111,8 +125,8 @@ test initAll {
         .{ .name = "boolean_present", .value = .{ .present = true } },
         .{ .name = "boolean_absent", .value = .{ .present = false } }
     };
-    const actual3 = try initAll(testing.allocator, input3);
-    defer deinitAll(testing.allocator, actual3);
+    const actual3 = try initAll(alloc, input3);
+    defer deinitAll(alloc, actual3);
     try expectEqualDeep(expected3, actual3);
 
     // Struct containing attribute names with special characters
@@ -130,16 +144,11 @@ test initAll {
         .{ .name = "with.dot", .value = .{ .text = "dot value" } },
         .{ .name = "mixed:_-.", .value = .{ .present = true } },
     };
-    const actual4 = try initAll(testing.allocator, input4);
-    defer deinitAll(testing.allocator, actual4);
+    const actual4 = try initAll(alloc, input4);
+    defer deinitAll(alloc, actual4);
     try expectEqualDeep(expected4, actual4);
 
-    // Passing in a tuple or non-struct results in compilation error
-    // Uncomment the following to fail compilation
-    // try initAll(testing.allocator, .{ 1, 2, 3, 4 });
-    // try initAll(testing.allocator, 34);
-
-    //
+    // Struct containing attribute values with special characters 
     const input5 = .{
         .simple = "hello",
         .with_quotes = "He said \"hello\"",
@@ -158,7 +167,41 @@ test initAll {
         .{ .name = "with_single_quote", .value = .{ .text = "It's me" } },
         .{ .name = "mixed", .value = .{ .text = "a < b & c > d \"quote\" 'apostrophe'" } },
     };
-    const actual5 = try initAll(testing.allocator, input5);
-    defer deinitAll(testing.allocator, actual5);
+    const actual5 = try initAll(alloc, input5);
+    defer deinitAll(alloc, actual5);
     try expectEqualDeep(expected5, actual5);
+
+    // Struct containing illegal attribute name leads to an error
+    const err = error.HtmlParseError;
+    try expectError(err, initAll(alloc, .{ .@"illegal name" = "with space"}));
+    try expectError(err, initAll(alloc, .{ .@"1invalid" = "with number" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid@" = "at symbol" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid#" = "hash symbol" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid$" = "dollar sign" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid%" = "percent sign" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid^" = "caret" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid&" = "ampersand" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid*" = "asterisk" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid(" = "opening parenthesis" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid+" = "plus sign" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid=" = "equals sign" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid," = "comma" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid<" = "less than" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid>" = "greater than" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid/" = "forward slash" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid?" = "question mark" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid`" = "backtick" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid~" = "tilde" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid[" = "opening square bracket" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid{" = "opening curly brace" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid|" = "vertical bar" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid\\" = "backslash" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid€" = "euro sign" }));
+    try expectError(err, initAll(alloc, .{ .@"almost:valid_but_invalid!" = "mixed" }));
+
+    
+    // Passing in a errresults in compilation error
+    // Uncomment the following to fail compilation
+    // try initAll(testing.allocator, .{ 1, 2, 3, 4 });
+    // try initAll(testing.allocator, 34);
 }
