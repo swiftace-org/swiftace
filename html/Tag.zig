@@ -210,7 +210,12 @@ test init {
     try expectError(err, init(alloc,.{"<div>", raw_attrs, "</span>"}));
     try expectError(err, init(alloc,.{"<div>", raw_attrs, "Hello, wold", "</span>"}));
 
-
+    // Error for invalid tag name
+    try expectError(err, init(alloc, .{"< br>"}));
+    try expectError(err, init(alloc, .{"<br >"}));
+    try expectError(err, init(alloc, .{"<br/>"}));
+    try expectError(err, init(alloc, .{"<1br>"}));
+    try expectError(err, init(alloc, .{"<br$>"}));
 }
 
 test isValidName {

@@ -175,19 +175,7 @@ pub const Element = union(enum) {
 //     try testing.expectEqualDeep(expected, el1);
 // }
 
-// test "Tag.init parses a void tag with no attributes" {
-//     const tag1 = try Tag.init(testing.allocator, .{"<br>"});
-//     defer tag1.deinit(testing.allocator);
-//     const expected = Tag{ .name = "br", .is_void = true };
-//     try testing.expectEqualDeep(expected, tag1);
-// }
 
-// test "Tag.init returns an error if start tag doesn't begin with '<' or end with '>'" {
-//     const alloc = testing.allocator;
-//     try testing.expectError(error.HtmlParseError, Element.init(alloc, .{"<br"}));
-//     try testing.expectError(error.HtmlParseError, Element.init(alloc, .{"br>"}));
-//     try testing.expectError(error.HtmlParseError, Element.init(alloc, .{"br>"}));
-// }
 
 // test "Tag.init returns an error if start tag doesn't have a valid name" {
 //     const alloc = testing.allocator;
