@@ -198,6 +198,19 @@ test init {
         .allocator = alloc,
     };
     try expectEqualDeep(expected7, tag7);
+
+    // Error for invalid start tag
+    const err = error.HtmlParseError;
+    try expectError(err, init(alloc, .{"<br"}));
+    try expectError(err, init(alloc, .{"br>"}));
+    try expectError(err, init(alloc, .{"br>"}));
+
+    // Error for non-matching end tag
+    try expectError(err, init(alloc,.{"<div>", "</span>"}));
+    try expectError(err, init(alloc,.{"<div>", raw_attrs, "</span>"}));
+    try expectError(err, init(alloc,.{"<div>", raw_attrs, "Hello, wold", "</span>"}));
+
+
 }
 
 test isValidName {
@@ -252,6 +265,3 @@ test extractName {
     try expectError(err, extractName("<123div>"));
 }
 
-// test render {
-//     // TODO
-// }
