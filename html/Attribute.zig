@@ -1,15 +1,11 @@
 const std = @import("std");
-const util = @import("./util.zig");
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const ArrayList = std.ArrayList;
 
 const Attribute = @This();
 
-const Value = union(enum) {
-    text: []const u8,
-    present: bool
-};
+const Value = union(enum) { text: []const u8, present: bool };
 
 name: []const u8,
 value: Value,
@@ -17,7 +13,7 @@ value: Value,
 pub fn initAll(allocator: Allocator, raw_attrs: anytype) ![]const Attribute {
     const input_type: type = @TypeOf(raw_attrs);
     const info = @typeInfo(input_type);
-    
+
     if (info != .Struct) @compileError("Expected non-tuple struct. Received: " ++ @typeName(input_type));
     const fields = info.Struct.fields;
     if (fields.len == 0) return &.{};
@@ -37,19 +33,6 @@ pub fn initAll(allocator: Allocator, raw_attrs: anytype) ![]const Attribute {
     return attributes;
 }
 
-pub fn initMap(allocator: Allocator, attr_map: anytype) ![]const Attribute {
-    const keys = attr_map.keys();
-    var attributes = try allocator.alloc(Attribute, keys.len);
-    errdefer allocator.free(attributes);
-    for (keys, 0..) |key, i| {
-        attributes[i] = Attribute{
-            .name = key,
-            .value = .{ .text = attr_map.get(key).? }
-        };
-    }
-    return attributes;
-}
-
 pub fn deinitAll(allocator: Allocator, attributes: []const Attribute) void {
     return allocator.free(attributes);
 }
@@ -59,19 +42,18 @@ pub fn isValidName(name: []const u8) bool {
     for (name) |char| {
         switch (char) {
             0x00...0x1F, // Control characters
-            0x20,        // Space
-            0x22,        // "
-            0x27,        // '
-            0x3E,        // >
-            0x2F,        // /
-            0x3D,        // =
+            0x20, // Space
+            0x22, // "
+            0x27, // '
+            0x3E, // >
+            0x2F, // /
+            0x3D, // =
             => return false,
             else => {},
         }
     }
     return true;
 }
-
 
 pub fn render(self: Attribute, result: *ArrayList(u8)) !void {
     switch (self.value) {
@@ -91,7 +73,7 @@ pub fn render(self: Attribute, result: *ArrayList(u8)) !void {
             }
             try result.append('"');
         },
-        .present => |present|{
+        .present => |present| {
             if (present) try result.appendSlice(self.name);
         },
     }
@@ -108,6 +90,7 @@ pub fn renderAll(attributes: []const Attribute, result: *ArrayList(u8)) !void {
 const testing = std.testing;
 const expect = std.testing.expect;
 const expectEqualDeep = testing.expectEqualDeep;
+const expectEqualStrings = testing.expectEqualStrings;
 const expectError = testing.expectError;
 
 test initAll {
@@ -120,7 +103,7 @@ test initAll {
     try expectEqualDeep(expected1, actual1);
 
     // Struct containing one text field
-    const expected2: []const Attribute = &.{ .{ .name = "class", .value = Value{ .text = "container" } } };
+    const expected2: []const Attribute = &.{.{ .name = "class", .value = Value{ .text = "container" } }};
     const actual2 = try initAll(alloc, .{ .class = "container" });
     defer deinitAll(alloc, actual2);
     try expectEqualDeep(expected2, actual2);
@@ -133,13 +116,7 @@ test initAll {
         .boolean_present = true,
         .boolean_absent = false,
     };
-    const expected3: []const Attribute = &.{
-        .{ .name = "string_field", .value = .{ .text = "hello" } },
-        .{ .name = "another_string_field", .value = .{ .text = "world" } },
-        .{ .name = "empty_string", .value = .{ .text = "" } },
-        .{ .name = "boolean_present", .value = .{ .present = true } },
-        .{ .name = "boolean_absent", .value = .{ .present = false } }
-    };
+    const expected3: []const Attribute = &.{ .{ .name = "string_field", .value = .{ .text = "hello" } }, .{ .name = "another_string_field", .value = .{ .text = "world" } }, .{ .name = "empty_string", .value = .{ .text = "" } }, .{ .name = "boolean_present", .value = .{ .present = true } }, .{ .name = "boolean_absent", .value = .{ .present = false } } };
     const actual3 = try initAll(alloc, input3);
     defer deinitAll(alloc, actual3);
     try expectEqualDeep(expected3, actual3);
@@ -147,7 +124,7 @@ test initAll {
     // Struct containing attribute names with special characters
     const input4 = .{
         .@"with:colon" = "colon value",
-        .@"with_underscore" = "underscore value",
+        .with_underscore = "underscore value",
         .@"with-hyphen" = "hyphen value",
         .@"with.dot" = "dot value",
         .@"mixed:_-." = true,
@@ -163,7 +140,7 @@ test initAll {
     defer deinitAll(alloc, actual4);
     try expectEqualDeep(expected4, actual4);
 
-    // Struct containing attribute values with special characters 
+    // Struct containing attribute values with special characters
     const input5 = .{
         .simple = "hello",
         .with_quotes = "He said \"hello\"",
@@ -174,7 +151,7 @@ test initAll {
         .mixed = "a < b & c > d \"quote\" 'apostrophe'",
     };
     const expected5: []const Attribute = &.{
-        .{ .name = "simple", .value = .{.text = "hello" } },
+        .{ .name = "simple", .value = .{ .text = "hello" } },
         .{ .name = "with_quotes", .value = .{ .text = "He said \"hello\"" } },
         .{ .name = "with_ampersand", .value = .{ .text = "Tom & Jerry" } },
         .{ .name = "with_less_than", .value = .{ .text = "a < b" } },
@@ -188,7 +165,7 @@ test initAll {
 
     // Struct containing illegal attribute name leads to an error
     const err = error.HtmlParseError;
-    try expectError(err, initAll(alloc, .{ .@"illegal name" = "hello"}));
+    try expectError(err, initAll(alloc, .{ .@"illegal name" = "hello" }));
     try expectError(err, initAll(alloc, .{ .@"invalid\"name" = "hello" }));
     try expectError(err, initAll(alloc, .{ .@"invalid'name" = "at symbol" }));
     try expectError(err, initAll(alloc, .{ .@"invalid>name" = "hash symbol" }));
@@ -215,17 +192,75 @@ test isValidName {
     try expect(!isValidName("invalid=name"));
 }
 
-// test render {
-//     // const alloc = testing.allocator;
-//     var map1 = std.StringArrayHashMap([]const u8).init(testing.allocator);
-//     defer map1.deinit();
-//     try map1.put("class", "container");
-//     try map1.put("style", "margin-top: 10px;");
-//     map1.keys();
-//     const actual1 = try initFromMap(testing.allocator, map1);
-//     defer deinitAll(testing.allocator, actual1);
-//     var result = std.ArrayList(u8).init(testing.allocator);
-//     defer result.deinit();
-//     try Attribute.renderAll(actual1, &result);
-//     std.debug.print("output: {s}\n", .{result.items});
-// }
+test render {
+    const alloc = testing.allocator;
+    var result = ArrayList(u8).init(alloc);
+    defer result.deinit();
+
+    // Render a text attribute
+    const attr1 = Attribute{ .name = "class", .value = .{ .text = "container" } };
+    try attr1.render(&result);
+    try expectEqualStrings("class=\"container\"", result.items);
+    result.clearRetainingCapacity();
+
+    // Render a present boolean attribute
+    const attr2 = Attribute{ .name = "disabled", .value = .{ .present = true } };
+    try attr2.render(&result);
+    try expectEqualStrings("disabled", result.items);
+    result.clearRetainingCapacity();
+
+    // Render an absent boolean attribute
+    const attr3 = Attribute{ .name = "checked", .value = .{ .present = false } };
+    try attr3.render(&result);
+    try expectEqualStrings("", result.items);
+    result.clearRetainingCapacity();
+
+    // Render a text attribute with special characters
+    const attr4 = Attribute{ .name = "data", .value = .{ .text = "a < b & c > d \"quote\" 'apostrophe'" } };
+    try attr4.render(&result);
+    try expectEqualStrings("data=\"a &lt; b &amp; c &gt; d &quot;quote&quot; &#39;apostrophe&#39;\"", result.items);
+    result.clearRetainingCapacity();
+}
+
+test renderAll {
+    const alloc = testing.allocator;
+    var result = ArrayList(u8).init(alloc);
+    defer result.deinit();
+
+    // Render an empty struct
+    const empty_attrs = try initAll(alloc, .{});
+    defer deinitAll(alloc, empty_attrs);
+    try renderAll(empty_attrs, &result);
+    try expectEqualStrings("", result.items);
+    result.clearRetainingCapacity();
+
+    // Render a single text attribute
+    const single_attr = try initAll(alloc, .{ .class = "container" });
+    defer deinitAll(alloc, single_attr);
+    try renderAll(single_attr, &result);
+    try expectEqualStrings(" class=\"container\"", result.items);
+    result.clearRetainingCapacity();
+
+    // Test with multiple attributes of different types
+    const multi_attrs = try initAll(alloc, .{
+        .id = "main",
+        .disabled = true,
+        .checked = false,
+        .@"data-value" = "10 < 20 & \"quote\"",
+    });
+    defer deinitAll(alloc, multi_attrs);
+    try renderAll(multi_attrs, &result);
+    try expectEqualStrings(" id=\"main\" disabled data-value=\"10 &lt; 20 &amp; &quot;quote&quot;\"", result.items);
+    result.clearRetainingCapacity();
+
+    // Test with attributes containing special characters in names
+    const special_attrs = try initAll(alloc, .{
+        .@"data:custom" = "value",
+        .@"aria-label" = "Description",
+    });
+    defer deinitAll(alloc, special_attrs);
+    try renderAll(special_attrs, &result);
+    try expectEqualStrings(" data:custom=\"value\" aria-label=\"Description\"", result.items);
+    result.clearRetainingCapacity();
+
+}
