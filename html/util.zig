@@ -107,3 +107,15 @@ pub fn isSliceOf(comptime T: type, comptime Child: type) bool {
     
 }
 
+pub fn hasFunction(comptime T: type, comptime func_name: []const u8, comptime F: type) bool {
+    const info = @typeInfo(T);
+    if (info != .Struct) return false;
+
+    inline for (info.Struct.decls) |decl| {
+        if (std.mem.eql(u8, decl.name, func_name)) {
+            const field = @field(T, decl.name);
+            if (@TypeOf(field) == F) return true else break;
+        }
+    }
+    return false;
+}

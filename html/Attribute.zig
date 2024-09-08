@@ -1,4 +1,5 @@
 const std = @import("std");
+const util = @import("./util.zig");
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const ArrayList = std.ArrayList;
@@ -13,14 +14,11 @@ const Value = union(enum) {
 name: []const u8,
 value: Value,
 
-// TODO: Add support for string hash maps
-// TODO: Should this be replaced with a hashmap instead (?)
-
-pub fn initAll(allocator: Allocator, attr_struct: anytype) ![]const Attribute {
-    const input_type: type = @TypeOf(attr_struct);
+pub fn initAll(allocator: Allocator, raw_attrs: anytype) ![]const Attribute {
+    const input_type: type = @TypeOf(raw_attrs);
     const info = @typeInfo(input_type);
+    
     if (info != .Struct) @compileError("Expected non-tuple struct. Received: " ++ @typeName(input_type));
-
     const fields = info.Struct.fields;
     if (fields.len == 0) return &.{};
     if (info.Struct.is_tuple) @compileError("Expected non-tuple struct. Received: " ++ @typeName(input_type));
@@ -30,10 +28,23 @@ pub fn initAll(allocator: Allocator, attr_struct: anytype) ![]const Attribute {
     inline for (fields, 0..) |field, i| {
         const name = field.name;
         if (!isValidName(name)) return error.HtmlParseError;
-        const value = @field(attr_struct, name);
+        const value = @field(raw_attrs, name);
         attributes[i] = Attribute{
             .name = name,
             .value = if (@TypeOf(value) == bool) .{ .present = value } else .{ .text = value },
+        };
+    }
+    return attributes;
+}
+
+pub fn initMap(allocator: Allocator, attr_map: anytype) ![]const Attribute {
+    const keys = attr_map.keys();
+    var attributes = try allocator.alloc(Attribute, keys.len);
+    errdefer allocator.free(attributes);
+    for (keys, 0..) |key, i| {
+        attributes[i] = Attribute{
+            .name = key,
+            .value = .{ .text = attr_map.get(key).? }
         };
     }
     return attributes;
@@ -45,19 +56,22 @@ pub fn deinitAll(allocator: Allocator, attributes: []const Attribute) void {
 
 pub fn isValidName(name: []const u8) bool {
     if (name.len == 0) return false;
-    for (name, 0..) |char, i| {
-        if (i == 0) {
-            if (!std.ascii.isAlphabetic(char) and 
-                char != ':' and char != '_') return false;
-        } else {
-            if (!std.ascii.isAlphabetic(char) and 
-                !std.ascii.isDigit(char) and
-                char != ':' and char != '_' and 
-                char != '-' and char != '.') return false;
+    for (name) |char| {
+        switch (char) {
+            0x00...0x1F, // Control characters
+            0x20,        // Space
+            0x22,        // "
+            0x27,        // '
+            0x3E,        // >
+            0x2F,        // /
+            0x3D,        // =
+            => return false,
+            else => {},
         }
     }
     return true;
 }
+
 
 pub fn render(self: Attribute, result: *ArrayList(u8)) !void {
     switch (self.value) {
@@ -92,6 +106,7 @@ pub fn renderAll(attributes: []const Attribute, result: *ArrayList(u8)) !void {
 }
 
 const testing = std.testing;
+const expect = std.testing.expect;
 const expectEqualDeep = testing.expectEqualDeep;
 const expectError = testing.expectError;
 
@@ -173,35 +188,44 @@ test initAll {
 
     // Struct containing illegal attribute name leads to an error
     const err = error.HtmlParseError;
-    try expectError(err, initAll(alloc, .{ .@"illegal name" = "with space"}));
-    try expectError(err, initAll(alloc, .{ .@"1invalid" = "with number" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid@" = "at symbol" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid#" = "hash symbol" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid$" = "dollar sign" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid%" = "percent sign" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid^" = "caret" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid&" = "ampersand" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid*" = "asterisk" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid(" = "opening parenthesis" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid+" = "plus sign" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid=" = "equals sign" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid," = "comma" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid<" = "less than" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid>" = "greater than" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid/" = "forward slash" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid?" = "question mark" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid`" = "backtick" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid~" = "tilde" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid[" = "opening square bracket" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid{" = "opening curly brace" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid|" = "vertical bar" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid\\" = "backslash" }));
-    try expectError(err, initAll(alloc, .{ .@"invalid€" = "euro sign" }));
-    try expectError(err, initAll(alloc, .{ .@"almost:valid_but_invalid!" = "mixed" }));
+    try expectError(err, initAll(alloc, .{ .@"illegal name" = "hello"}));
+    try expectError(err, initAll(alloc, .{ .@"invalid\"name" = "hello" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid'name" = "at symbol" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid>name" = "hash symbol" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid/name" = "dollar sign" }));
+    try expectError(err, initAll(alloc, .{ .@"invalid=name" = "percent sign" }));
 
-    
     // Passing in a errresults in compilation error
     // Uncomment the following to fail compilation
     // try initAll(testing.allocator, .{ 1, 2, 3, 4 });
     // try initAll(testing.allocator, 34);
 }
+
+test isValidName {
+    try expect(isValidName("valid-name"));
+    try expect(isValidName("valid_name"));
+    try expect(isValidName("validName123"));
+    try expect(isValidName("!@#$%^&*()"));
+    try expect(!isValidName(""));
+    try expect(!isValidName(" invalid"));
+    try expect(!isValidName("invalid\"name"));
+    try expect(!isValidName("invalid'name"));
+    try expect(!isValidName("invalid>name"));
+    try expect(!isValidName("invalid/name"));
+    try expect(!isValidName("invalid=name"));
+}
+
+// test render {
+//     // const alloc = testing.allocator;
+//     var map1 = std.StringArrayHashMap([]const u8).init(testing.allocator);
+//     defer map1.deinit();
+//     try map1.put("class", "container");
+//     try map1.put("style", "margin-top: 10px;");
+//     map1.keys();
+//     const actual1 = try initFromMap(testing.allocator, map1);
+//     defer deinitAll(testing.allocator, actual1);
+//     var result = std.ArrayList(u8).init(testing.allocator);
+//     defer result.deinit();
+//     try Attribute.renderAll(actual1, &result);
+//     std.debug.print("output: {s}\n", .{result.items});
+// }
