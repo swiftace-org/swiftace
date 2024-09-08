@@ -1,3 +1,5 @@
+//! Utility functions related to HTML parsing and rendering
+
 const std = @import("std");
 const testing = std.testing;
 
@@ -118,4 +120,9 @@ pub fn hasFunction(comptime T: type, comptime func_name: []const u8, comptime F:
         }
     }
     return false;
+}
+
+pub fn isEmptyTuple(comptime T: type) bool {
+    const info = @typeInfo(T);
+    return info == .Struct and info.Struct.fields.len == 0;
 }

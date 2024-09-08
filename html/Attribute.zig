@@ -1,19 +1,34 @@
+//! Struct for representing HTML attributes
+
 const std = @import("std");
+const util = @import("./util.zig");
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const ArrayList = std.ArrayList;
 
 const Attribute = @This();
 
-const Value = union(enum) { text: []const u8, present: bool };
+const Value = union(enum) { 
+    text: []const u8, 
+    present: bool,
+};
+
+const Error = Allocator.Error || error{HtmlParseError};
 
 name: []const u8,
 value: Value,
 
-pub fn initAll(allocator: Allocator, raw_attrs: anytype) ![]const Attribute {
+/// Convert a raw struct of attributes (text or boolean) into a slice of `Attribute`s.
+/// If an existing slice of attributes is supplied as input, it creates a copy.
+pub fn initAll(allocator: Allocator, raw_attrs: anytype) Error![]const Attribute {
     const input_type: type = @TypeOf(raw_attrs);
-    const info = @typeInfo(input_type);
+    if (comptime util.isSliceOf(input_type, Attribute)) {
+        var attributes = try allocator.alloc(Attribute, raw_attrs.len);
+        for (raw_attrs,0..) |attr,i| attributes[i] = attr;
+        return attributes;
+    }
 
+    const info = @typeInfo(input_type);
     if (info != .Struct) @compileError("Expected non-tuple struct. Received: " ++ @typeName(input_type));
     const fields = info.Struct.fields;
     if (fields.len == 0) return &.{};
@@ -33,10 +48,22 @@ pub fn initAll(allocator: Allocator, raw_attrs: anytype) ![]const Attribute {
     return attributes;
 }
 
+/// Check if the argument can be passed as an input to `initAll`
+pub fn canInitAll(raw_attrs: anytype) bool {
+    const input_type: type = @TypeOf(raw_attrs);
+    if (comptime util.isSliceOf(input_type, Attribute)) return true;
+    const info = @typeInfo(input_type);
+    if (info != .Struct) return false;
+    if (info.Struct.fields.len > 0 and info.Struct.is_tuple) return false;
+    return true;
+}
+
+/// Free the memory allocated for a slice of `Attribute`s.
 pub fn deinitAll(allocator: Allocator, attributes: []const Attribute) void {
     return allocator.free(attributes);
 }
 
+/// Check if an attribute name is valid according to the HTML spec.
 pub fn isValidName(name: []const u8) bool {
     if (name.len == 0) return false;
     for (name) |char| {
@@ -55,7 +82,8 @@ pub fn isValidName(name: []const u8) bool {
     return true;
 }
 
-pub fn render(self: Attribute, result: *ArrayList(u8)) !void {
+/// Render a single `Attribute` into its HTML string representation.
+pub fn render(self: Attribute, result: *ArrayList(u8)) Allocator.Error!void {
     switch (self.value) {
         .text => |text| {
             try result.appendSlice(self.name);
@@ -79,7 +107,9 @@ pub fn render(self: Attribute, result: *ArrayList(u8)) !void {
     }
 }
 
-pub fn renderAll(attributes: []const Attribute, result: *ArrayList(u8)) !void {
+/// Render a slice of `Attribute`s into its HTML string representation.
+/// Escape special characters in values and include a space before each attribute name.
+pub fn renderAll(attributes: []const Attribute, result: *ArrayList(u8)) Allocator.Error!void {
     for (attributes) |attribute| {
         if (attribute.value == .present and !attribute.value.present) continue;
         try result.append(' ');
@@ -162,6 +192,12 @@ test initAll {
     const actual5 = try initAll(alloc, input5);
     defer deinitAll(alloc, actual5);
     try expectEqualDeep(expected5, actual5);
+
+    // Passing a slice of attributes returns a copy of the slice
+    const expected6 = expected5;
+    const actual6 = try initAll(alloc, expected6);
+    defer deinitAll(alloc, actual6);
+    try expectEqualDeep(expected6, actual6);
 
     // Struct containing illegal attribute name leads to an error
     const err = error.HtmlParseError;
@@ -262,5 +298,4 @@ test renderAll {
     try renderAll(special_attrs, &result);
     try expectEqualStrings(" data:custom=\"value\" aria-label=\"Description\"", result.items);
     result.clearRetainingCapacity();
-
 }
