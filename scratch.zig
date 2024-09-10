@@ -84,14 +84,9 @@ const root3 = Element.init(testing.allocator,
     }, "</html>" },
 );
 
-\\<html lang="en">
-\\  <head>
-\\      <title>My Application</title>
-\\  </head>
-\\  <body>
-\\      <div>Hello, world</div>
-\\      <RootLayout title="My Application">
-\\          <MainNav logo="/logo.png" />
-\\      </RootLayout>
-\\  </body>
-\\</html>
+test "sample" {
+    const x: []const u8 = &.{ 80, 97, 103, 101, 32, 84, 105, 116, 108, 101 };
+    std.debug.print("x: {s}\n", .{x});
+    const y: []const u8 = &.{ 72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100 };
+    std.debug.print("y: {s}\n", .{y});
+}

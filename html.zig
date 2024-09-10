@@ -25,8 +25,6 @@ pub const Element = union(enum) {
     tag: Tag,
     /// Non-HTML plain text (&,<,>,",' escaped for rendering)
     text: []const u8,
-    /// List (slice) of HTML elements
-    list: []const Element,
     /// Raw HTML rendered as-is without escaping (use with caution)
     raw: []const u8,
 
@@ -40,7 +38,6 @@ pub const Element = union(enum) {
         if (info == .Null) return .nil;
         
         if (input_type == Element) return input;
-        if (comptime util.isSliceOf(input_type, Element)) return .{ .list = input } ;
         if (input_type == Tag) return .{ .tag = input };
         if (comptime util.isZigString(input_type)) return .{ .text = input };
         
@@ -49,18 +46,33 @@ pub const Element = union(enum) {
             if (fields.len == 0) return .nil;
             const start_type = @TypeOf(input[0]);
             if (start_type == type) return buildComponent(allocator, input);
-            if (comptime util.isZigString(start_type)) return .{ .tag = try Tag.init(allocator, input) };
-            
-            const elements = try allocator.alloc(Element, fields.len);
-            inline for (0..fields.len) |i| elements[i] = try Element.init(allocator, input[i]);
-            return .{ .list = elements };
+            return .{ .tag = try Tag.init(allocator, input) };
         }
         @compileError("Invalid input received: " ++ @typeName(input_type));
     }
 
     pub fn deinit(self: Element) void {
         if (self == .tag) self.tag.deinit();
-        // if (self == .list) for (self.list) |element| element.deinit();
+    }
+
+    pub fn initAll(allocator: Allocator, input: anytype) ![]const Element {
+        const input_type = @TypeOf(input);
+        if (comptime util.isZigString(input_type)) {
+            const elements = try allocator.alloc(Element, 1);
+            elements[0] = try Element.init(allocator, input);
+            return elements;
+        }
+
+        const info = @typeInfo(input_type);
+        const fields = info.Struct.fields;
+        const elements = try allocator.alloc(Element, fields.len);
+        inline for (0..fields.len) |i| elements[i] = try Element.init(allocator, input[i]);
+        return elements;
+    }
+
+    pub fn deinitAll(allocator: Allocator, elements: []const Element) void {
+        for (elements) |element| element.deinit();
+        allocator.free(elements);
     }
 
     pub fn render(self: Element, result: *ArrayList(u8)) Allocator.Error!void {
@@ -98,19 +110,8 @@ test "Element.init returns an existing element as is" {
     const alloc = testing.allocator;
     const expected1 = Element{ .text = "Hello, world" };
     const actual1 = try Element.init(alloc, expected1);
+    defer actual1.deinit();
     try expectEqualDeep(expected1, actual1);
-}
-
-test "Element.init wraps a slice of elements into Element.list" {
-    const alloc = testing.allocator;
-    const input2: []const Element = &.{
-        .{ .text = "Hello, world" },
-        .nil,
-        .{ .tag = .{ .name = "br", .allocator = alloc }},
-    };
-    const expected2 = Element{ .list = input2 };
-    const actual2 = try Element.init(alloc, expected2);
-    try expectEqualDeep(expected2, actual2);
 }
 
 test "Element.init wraps a tag into Element.tag" {
@@ -118,6 +119,7 @@ test "Element.init wraps a tag into Element.tag" {
     const input3 = Tag{ .name = "br", .allocator = alloc };
     const expected3 = Element{ .tag = input3 };
     const actual3 = try Element.init(alloc, input3);
+    defer actual3.deinit();
     try expectEqualDeep(expected3, actual3);
 }
 
@@ -128,6 +130,7 @@ test "Element.init wraps a string into Element.text" {
     const input4 = "Hello, world";
     const expected4 = Element{ .text = input4 };
     const actual4 = try Element.init(alloc, input4);
+    defer actual4.deinit();
     try expectEqualDeep(expected4, actual4);    
 }
 
@@ -140,8 +143,9 @@ test "Element.init builds a component when a custom type is detected" {
     };
     const expected5 = try Element.init(alloc, .{"<b>", "Hello, world", "</b>"});
     const actual5 = try Element.init(alloc, .{ BoldText, "Hello, world"});
-    try expectEqualStrings(expected5.tag.name, actual5.tag.name);
-    // try expectEqualStrings(expected5.tag.contents[0].text, actual5.tag.contents[0].text);
+    defer actual5.deinit();
+    defer expected5.deinit();
+    try expectEqualDeep(expected5, actual5);
 }
 
 test "Element.init parses a tuple representing a tag (if first element is a string)" {
@@ -158,19 +162,20 @@ test "Element.init parses a tuple representing a tag (if first element is a stri
     defer actual6.deinit();
 }
 
-test "Element.init parses a list of elements" {
+test "Element.initAll parses a list of elements" {
     const alloc = testing.allocator;
-    const expected7: Element = .{ .list = &.{
+    const expected7: []const Element = &.{
         .{ .tag = .{ .name = "h1", .contents = &.{ .{ .text = "Page Title" } }, .allocator = alloc } },
         .{ .tag = .{ .name = "div", .contents = &.{ .{ .text = "Hello, world" } }, .allocator = alloc } },
-    } };
-    const actual7 = try Element.init(alloc, .{
+    };
+    const actual7 = try Element.initAll(alloc, .{
         .{ "<h1>", "Page Title", "</h1>" },
         .{ "<div>", "Hello, world", "</div>" },
     });
-    defer actual7.deinit();
+    defer Element.deinitAll(alloc, actual7);
     try expectEqualDeep(expected7, actual7);
 }
+
 
 // const testing = std.testing;
 // const expect = testing.expect;

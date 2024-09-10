@@ -52,15 +52,15 @@ pub fn init(allocator: Allocator, input: anytype) !Tag {
         }
 
         // Non-void tag with contents, but no attributes
-        const element = try Element.init(allocator, input[1]);
-        return .{ .name = name, .contents = &.{element}, .allocator = allocator };
+        const elements = try Element.initAll(allocator, input[1]);
+        return .{ .name = name, .contents = elements, .allocator = allocator };
     }
 
     // Non-void tag with attributes and contents
     if (!matchEndTag(name, input[3])) return error.HtmlParseError;
     const attributes = try Attribute.initAll(allocator, input[1]);
-    const element = try Element.init(allocator, input[2]);
-    return .{ .name = name, .attributes = attributes, .contents = &.{element}, .allocator = allocator };
+    const elements = try Element.initAll(allocator, input[2]);
+    return .{ .name = name, .attributes = attributes, .contents = elements, .allocator = allocator };
 }
 
 // pub fn canInit(input: anytype) bool {
@@ -74,9 +74,9 @@ pub fn init(allocator: Allocator, input: anytype) !Tag {
 // }
 
 pub fn deinit(self: Tag) void {
-    _ = &self;
     Attribute.deinitAll(self.allocator, self.attributes);
     for (self.contents) |element| element.deinit();
+    self.allocator.free(self.contents);
 }
 
 pub fn render(self: Tag, result: *ArrayList(u8)) !void {
