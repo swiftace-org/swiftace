@@ -49,8 +49,7 @@ pub fn initAll(allocator: Allocator, raw_attrs: anytype) Error![]const Attribute
 }
 
 /// Check if the argument can be passed as an input to `initAll`
-pub fn canInitAll(raw_attrs: anytype) bool {
-    const input_type: type = @TypeOf(raw_attrs);
+pub fn canInitAll(input_type: type) bool {
     if (comptime util.isSliceOf(input_type, Attribute)) return true;
     const info = @typeInfo(input_type);
     if (info != .Struct) return false;

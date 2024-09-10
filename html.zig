@@ -3,81 +3,174 @@ const util = @import("./html/util.zig");
 const Attribute = @import("./html/Attribute.zig");
 const Tag = @import("./html/Tag.zig");
 const mem = std.mem;
+const meta = std.meta;
 const Allocator = mem.Allocator;
 const ArrayList = std.ArrayList;
 
-comptime {
-    _ = @import("./html/Tag.zig");
-}
-
-// TODOS
-// - [ ] For self closing tag, check that opening tag ends with "/>"
+// TODO
+// - [no] For self closing tag, check that opening tag ends with "/>"
 // - [ ] Sanitize any text children (or should it be done while rendering?)
 // - [ ] Sanitize attribute values (or should it be done while rendering?)
 // - [ ] Create a separate function for string sanitization
-// - [ ] Add errdefer
+// - [ ] Add errdefer (?)
 // - [ ] Improve error message in the case of custom component
+// - [ ] Handle duplicate attribute names
+// - [ ] Add some recursiion safety (?)
+// - [ ] Solve the problem of deallocation in components
 
 pub const Element = union(enum) {
+    /// Nothing (does not render)
     nil: void,
-    raw: []const u8,
+    /// HTML tag with attributes and/or contents
     tag: Tag,
-    list: []Element,
+    /// Non-HTML plain text (&,<,>,",' escaped for rendering)
+    text: []const u8,
+    /// List (slice) of HTML elements
+    list: []const Element,
+    /// Raw HTML rendered as-is without escaping (use with caution)
+    raw: []const u8,
+
+    const nil: Element = .nil;
 
     pub fn init(allocator: Allocator, input: anytype) !Element {
         const input_type = @TypeOf(input);
         const info = @typeInfo(input_type);
-        if (input_type == Element) return input;
-        if (input_type == Tag) return .{ .tag = input };
+        
         if (input_type == void) return .nil;
-        if (comptime util.isZigString(input_type)) return .{ .raw = input };
         if (info == .Null) return .nil;
-        if (info == .Struct) {
+        
+        if (input_type == Element) return input;
+        if (comptime util.isSliceOf(input_type, Element)) return .{ .list = input } ;
+        if (input_type == Tag) return .{ .tag = input };
+        if (comptime util.isZigString(input_type)) return .{ .text = input };
+        
+        if (info == .Struct and info.Struct.is_tuple) {
             const fields = info.Struct.fields;
             if (fields.len == 0) return .nil;
-            if (!info.Struct.is_tuple) return input.build(allocator);
-            if (Tag.canInit(input)) return .{ .tag = try Tag.init(allocator, input) }; // tested
-
-            const elements = allocator.alloc(Element, fields.len);
+            const start_type = @TypeOf(input[0]);
+            if (start_type == type) return buildComponent(allocator, input);
+            if (comptime util.isZigString(start_type)) return .{ .tag = try Tag.init(allocator, input) };
+            
+            const elements = try allocator.alloc(Element, fields.len);
             inline for (0..fields.len) |i| elements[i] = try Element.init(allocator, input[i]);
-            return elements;
+            return .{ .list = elements };
         }
         @compileError("Invalid input received: " ++ @typeName(input_type));
     }
 
     pub fn deinit(self: Element) void {
         if (self == .tag) self.tag.deinit();
-        if (self == .list) for (self.list) |element| element.deinit();
+        // if (self == .list) for (self.list) |element| element.deinit();
     }
 
-    // pub fn initAll(allocator: Allocator, inputs: anytype) ![]const Element {
-    //     const input_type: type = @TypeOf(inputs);
-    //     const info = @typeInfo(input_type);
-
-    //     if (comptime util.isZigString(input_type)) {
-    //         const elements = try allocator.alloc(Element, 1);
-    //         elements[0] = Element.init(inputs);
-    //         return elements;
-    //     }
-
-    //     const elements = try allocator.alloc(Element, inputs.len);
-    //     if (info == .Struct and info.Struct.is_tuple) {
-    //         inline for (inputs, 0..) |input, i| elements[i] = try Element.init(allocator, input);
-    //     } else {
-    //         for (inputs, 0..) |input, i| elements[i] = try Element.init(allocator, input);
-    //     }
-    //     return elements;
-    // }
-
-    pub fn render(self: Element, result: *ArrayList(u8)) void {
+    pub fn render(self: Element, result: *ArrayList(u8)) Allocator.Error!void {
         switch (self) {
-            .raw => |raw| result.appendSlice(raw),
-            .tag => |tag| tag.render(result),
+            .text => |text| try result.appendSlice(text),
+            .raw => |raw| try result.appendSlice(raw),
+            .tag => |tag| try tag.render(result),
             .nil => {},
-            .list => |element| element.render(result),
+            .list => |elements| for (elements) |element| try element.render(result),
         }
     }
+
+    fn buildComponent(allocator: Allocator, input: anytype) !Element {
+        if (input.len == 1) return try input[0].build(allocator);
+        if (input.len == 2) return try input[0].build(allocator, input[1]);
+        if (input.len == 3) return try input[0].build(allocator, input[1], input[2]);
+        @compileError("Component type must have a valid build function. Received: " ++ @typeName(input[0]));
+    }
 };
+
+const testing = std.testing;
+const expect = testing.expect;
+const expectEqualStrings = testing.expectEqualStrings;
+const expectEqualDeep = testing.expectEqualDeep;
+
+test "Element.init returns .nil for empty inputs" {
+    const alloc = testing.allocator;
+    try expect(try Element.init(alloc, {}) == .nil);
+    try expect(try Element.init(alloc, null) == .nil);
+    try expect(try Element.init(alloc, Element.nil) == .nil);
+    try expect(try Element.init(alloc, .{}) == .nil);
+}
+
+test "Element.init returns an existing element as is" {
+    const alloc = testing.allocator;
+    const expected1 = Element{ .text = "Hello, world" };
+    const actual1 = try Element.init(alloc, expected1);
+    try expectEqualDeep(expected1, actual1);
+}
+
+test "Element.init wraps a slice of elements into Element.list" {
+    const alloc = testing.allocator;
+    const input2: []const Element = &.{
+        .{ .text = "Hello, world" },
+        .nil,
+        .{ .tag = .{ .name = "br", .allocator = alloc }},
+    };
+    const expected2 = Element{ .list = input2 };
+    const actual2 = try Element.init(alloc, expected2);
+    try expectEqualDeep(expected2, actual2);
+}
+
+test "Element.init wraps a tag into Element.tag" {
+    const alloc = testing.allocator;
+    const input3 = Tag{ .name = "br", .allocator = alloc };
+    const expected3 = Element{ .tag = input3 };
+    const actual3 = try Element.init(alloc, input3);
+    try expectEqualDeep(expected3, actual3);
+}
+
+test "Element.init wraps a string into Element.text" {
+    const alloc = testing.allocator; 
+
+    // Wraps a string into Element.text
+    const input4 = "Hello, world";
+    const expected4 = Element{ .text = input4 };
+    const actual4 = try Element.init(alloc, input4);
+    try expectEqualDeep(expected4, actual4);    
+}
+
+test "Element.init builds a component when a custom type is detected" {
+    const alloc = testing.allocator;
+    const BoldText = struct {
+        pub fn build(allocator: Allocator, contents: anytype) !Element {
+            return try Element.init(allocator, .{"<b>", contents, "</b>"});
+        }
+    };
+    const expected5 = try Element.init(alloc, .{"<b>", "Hello, world", "</b>"});
+    const actual5 = try Element.init(alloc, .{ BoldText, "Hello, world"});
+    try expectEqualStrings(expected5.tag.name, actual5.tag.name);
+    // try expectEqualStrings(expected5.tag.contents[0].text, actual5.tag.contents[0].text);
+}
+
+test "Element.init parses a tuple representing a tag (if first element is a string)" {
+    const alloc = testing.allocator;
+    const input6 = .{ "<div>", .{ .class = "container" }, "Hello, world", "</div>"};
+    const expected6: Element = .{ .tag = .{
+        .name = "div",
+        .attributes = &.{ .{ .name = "class", .value = .{ .text = "container"}}},
+        .contents = &.{.{ .text = "Hello, world" }},
+        .allocator = alloc,
+    } };
+    const actual6 = try Element.init(alloc, input6);
+    try expectEqualDeep(expected6, actual6);
+    defer actual6.deinit();
+}
+
+test "Element.init parses a list of elements" {
+    const alloc = testing.allocator;
+    const expected7: Element = .{ .list = &.{
+        .{ .tag = .{ .name = "h1", .contents = &.{ .{ .text = "Page Title" } }, .allocator = alloc } },
+        .{ .tag = .{ .name = "div", .contents = &.{ .{ .text = "Hello, world" } }, .allocator = alloc } },
+    } };
+    const actual7 = try Element.init(alloc, .{
+        .{ "<h1>", "Page Title", "</h1>" },
+        .{ "<div>", "Hello, world", "</div>" },
+    });
+    defer actual7.deinit();
+    try expectEqualDeep(expected7, actual7);
+}
 
 // const testing = std.testing;
 // const expect = testing.expect;

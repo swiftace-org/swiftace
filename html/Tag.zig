@@ -6,7 +6,7 @@
 const std = @import("std");
 const util = @import("./util.zig");
 const Attribute = @import("./Attribute.zig");
-const Element = @import("../html.zig").Element;
+const Element = @import("../html.zig").Element; 
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const ArrayList = std.ArrayList;
@@ -16,7 +16,7 @@ const Tag = @This();
 name: []const u8,
 is_void: bool = false,
 attributes: []const Attribute = &.{},
-contents: []const Element = &.{},
+contents: []const Element = &.{}, // could be *const Element, but there's a bug
 allocator: mem.Allocator,
 
 pub fn init(allocator: Allocator, input: anytype) !Tag {
@@ -46,8 +46,7 @@ pub fn init(allocator: Allocator, input: anytype) !Tag {
         if (!matchEndTag(name, input[2])) return error.HtmlParseError;
 
         // Non-void tag with attributes, but no contents
-
-        if (comptime Attribute.canInitAll(input[1])) {
+        if (comptime Attribute.canInitAll(@TypeOf(input[1]))) {
             const attributes = try Attribute.initAll(allocator, input[1]);
             return .{ .name = name, .attributes = attributes, .allocator = allocator };
         }
@@ -64,17 +63,18 @@ pub fn init(allocator: Allocator, input: anytype) !Tag {
     return .{ .name = name, .attributes = attributes, .contents = &.{element}, .allocator = allocator };
 }
 
-pub fn canInit(input: anytype) bool {
-    const input_type: type = @TypeOf(input);
-    const info = @typeInfo(input_type);
-    if (info != .Struct or !info.Struct.is_tuple) return false;
-    if (input.len == 0 or input.len > 4) return false;
-    if (comptime !util.isZigString(@TypeOf(input[0]))) return false;
-    _ = try extractName(input[0]) catch return false;
-    return true;
-}
+// pub fn canInit(input: anytype) bool {
+//     const input_type: type = @TypeOf(input);
+//     const info = @typeInfo(input_type);
+//     if (info != .Struct or !info.Struct.is_tuple) return false;
+//     if (input.len == 0 or input.len > 4) return false;
+//     if (comptime !util.isZigString(@TypeOf(input[0]))) return false;
+//     _ = extractName(input[0]) catch return false;
+//     return true;
+// }
 
 pub fn deinit(self: Tag) void {
+    _ = &self;
     Attribute.deinitAll(self.allocator, self.attributes);
     for (self.contents) |element| element.deinit();
 }
@@ -88,7 +88,7 @@ pub fn render(self: Tag, result: *ArrayList(u8)) !void {
     for (self.contents) |element| try element.render(result);
     try result.appendSlice("</");
     try result.appendSlice(self.name);
-    try result.append(">");
+    try result.append('>');
 }
 
 pub fn extractName(start_tag: []const u8) ![]const u8 {
@@ -134,9 +134,6 @@ const expectError = testing.expectError;
 
 test init {
     const alloc = testing.allocator;
-    const raw_attrs = .{ .class = "container", .style = "margin-top:10px;" };
-    const attributes = try Attribute.initAll(alloc, raw_attrs);
-    defer Attribute.deinitAll(alloc, attributes);
 
     // Void tag with no attributes = 1 element
     const tag1 = try init(alloc, .{"<br>"});
@@ -157,44 +154,55 @@ test init {
     try expectEqualDeep(expected3, tag3);
 
     // Void tag with attributes - 2 elements
-    const tag4 = try init(alloc, .{ "<br>", raw_attrs });
+    const raw_attrs4 = .{ .class = "container", .style = "margin-top:10px;" };
+    const attributes4 = try Attribute.initAll(alloc, raw_attrs4);
+    defer Attribute.deinitAll(alloc, attributes4);
+    const tag4 = try init(alloc, .{ "<br>", raw_attrs4 });
     defer tag4.deinit();
     const expected4 = Tag{
         .name = "br",
         .is_void = true,
-        .attributes = attributes,
+        .attributes = attributes4,
         .allocator = alloc,
     };
     try expectEqualDeep(expected4, tag4);
 
     // Non-void tag with attributes - 3 elements
-
-    const tag5 = try init(alloc, .{ "<div>", raw_attrs, "</div>" });
+    const raw_attrs5 = .{ .class = "container", .style = "margin-top:10px;" };
+    const attributes5 = try Attribute.initAll(alloc, raw_attrs5);
+    defer Attribute.deinitAll(alloc, attributes5);
+    const tag5 = try init(alloc, .{ "<div>", raw_attrs5, "</div>" });
     defer tag5.deinit();
     const expected5 = Tag{
         .name = "div",
-        .attributes = attributes,
+        .attributes = attributes5,
         .allocator = alloc,
     };
     try expectEqualDeep(expected5, tag5);
 
     // Non-void tag with contents - 3 elements
+    const raw_attrs6 = .{ .class = "container", .style = "margin-top:10px;" };
+    const attributes6 = try Attribute.initAll(alloc, raw_attrs6);
+    defer Attribute.deinitAll(alloc, attributes6);
     const tag6 = try init(alloc, .{ "<div>", "Hello, world", "</div>" });
     defer tag6.deinit();
     const expected6 = Tag{
         .name = "div",
-        .contents = &.{Element{ .raw = "Hello, world" }},
+        .contents = &.{Element{ .text = "Hello, world" }},
         .allocator = alloc,
     };
     try expectEqualDeep(expected6, tag6);
 
     // Non-void tag with attribute and contents - 4 elements
-    const tag7 = try init(alloc, .{ "<div>", raw_attrs, "Hello, world", "</div>" });
+    const raw_attrs7 = .{ .class = "container", .style = "margin-top:10px;" };
+    const attributes7 = try Attribute.initAll(alloc, raw_attrs7);
+    defer Attribute.deinitAll(alloc, attributes7);
+    const tag7 = try init(alloc, .{ "<div>", raw_attrs7, "Hello, world", "</div>" });
     defer tag7.deinit();
     const expected7 = Tag{
         .name = "div",
-        .attributes = attributes,
-        .contents = &.{ Element{ .raw = "Hello, world" } },
+        .attributes = attributes7,
+        .contents = &.{Element{ .text = "Hello, world" }},
         .allocator = alloc,
     };
     try expectEqualDeep(expected7, tag7);
@@ -206,9 +214,12 @@ test init {
     try expectError(err, init(alloc, .{"br>"}));
 
     // Error for non-matching end tag
+    const raw_attrs8 = .{ .class = "container", .style = "margin-top:10px;" };
+    const attributes8 = try Attribute.initAll(alloc, raw_attrs8);
+    defer Attribute.deinitAll(alloc, attributes8);
     try expectError(err, init(alloc,.{"<div>", "</span>"}));
-    try expectError(err, init(alloc,.{"<div>", raw_attrs, "</span>"}));
-    try expectError(err, init(alloc,.{"<div>", raw_attrs, "Hello, wold", "</span>"}));
+    try expectError(err, init(alloc,.{"<div>", raw_attrs8, "</span>"}));
+    try expectError(err, init(alloc,.{"<div>", raw_attrs8, "Hello, wold", "</span>"}));
 
     // Error for invalid tag name
     try expectError(err, init(alloc, .{"< br>"}));
