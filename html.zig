@@ -77,11 +77,10 @@ pub const Element = union(enum) {
 
     pub fn render(self: Element, result: *ArrayList(u8)) Allocator.Error!void {
         switch (self) {
-            .text => |text| try result.appendSlice(text),
+            .text => |text| try result.appendSlice(text), // TODO - add escaping
             .raw => |raw| try result.appendSlice(raw),
             .tag => |tag| try tag.render(result),
             .nil => {},
-            .list => |elements| for (elements) |element| try element.render(result),
         }
     }
 
@@ -126,7 +125,6 @@ test "Element.init wraps a tag into Element.tag" {
 test "Element.init wraps a string into Element.text" {
     const alloc = testing.allocator; 
 
-    // Wraps a string into Element.text
     const input4 = "Hello, world";
     const expected4 = Element{ .text = input4 };
     const actual4 = try Element.init(alloc, input4);
