@@ -44,9 +44,10 @@ pub const Element = union(enum) {
         if (info == .Struct and info.Struct.is_tuple) {
             const fields = info.Struct.fields;
             if (fields.len == 0) return .nil;
+            const start_type = @TypeOf(input[0]);
+            if (@typeInfo(start_type) == .Struct) return try buildComponent(allocator, input);
             return .{ .tag = try Tag.init(allocator, input) };
         }
-        if (info == .Struct ) return try input.build(allocator);
         @compileError("Invalid input received: " ++ @typeName(input_type));
     }
 
@@ -77,8 +78,8 @@ pub const Element = union(enum) {
 
     fn buildComponent(allocator: Allocator, input: anytype) !Element {
         if (input.len == 1) return try input[0].build(allocator);
-        if (input.len == 2) return try input[0].build(allocator, input[1]);
-        if (input.len == 3) return try input[0].build(allocator, input[1], input[2]);
+        const contents = Element.init(allocator, input[1]);
+        if (input.len == 2) return try input[0].build(allocator, contents);
         @compileError("Component type must have a valid build function. Received: " ++ @typeName(input[0]));
     }
 };
@@ -152,6 +153,9 @@ test "Element.init parses a non-tuple struct as a component" {
         }
     };
 
+    // const RootLayout = struct {};
+    // const MainNav = struct {};
+
     const el1 = try Element.init(testing.allocator,
         .{"<html>", .{
             .{"<head>", .{
@@ -159,7 +163,10 @@ test "Element.init parses a non-tuple struct as a component" {
             }, "</head>"},
             .{"<body>", .{
                 .{ "<h1>", "Page Heading", "</h1>" },
-                MyList{ .items = &.{"Hello, world", "Hello, aliens"} }
+                .{ MyList{ .items = &.{"Hello, world", "Hello, aliens"} } },
+                // .{ "<", RootLayout{ .title = "Jovian " }, .{
+                //     .{"<", MainNav{ .favicon = "/favicon.png" }, "/>" },
+                // }, "/>" }
             }, "</body>"},
         }, "</html>"}
     );
@@ -172,7 +179,7 @@ test "Element.init parses a non-tuple struct as a component" {
                 .{ "<h1>", "Page Heading", "</h1>" },
                 .{ "<ul>", .{
                     .{ "<li>", "Hello, world", "</li>" },
-                    .{ "<li>", "Hello, aliens", "</li>" }
+                    .{ "<li>", "Hello, aliens", "</li>" },
                 }, "</ul>"},
             }, "</body>"},
         }, "</html>"}
@@ -246,7 +253,7 @@ test "Element.render" {
         }, "</head>"},
         .{"<body>", .{
             .{ "<h1>", "Page Heading", "</h1>" },
-            MyList{ .items = &.{"Hello, world", "Hello, aliens"} }
+            .{ MyList{ .items = &.{"Hello, world", "Hello, aliens"} } },
         }, "</body>"},
     }, "</html>" };
     const expected6 = "<html><head><title>Page Title</title></head>" ++ 
