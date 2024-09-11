@@ -89,6 +89,9 @@ pub fn initContents(allocator: Allocator, input: anytype) ![]const Element {
         elements[0] = input;
         return elements;
     }
+    if (input_type == []Element) {
+        return input;
+    }
 
     if (comptime util.isZigString(input_type)) {
         const elements = try allocator.alloc(Element, 1);
@@ -97,9 +100,16 @@ pub fn initContents(allocator: Allocator, input: anytype) ![]const Element {
     }
 
     if (input.len > 0 and input.len < 5 and comptime util.isZigString(@TypeOf(input[0]))) {
-        const elements = try allocator.alloc(Element, 1);
-        elements[0] = try Element.init(allocator, input);
-        return elements;
+        const is_tag: bool = blk: {
+            _ = extractName(input[0]) catch break :blk false;
+            break :blk true;
+        };
+        if (is_tag) {
+            const elements = try allocator.alloc(Element, 1);
+            elements[0] = try Element.init(allocator, input);
+            return elements;
+        }
+        
     }
     
     const info = @typeInfo(input_type);

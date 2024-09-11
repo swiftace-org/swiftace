@@ -44,10 +44,9 @@ pub const Element = union(enum) {
         if (info == .Struct and info.Struct.is_tuple) {
             const fields = info.Struct.fields;
             if (fields.len == 0) return .nil;
-            const start_type = @TypeOf(input[0]);
-            if (start_type == type) return buildComponent(allocator, input);
             return .{ .tag = try Tag.init(allocator, input) };
         }
+        if (info == .Struct ) return try input.build(allocator);
         @compileError("Invalid input received: " ++ @typeName(input_type));
     }
 
@@ -124,20 +123,6 @@ test "Element.init wraps a string into Element.text" {
     try expectEqualDeep(expected4, actual4);    
 }
 
-test "Element.init builds a component when a custom type is detected" {
-    const alloc = testing.allocator;
-    const BoldText = struct {
-        pub fn build(allocator: Allocator, contents: anytype) !Element {
-            return try Element.init(allocator, .{"<b>", contents, "</b>"});
-        }
-    };
-    const expected5 = try Element.init(alloc, .{"<b>", "Hello, world", "</b>"});
-    const actual5 = try Element.init(alloc, .{ BoldText, "Hello, world"});
-    defer actual5.deinit();
-    defer expected5.deinit();
-    try expectEqualDeep(expected5, actual5);
-}
-
 test "Element.init parses a tuple representing a tag (if first element is a string)" {
     const alloc = testing.allocator;
     const input6 = .{ "<div>", .{ .class = "container" }, "Hello, world", "</div>"};
@@ -150,6 +135,51 @@ test "Element.init parses a tuple representing a tag (if first element is a stri
     const actual6 = try Element.init(alloc, input6);
     try expectEqualDeep(expected6, actual6);
     defer actual6.deinit();
+}
+
+test "Element.init parses a non-tuple struct as a component" {
+    const MyList = struct {
+        items: []const []const u8,
+
+        pub fn build(self: @This(), allocator: Allocator) !Element {
+            const list_items = try allocator.alloc(Element, self.items.len);
+            for (self.items, 0..) |item, i| {
+                list_items[i] = try Element.init(allocator, 
+                    .{ "<li>", .{item}, "</li>" }
+                );
+            }
+            return try Element.init(allocator, .{ "<ul>", list_items, "</ul>" });
+        }
+    };
+
+    const el1 = try Element.init(testing.allocator,
+        .{"<html>", .{
+            .{"<head>", .{
+                .{ "<title>", "Page Title", "</title>" },
+            }, "</head>"},
+            .{"<body>", .{
+                .{ "<h1>", "Page Heading", "</h1>" },
+                MyList{ .items = &.{"Hello, world", "Hello, aliens"} }
+            }, "</body>"},
+        }, "</html>"}
+    );
+    const expected = try Element.init(testing.allocator, 
+        .{"<html>", .{
+            .{"<head>", .{
+                .{ "<title>", "Page Title", "</title>" },
+            }, "</head>"},
+            .{"<body>", .{
+                .{ "<h1>", "Page Heading", "</h1>" },
+                .{ "<ul>", .{
+                    .{ "<li>", "Hello, world", "</li>" },
+                    .{ "<li>", "Hello, aliens", "</li>" }
+                }, "</ul>"},
+            }, "</body>"},
+        }, "</html>"}
+    );
+    defer el1.deinit();
+    defer expected.deinit();
+    try testing.expectEqualDeep(expected, el1);
 }
 
 
@@ -193,114 +223,41 @@ test "Element.render" {
     const expected5 = "<div class=\"container\" style=\"margin-top:10px;\">" ++ 
         "<span class=\"text\">Hello, world</span></div>";
     try expectElementRender(alloc, expected5, input5);
+
+    
+    const MyList = struct {
+        items: []const []const u8,
+
+        pub fn build(self: @This(), allocator: Allocator) !Element {
+            const list_items = try allocator.alloc(Element, self.items.len);
+            for (self.items, 0..) |item, i| {
+                list_items[i] = try Element.init(allocator, 
+                    .{ "<li>", .{item}, "</li>" }
+                );
+            }
+            return try Element.init(allocator, .{ "<ul>", list_items, "</ul>" });
+        }
+    };
+
+    // Deeply nested element with custom component
+    const input6 = .{"<html>", .{
+        .{"<head>", .{
+            .{ "<title>", "Page Title", "</title>" },
+        }, "</head>"},
+        .{"<body>", .{
+            .{ "<h1>", "Page Heading", "</h1>" },
+            MyList{ .items = &.{"Hello, world", "Hello, aliens"} }
+        }, "</body>"},
+    }, "</html>" };
+    const expected6 = "<html><head><title>Page Title</title></head>" ++ 
+        "<body><h1>Page Heading</h1><ul><li>Hello, world</li>" ++ 
+        "<li>Hello, aliens</li></ul></body></html>";
+    try expectElementRender(alloc, expected6, input6);
+
 }
 
 
-// const testing = std.testing;
-// const expect = testing.expect;
-// const expectEqualStrings = testing.expectEqualStrings;
-// const expectEqualDeep = testing.expectEqualDeep;
-
-// test "Element.init creates a nil element for void{}" {
-//     const el1 = try Element.init(testing.allocator, {});
-//     try expect(el1 == .nil);
-// }
-
-// test "Element.init create a nil element for null" {
-//     const el2 = try Element.init(testing.allocator, null);
-//     try expect(el2 == .nil);
-// }
-
-// test "Element.init creates a nil element for an empty tuple/struct" {
-//     const el3 = try Element.init(testing.allocator, .{});
-//     try testing.expect(el3 == .nil);
-// }
-
-// test "Element.init creates a raw element with strings" {
-//     const el1 = try Element.init(testing.allocator, "");
-//     try expect(el1 == .raw);
-//     try expectEqualStrings(el1.raw, "");
-
-//     const el2: Element = try Element.init(testing.allocator, "Hello, world");
-//     try expect(el2 == .raw);
-//     try expectEqualStrings(el2.raw, "Hello, world");
-
-//     const raw_html =
-//         \\<html lang="en">
-//         \\<head>
-//         \\    <meta charset="UTF-8">
-//         \\    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//         \\    <title>Hello, World!</title>
-//         \\</head>
-//         \\<body>
-//         \\    <h1>Hello, World!</h1>
-//         \\</body>
-//         \\</html>
-//     ;
-//     const el3 = try Element.init(testing.allocator, raw_html);
-//     try expect(el3 == .raw);
-//     try expectEqualStrings(el3.raw, raw_html);
-// }
-
-// test "Element.init returns back an existing element passed as input" {
-//     const input = Element{ .raw = "Hello, world" };
-//     const el1 = try Element.init(testing.allocator, input);
-//     try expectEqualDeep(input, el1);
-// }
-
-// test "Element.init wraps an existing tag in an element" {
-//     const tag1 = Tag{
-//         .name = "span",
-//         .attributes = &.{
-//             Attribute{ .name = "class", .value = "normal-text" }
-//         },
-//         .contents = &.{
-//             Element{ .raw = "Hello, world" }
-//         }
-//     };
-
-//     const el1 = Element.init(testing.allocator, tag1);
-//     try expectEqualDeep(Element{ .tag = tag1 }, el1);
-// }
-
-// test "Element.init parses a tuple as a tag" {
-//     const el1 = try Element.init(
-//         testing.allocator,
-//         .{ "<div>", .{"Hello, world"}, "</div>" }
-//     );
-//     defer el1.deinit(testing.allocator);
-//     try testing.expect(el1 == .tag);
-// }
-
-// const MyList = struct {
-//     item: []const u8,
-
-//     pub fn build(self: @This(), allocator: Allocator) !Element {
-//         return Element.init(allocator, .{ "<ul>", .{
-//             .{ "<li>", .{self.item}, "</li>" },
-//         }, "</ul>" });
-//     }
-// };
-
-// test "Element.init parses a non-tuple struct as a component" {
-//     const el1 = try Element.init(testing.allocator, MyList{ .item = "Hello, world" });
-//     const expected = try Element.init(testing.allocator, .{ "<ul>", .{}, .{
-//         .{ "<li>", .{"Hello, world"}, "</li>" },
-//     }, "</ul>" });
-//     defer el1.deinit(testing.allocator);
-//     defer expected.deinit(testing.allocator);
-//     try testing.expectEqualDeep(expected, el1);
-// }
 
 
 
-// test "Tag.init returns an error if start tag doesn't have a valid name" {
-//     const alloc = testing.allocator;
-//     const expectError = testing.expectError;
-//     const err = error.HtmlParseError;
-//     try expectError(err, Tag.init(alloc, .{"< br >"}));
-//     try expectError(err, Tag.init(alloc, .{"<br >"}));
-//     try expectError(err, Tag.init(alloc, .{"< br>"}));
-//     try expectError(err, Tag.init(alloc, .{"<1>"}));
-//     try expectError(err, Tag.init(alloc, .{"<2$>"}));
-// }
+
