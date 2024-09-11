@@ -55,32 +55,24 @@ pub const Element = union(enum) {
         if (self == .tag) self.tag.deinit();
     }
 
-    pub fn initAll(allocator: Allocator, input: anytype) ![]const Element {
-        const input_type = @TypeOf(input);
-        if (comptime util.isZigString(input_type)) {
-            const elements = try allocator.alloc(Element, 1);
-            elements[0] = try Element.init(allocator, input);
-            return elements;
-        }
-
-        const info = @typeInfo(input_type);
-        const fields = info.Struct.fields;
-        const elements = try allocator.alloc(Element, fields.len);
-        inline for (0..fields.len) |i| elements[i] = try Element.init(allocator, input[i]);
-        return elements;
-    }
-
-    pub fn deinitAll(allocator: Allocator, elements: []const Element) void {
-        for (elements) |element| element.deinit();
-        allocator.free(elements);
-    }
 
     pub fn render(self: Element, result: *ArrayList(u8)) Allocator.Error!void {
         switch (self) {
-            .text => |text| try result.appendSlice(text), // TODO - add escaping
+            .nil => {},
+            .text => |text| {
+                for (text) |char| {
+                    switch (char) {
+                        '&' => try result.appendSlice("&amp;"),
+                        '<' => try result.appendSlice("&lt;"),
+                        '>' => try result.appendSlice("&gt;"),
+                        '"' => try result.appendSlice("&quot;"),
+                        '\'' => try result.appendSlice("&#39;"),
+                        else => try result.append(char),
+                    }
+                }
+            },
             .raw => |raw| try result.appendSlice(raw),
             .tag => |tag| try tag.render(result),
-            .nil => {},
         }
     }
 
@@ -160,18 +152,47 @@ test "Element.init parses a tuple representing a tag (if first element is a stri
     defer actual6.deinit();
 }
 
-test "Element.initAll parses a list of elements" {
+
+fn expectElementRender(alloc: Allocator, expected: []const u8, input: anytype) !void {
+    const element = try Element.init(alloc, input);
+    defer element.deinit();
+    var actual = ArrayList(u8).init(alloc);
+    defer actual.deinit();
+    try element.render(&actual);
+    try expectEqualStrings(expected, actual.items);
+}
+
+test "Element.render" {
     const alloc = testing.allocator;
-    const expected7: []const Element = &.{
-        .{ .tag = .{ .name = "h1", .contents = &.{ .{ .text = "Page Title" } }, .allocator = alloc } },
-        .{ .tag = .{ .name = "div", .contents = &.{ .{ .text = "Hello, world" } }, .allocator = alloc } },
+
+    // Nil
+    try expectElementRender(alloc, "", {});
+    
+    // Text without special characters
+    const input2 = "Hello, world";
+    const expected2 = "Hello, world";
+    try expectElementRender(alloc, expected2, input2);
+
+    // Text with special characters
+    const input3 = "a < b & c > d \"quote\" 'apostrophe'";
+    const expected3 = "a &lt; b &amp; c &gt; d &quot;quote&quot; &#39;apostrophe&#39;";
+    try expectElementRender(alloc, expected3, input3);
+
+    // Raw with special characters
+    const input4: Element = .{ .raw = "a < b & c > d \"quote\" 'apostrophe'" };
+    const expected4 = "a < b & c > d \"quote\" 'apostrophe'";
+    try expectElementRender(alloc, expected4, input4);
+
+    // Tag with attributes and contents
+    const input5 = .{ 
+        "<div>", .{ .class = "container", .style = "margin-top:10px;" }, .{
+            .{"<span>", .{ .class = "text" }, "Hello, world", "</span>"}
+        }, 
+        "</div>" 
     };
-    const actual7 = try Element.initAll(alloc, .{
-        .{ "<h1>", "Page Title", "</h1>" },
-        .{ "<div>", "Hello, world", "</div>" },
-    });
-    defer Element.deinitAll(alloc, actual7);
-    try expectEqualDeep(expected7, actual7);
+    const expected5 = "<div class=\"container\" style=\"margin-top:10px;\">" ++ 
+        "<span class=\"text\">Hello, world</span></div>";
+    try expectElementRender(alloc, expected5, input5);
 }
 
 

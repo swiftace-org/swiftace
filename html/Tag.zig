@@ -2,6 +2,7 @@
 
 // TODO
 // [ ] Figure out logging for invalid input (log.warn ?)
+// [ ] Go back to using kind instead of 
 
 const std = @import("std");
 const util = @import("./util.zig");
@@ -16,7 +17,7 @@ const Tag = @This();
 name: []const u8,
 is_void: bool = false,
 attributes: []const Attribute = &.{},
-contents: []const Element = &.{}, // could be *const Element, but there's a bug
+contents: []const Element = &.{},
 allocator: mem.Allocator,
 
 pub fn init(allocator: Allocator, input: anytype) !Tag {
@@ -52,14 +53,14 @@ pub fn init(allocator: Allocator, input: anytype) !Tag {
         }
 
         // Non-void tag with contents, but no attributes
-        const elements = try Element.initAll(allocator, input[1]);
+        const elements = try initContents(allocator, input[1]);
         return .{ .name = name, .contents = elements, .allocator = allocator };
     }
 
     // Non-void tag with attributes and contents
     if (!matchEndTag(name, input[3])) return error.HtmlParseError;
     const attributes = try Attribute.initAll(allocator, input[1]);
-    const elements = try Element.initAll(allocator, input[2]);
+    const elements = try initContents(allocator, input[2]);
     return .{ .name = name, .attributes = attributes, .contents = elements, .allocator = allocator };
 }
 
@@ -79,6 +80,34 @@ pub fn render(self: Tag, result: *ArrayList(u8)) !void {
     try result.appendSlice("</");
     try result.appendSlice(self.name);
     try result.append('>');
+}
+
+pub fn initContents(allocator: Allocator, input: anytype) ![]const Element {
+    const input_type = @TypeOf(input);
+    if (input_type == Element) {
+        const elements = try allocator.alloc(Element, 1);
+        elements[0] = input;
+        return elements;
+    }
+
+    if (comptime util.isZigString(input_type)) {
+        const elements = try allocator.alloc(Element, 1);
+        elements[0] = try Element.init(allocator, input);
+        return elements;
+    }
+
+    if (input.len > 0 and input.len < 5 and comptime util.isZigString(@TypeOf(input[0]))) {
+        const elements = try allocator.alloc(Element, 1);
+        elements[0] = try Element.init(allocator, input);
+        return elements;
+    }
+    
+    const info = @typeInfo(input_type);
+    const fields = info.Struct.fields;
+    const elements = try allocator.alloc(Element, fields.len);
+    inline for (0..fields.len) |i| elements[i] = try Element.init(allocator, input[i]);
+    return elements;
+
 }
 
 pub fn extractName(start_tag: []const u8) ![]const u8 {
@@ -216,6 +245,24 @@ test init {
     try expectError(err, init(alloc, .{"<br$>"}));
 }
 
+test initContents {
+    const alloc = testing.allocator;
+    const expected7: []const Element = &.{
+        .{ .tag = .{ .name = "h1", .contents = &.{ .{ .text = "Page Title" } }, .allocator = alloc } },
+        .{ .tag = .{ .name = "div", .contents = &.{ .{ .text = "Hello, world" } }, .allocator = alloc } },
+    };
+    const actual7 = try initContents(alloc, .{
+        .{ "<h1>", "Page Title", "</h1>" },
+        .{ "<div>", "Hello, world", "</div>" },
+    });
+    defer {
+        for (actual7) |element| element.deinit();
+        alloc.free(actual7);
+    }
+    try expectEqualDeep(expected7, actual7);
+}
+
+
 test isValidName {
     // Valid tag names
     try expect(isValidName("a"));
@@ -296,8 +343,7 @@ test render {
 
     // Non-void tag with attributes - 3 elements
     const input5 = .{ 
-        "<div>", 
-        .{ .class = "container", .style = "margin-top:10px;" }, 
+        "<div>", .{ .class = "container", .style = "margin-top:10px;" }, 
         "</div>" 
     };
     const expected5 = "<div class=\"container\" style=\"margin-top:10px;\"></div>";
@@ -310,14 +356,11 @@ test render {
 
     // Non-void tag with attribute and contents - 4 elements
     const input7 = .{ 
-        "<div>", 
-        .{ .class = "container", .style = "margin-top:10px;" }, 
+        "<div>", .{ .class = "container", .style = "margin-top:10px;" }, 
         "Hello, world", 
         "</div>" 
     };
     const expected7 = "<div class=\"container\" style=\"margin-top:10px;\">" ++ 
         "Hello, world</div>";
     try expectTagRender(alloc, expected7, input7);
-
-
 }
