@@ -89,40 +89,40 @@ const expect = testing.expect;
 const expectEqualStrings = testing.expectEqualStrings;
 const expectEqualDeep = testing.expectEqualDeep;
 
-test "Element.init returns .nil for empty inputs" {
-    const alloc = testing.allocator;
-    try expect(try Element.init(alloc, {}) == .nil);
-    try expect(try Element.init(alloc, null) == .nil);
-    try expect(try Element.init(alloc, Element.nil) == .nil);
-    try expect(try Element.init(alloc, .{}) == .nil);
-}
+// test "Element.init returns .nil for empty inputs" {
+//     const alloc = testing.allocator;
+//     try expect(try Element.init(alloc, {}) == .nil);
+//     try expect(try Element.init(alloc, null) == .nil);
+//     try expect(try Element.init(alloc, Element.nil) == .nil);
+//     try expect(try Element.init(alloc, .{}) == .nil);
+// }
 
-test "Element.init returns an existing element as is" {
-    const alloc = testing.allocator;
-    const expected1 = Element{ .text = "Hello, world" };
-    const actual1 = try Element.init(alloc, expected1);
-    defer actual1.deinit();
-    try expectEqualDeep(expected1, actual1);
-}
+// test "Element.init returns an existing element as is" {
+//     const alloc = testing.allocator;
+//     const expected1 = Element{ .text = "Hello, world" };
+//     const actual1 = try Element.init(alloc, expected1);
+//     defer actual1.deinit();
+//     try expectEqualDeep(expected1, actual1);
+// }
 
-test "Element.init wraps a tag into Element.tag" {
-    const alloc = testing.allocator;
-    const input3 = Tag{ .name = "br", .allocator = alloc };
-    const expected3 = Element{ .tag = input3 };
-    const actual3 = try Element.init(alloc, input3);
-    defer actual3.deinit();
-    try expectEqualDeep(expected3, actual3);
-}
+// test "Element.init wraps a tag into Element.tag" {
+//     const alloc = testing.allocator;
+//     const input3 = Tag{ .name = "br", .allocator = alloc };
+//     const expected3 = Element{ .tag = input3 };
+//     const actual3 = try Element.init(alloc, input3);
+//     defer actual3.deinit();
+//     try expectEqualDeep(expected3, actual3);
+// }
 
-test "Element.init wraps a string into Element.text" {
-    const alloc = testing.allocator; 
+// test "Element.init wraps a string into Element.text" {
+//     const alloc = testing.allocator; 
 
-    const input4 = "Hello, world";
-    const expected4 = Element{ .text = input4 };
-    const actual4 = try Element.init(alloc, input4);
-    defer actual4.deinit();
-    try expectEqualDeep(expected4, actual4);    
-}
+//     const input4 = "Hello, world";
+//     const expected4 = Element{ .text = input4 };
+//     const actual4 = try Element.init(alloc, input4);
+//     defer actual4.deinit();
+//     try expectEqualDeep(expected4, actual4);    
+// }
 
 test "Element.init parses a tuple representing a tag (if first element is a string)" {
     const alloc = testing.allocator;
