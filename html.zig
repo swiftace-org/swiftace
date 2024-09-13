@@ -223,31 +223,32 @@ fn expectInitThree(alloc: Allocator, expected: Element, input: anytype) !void {
 test "Element.init and Element.initThree - Tuple of 3" {
     const alloc = testing.allocator;
 
-    // {
-    //     // Component with props, but no contents
-    //     const ColoredHr = struct {
-    //         color: []const u8,
+    {
+        // Component with props, but no contents
+        const ColoredHr = struct {
+            color: []const u8,
 
-    //         pub fn build(self: @This(), allocator: Allocator) !Element {
-    //             var style = ArrayList(u8).init(allocator);
-    //             try style.appendSlice("border-color: ");
-    //             try style.appendSlice(self.color);
-    //             try style.appendSlice(";");
-    //             defer style.deinit();
-    //             return Element.init(allocator, .{ "<hr>", .{ .style = style.items } });
-    //         }
-    //     };
+            pub fn build(self: @This(), allocator: Allocator) !Element {
+                var style = ArrayList(u8).init(allocator);
+                try style.appendSlice("border-color: ");
+                try style.appendSlice(self.color);
+                try style.appendSlice(";");
+                return Element.init(allocator, .{ "<hr>", .{ .style = style } });
+            }
+        };
 
-    //     const input = .{ "<", ColoredHr{ .color = "blue" }, "/>" };
-    //     const expected = Element{ .tag = .{
-    //         .name = Text.init("hr"),
-    //         .is_void = true,
-    //         .attributes = try initAttributes(alloc, .{ .style = "border-color: blue;" }),
-    //     } };
-    //     defer expected.deinit();
-    //     try expectInitThree(alloc, expected, input);
-    //     try expectInit(alloc, expected, input);
-    // }
+        const input = .{ "<", ColoredHr{ .color = "blue" }, "/>" };
+        var style = ArrayList(u8).init(alloc);
+        try style.appendSlice("border-color: blue;");
+        const expected = Element{ .tag = .{
+            .name = Text.init("hr"),
+            .is_void = true,
+            .attributes = try initAttributes(alloc, .{ .style = style }),
+        } };
+        defer expected.deinit();
+        try expectInitThree(alloc, expected, input);
+        try expectInit(alloc, expected, input);
+    }
 
     {
         // Non-void tag with attributes, but no contents
