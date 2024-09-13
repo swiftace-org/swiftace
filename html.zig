@@ -264,48 +264,48 @@ test "Element.init and Element.initThree - Tuple of 3" {
         try expectInit(alloc, expected, input);
     }
 
-    // {
-    //     // List with contents (single string)
-    //     const input = .{ "<>", "Hello, world", "</>" };
-    //     const expected = Element{ .list = try initElements(alloc, "Hello, world") };
-    //     defer expected.deinit();
-    //     try expectInitThree(alloc, expected, input);
-    //     try expectInit(alloc, expected, input);
-    // }
+    {
+        // List with contents (single string), but no attributes
+        const input = .{ "<>", "Hello, world", "</>" };
+        const expected = Element{ .list = try initElements(alloc, "Hello, world") };
+        defer expected.deinit();
+        try expectInitThree(alloc, expected, input);
+        try expectInit(alloc, expected, input);
+    }
 
-    // {
-    //     // Non-void tag with contents, but no attributes
-    //     const input = .{ "<div>", .{
-    //         .{ "<h1>", "Page Title", "</h1>" },
-    //         .{ "<span>", "Page Content", "</span>" },
-    //     }, "</div>" };
-    //     const expected = Element{ .tag = .{
-    //         .name = Text.init("div"),
-    //         .contents = try initElements(alloc, .{
-    //             .{ "<h1>", "Page Title", "</h1>" },
-    //             .{ "<span>", "Page Content", "</span>" },
-    //         }),
-    //         .attributes = try initAttributes(alloc, .{}),
-    //     } };
-    //     defer expected.deinit();
-    //     try expectInitThree(alloc, expected, input);
-    //     try expectInit(alloc, expected, input);
-    // }
+    {
+        // Non-void tag with contents, but no attributes
+        const input = .{ "<div>", .{
+            .{ "<h1>", "Page Title", "</h1>" },
+            .{ "<span>", "Page Content", "</span>" },
+        }, "</div>" };
+        const expected = Element{ .tag = .{
+            .name = Text.init("div"),
+            .contents = try initElements(alloc, .{
+                .{ "<h1>", "Page Title", "</h1>" },
+                .{ "<span>", "Page Content", "</span>" },
+            }),
+            .attributes = try initAttributes(alloc, .{}),
+        } };
+        defer expected.deinit();
+        try expectInitThree(alloc, expected, input);
+        try expectInit(alloc, expected, input);
+    }
 
-    // {
-    //     // List with contents (tuple of inputs)
-    //     const input = .{ "<>", .{
-    //         .{ "<h1>", "Page Title", "</h1>" },
-    //         .{ "<span>", "Page Content", "</span>" },
-    //     }, "</>" };
-    //     const expected = Element{ .list = try initElements(alloc, .{
-    //         .{ "<h1>", "Page Title", "</h1>" },
-    //         .{ "<span>", "Page Content", "</span>" },
-    //     }) };
-    //     defer expected.deinit();
-    //     try expectInitThree(alloc, expected, input);
-    //     try expectInit(alloc, expected, input);
-    // }
+    {
+        // List with contents (tuple of inputs)
+        const input = .{ "<>", .{
+            .{ "<h1>", "Page Title", "</h1>" },
+            .{ "<span>", "Page Content", "</span>" },
+        }, "</>" };
+        const expected = Element{ .list = try initElements(alloc, .{
+            .{ "<h1>", "Page Title", "</h1>" },
+            .{ "<span>", "Page Content", "</span>" },
+        }) };
+        defer expected.deinit();
+        try expectInitThree(alloc, expected, input);
+        try expectInit(alloc, expected, input);
+    }
 }
 
 test "Element.init and Element.initFour" {
@@ -316,10 +316,6 @@ test "Element.deinit" {
     // TODO - skip/combine ?
 }
 
-test "Element.initContents" {
-    // TODO
-}
-
 test "Element.render" {}
 
 pub fn initElements(allocator: Allocator, input: anytype) !Elements {
@@ -327,19 +323,27 @@ pub fn initElements(allocator: Allocator, input: anytype) !Elements {
 
     // Wrap a string into a list of one element
     if (comptime Text.canInit(InputType)) {
-        return Elements.init(@as([]const Element, &.{.{ .text = Text.init(input) }}));
+        const element = try Element.init(allocator, input);
+        var elements = try ArrayList(Element).initCapacity(allocator, 1);
+        try elements.append(element);
+        return .{ .list = elements };
     }
 
     // ArrayList of Elements
-    if (InputType == ArrayList(Element)) return input;
+    if (comptime Elements.canInit(InputType)) return Elements.init(input);
 
     // Tuple with fields representing elements
     var elements = try ArrayList(Element).initCapacity(allocator, input.len);
+    errdefer elements.deinit();
     inline for (input) |item| {
         const element = try Element.init(allocator, item);
         try elements.append(element);
     }
     return .{ .list = elements };
+}
+
+test "Element.initContents" {
+    // TODO
 }
 
 pub const Attributes = SliceOrList(Attribute);
