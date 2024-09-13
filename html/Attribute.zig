@@ -8,8 +8,8 @@ const ArrayList = std.ArrayList;
 
 const Attribute = @This();
 
-const Value = union(enum) { 
-    text: ArrayList(u8), 
+const Value = union(enum) {
+    text: ArrayList(u8),
     present: bool,
 };
 
@@ -22,7 +22,7 @@ pub fn init(allocator: Allocator, raw_name: []const u8, raw_value: anytype) !Att
     var name = try ArrayList(u8).initCapacity(allocator, raw_name.len);
     try name.appendSlice(raw_name);
     if (@TypeOf(raw_value) == bool) {
-        return .{ .name = name, .value = .{ .present = raw_value }};
+        return .{ .name = name, .value = .{ .present = raw_value } };
     } else {
         var value = try ArrayList(u8).initCapacity(allocator, raw_value.len);
         try value.appendSlice(raw_value);
@@ -230,49 +230,49 @@ const expectError = testing.expectError;
 //     // try initAll(testing.allocator, 34);
 // }
 
-// test isValidName {
-//     try expect(isValidName("valid-name"));
-//     try expect(isValidName("valid_name"));
-//     try expect(isValidName("validName123"));
-//     try expect(isValidName("!@#$%^&*()"));
-//     try expect(!isValidName(""));
-//     try expect(!isValidName(" invalid"));
-//     try expect(!isValidName("invalid\"name"));
-//     try expect(!isValidName("invalid'name"));
-//     try expect(!isValidName("invalid>name"));
-//     try expect(!isValidName("invalid/name"));
-//     try expect(!isValidName("invalid=name"));
-// }
+test isValidName {
+    try expect(isValidName("valid-name"));
+    try expect(isValidName("valid_name"));
+    try expect(isValidName("validName123"));
+    try expect(isValidName("!@#$%^&*()"));
+    try expect(!isValidName(""));
+    try expect(!isValidName(" invalid"));
+    try expect(!isValidName("invalid\"name"));
+    try expect(!isValidName("invalid'name"));
+    try expect(!isValidName("invalid>name"));
+    try expect(!isValidName("invalid/name"));
+    try expect(!isValidName("invalid=name"));
+}
 
-// test render {
-//     const alloc = testing.allocator;
-//     var result = ArrayList(u8).init(alloc);
-//     defer result.deinit();
+test render {
+    const alloc = testing.allocator;
+    var result = ArrayList(u8).init(alloc);
+    defer result.deinit();
 
-//     // Render a text attribute
-//     const attr1 = Attribute{ .name = "class", .value = .{ .text = "container" } };
-//     try attr1.render(&result);
-//     try expectEqualStrings("class=\"container\"", result.items);
-//     result.clearRetainingCapacity();
+    // Render a text attribute
+    const attr1 = Attribute{ .name = "class", .value = .{ .text = "container" } };
+    try attr1.render(&result);
+    try expectEqualStrings("class=\"container\"", result.items);
+    result.clearRetainingCapacity();
 
-//     // Render a present boolean attribute
-//     const attr2 = Attribute{ .name = "disabled", .value = .{ .present = true } };
-//     try attr2.render(&result);
-//     try expectEqualStrings("disabled", result.items);
-//     result.clearRetainingCapacity();
+    // Render a present boolean attribute
+    const attr2 = Attribute{ .name = "disabled", .value = .{ .present = true } };
+    try attr2.render(&result);
+    try expectEqualStrings("disabled", result.items);
+    result.clearRetainingCapacity();
 
-//     // Render an absent boolean attribute
-//     const attr3 = Attribute{ .name = "checked", .value = .{ .present = false } };
-//     try attr3.render(&result);
-//     try expectEqualStrings("", result.items);
-//     result.clearRetainingCapacity();
+    // Render an absent boolean attribute
+    const attr3 = Attribute{ .name = "checked", .value = .{ .present = false } };
+    try attr3.render(&result);
+    try expectEqualStrings("", result.items);
+    result.clearRetainingCapacity();
 
-//     // Render a text attribute with special characters
-//     const attr4 = Attribute{ .name = "data", .value = .{ .text = "a < b & c > d \"quote\" 'apostrophe'" } };
-//     try attr4.render(&result);
-//     try expectEqualStrings("data=\"a &lt; b &amp; c &gt; d &quot;quote&quot; &#39;apostrophe&#39;\"", result.items);
-//     result.clearRetainingCapacity();
-// }
+    // Render a text attribute with special characters
+    const attr4 = Attribute{ .name = "data", .value = .{ .text = "a < b & c > d \"quote\" 'apostrophe'" } };
+    try attr4.render(&result);
+    try expectEqualStrings("data=\"a &lt; b &amp; c &gt; d &quot;quote&quot; &#39;apostrophe&#39;\"", result.items);
+    result.clearRetainingCapacity();
+}
 
 // test renderAll {
 //     const alloc = testing.allocator;
