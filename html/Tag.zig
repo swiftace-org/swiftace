@@ -14,7 +14,7 @@ const ArrayList = std.ArrayList;
 
 const Tag = @This();
 
-name: []const u8,
+name: ArrayList(u8),
 is_void: bool = false,
 attributes: ArrayList(Attribute),
 contents: ArrayList(Element),
@@ -70,17 +70,25 @@ pub fn deinit(self: Tag) void {
     self.contents.deinit();
 }
 
-// pub fn render(self: Tag, result: *ArrayList(u8)) !void {
-//     try result.append('<');
-//     try result.appendSlice(self.name);
-//     try Attribute.renderAll(self.attributes, result);
-//     try result.append('>');
-//     if (self.is_void) return;
-//     for (self.contents) |element| try element.render(result);
-//     try result.appendSlice("</");
-//     try result.appendSlice(self.name);
-//     try result.append('>');
-// }
+pub fn render(self: Tag, result: *ArrayList(u8)) !void {
+    try result.append('<');
+    try result.appendSlice(self.name);
+    try renderAttirbutes(self.attributes, result);
+    try result.append('>');
+    if (self.is_void) return;
+    for (self.contents.items) |element| try element.render(result);
+    try result.appendSlice("</");
+    try result.appendSlice(self.name);
+    try result.append('>');
+}
+
+pub fn renderAttirbutes(attributes: ArrayList(Attribute), result: *ArrayList(u8)) !void {
+    for (attributes.items) |attribute| {
+        if (attribute.value == .present and !attribute.value.present) continue;
+        try result.append(' ');
+        try attribute.render(result);
+    }
+}
 
 // pub fn initContents(allocator: Allocator, input: anytype) ![]const Element {
 //     const input_type = @TypeOf(input);
@@ -325,52 +333,52 @@ test extractName {
     try expectError(err, extractName("<123div>"));
 }
 
-// fn expectTagRender(alloc: Allocator, expected: []const u8, input: anytype) !void {
-//     const tag = try init(alloc, input);
-//     defer tag.deinit();
-//     var actual = ArrayList(u8).init(alloc);
-//     defer actual.deinit();
-//     try tag.render(&actual);
-//     try expectEqualStrings(expected, actual.items);
-// }
+fn expectTagRender(alloc: Allocator, expected: []const u8, input: anytype) !void {
+    const element = try Element.init(alloc, input);
+    defer element.deinit();
+    var actual = ArrayList(u8).init(alloc);
+    defer actual.deinit();
+    try element.tag.render(&actual);
+    try expectEqualStrings(expected, actual.items);
+}
 
-// test render {
-//     const alloc = testing.allocator; 
+test render {
+    const alloc = testing.allocator; 
 
-//     // Void tag with no attributes or contents - 1 element
-//     try expectTagRender(alloc, "<br>", .{"<br>"});
+    // Void tag with no attributes or contents - 1 element
+    try expectTagRender(alloc, "<br>", .{"<br>"});
     
-//     // Non-void tag with no attributes or children - 2 elements
-//     try expectTagRender(alloc, "<div></div>", .{"<div>", "</div>"});
+    // Non-void tag with no attributes or children - 2 elements
+    try expectTagRender(alloc, "<div></div>", .{"<div>", "</div>"});
 
-//     // Void tag with empty attributes - 2 elements
-//     try expectTagRender(alloc, "<br>", .{"<br>", .{}});
+    // Void tag with empty attributes - 2 elements
+    try expectTagRender(alloc, "<br>", .{"<br>", .{}});
 
-//     // Void tag with attributes - 2 elements
-//     const input4 = .{ "<br>", .{ .class = "line", .style = "margin-top:10px;"} };
-//     const expected4 = "<br class=\"line\" style=\"margin-top:10px;\">";
-//     try expectTagRender(alloc, expected4, input4);
+    // Void tag with attributes - 2 elements
+    const input4 = .{ "<br>", .{ .class = "line", .style = "margin-top:10px;"} };
+    const expected4 = "<br class=\"line\" style=\"margin-top:10px;\">";
+    try expectTagRender(alloc, expected4, input4);
 
-//     // Non-void tag with attributes - 3 elements
-//     const input5 = .{ 
-//         "<div>", .{ .class = "container", .style = "margin-top:10px;" }, 
-//         "</div>" 
-//     };
-//     const expected5 = "<div class=\"container\" style=\"margin-top:10px;\"></div>";
-//     try expectTagRender(alloc, expected5, input5);
+    // Non-void tag with attributes - 3 elements
+    const input5 = .{ 
+        "<div>", .{ .class = "container", .style = "margin-top:10px;" }, 
+        "</div>" 
+    };
+    const expected5 = "<div class=\"container\" style=\"margin-top:10px;\"></div>";
+    try expectTagRender(alloc, expected5, input5);
 
-//     // Non-void tag with contents - 3 elements
-//     const input6 = .{ "<div>", "Hello, world", "</div>" };
-//     const expected6 = "<div>Hello, world</div>";
-//     try expectTagRender(alloc, expected6, input6);
+    // Non-void tag with contents - 3 elements
+    const input6 = .{ "<div>", "Hello, world", "</div>" };
+    const expected6 = "<div>Hello, world</div>";
+    try expectTagRender(alloc, expected6, input6);
 
-//     // Non-void tag with attribute and contents - 4 elements
-//     const input7 = .{ 
-//         "<div>", .{ .class = "container", .style = "margin-top:10px;" }, 
-//         "Hello, world", 
-//         "</div>" 
-//     };
-//     const expected7 = "<div class=\"container\" style=\"margin-top:10px;\">" ++ 
-//         "Hello, world</div>";
-//     try expectTagRender(alloc, expected7, input7);
-// }
+    // Non-void tag with attribute and contents - 4 elements
+    const input7 = .{ 
+        "<div>", .{ .class = "container", .style = "margin-top:10px;" }, 
+        "Hello, world", 
+        "</div>" 
+    };
+    const expected7 = "<div class=\"container\" style=\"margin-top:10px;\">" ++ 
+        "Hello, world</div>";
+    try expectTagRender(alloc, expected7, input7);
+}

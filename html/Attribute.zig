@@ -118,7 +118,7 @@ pub fn render(self: Attribute, result: *ArrayList(u8)) Allocator.Error!void {
             try result.append('"');
         },
         .present => |present| {
-            if (present) try result.appendSlice(self.name);
+            if (present) try result.appendSlice(self.name.items);
         },
     }
 }

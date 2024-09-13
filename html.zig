@@ -8,8 +8,8 @@ const Allocator = mem.Allocator;
 
 pub const Element = union(enum) {
     nil: void,
-    text: []const u8,
-    raw: []const u8,
+    text: ArrayList(u8),
+    raw: ArrayList(u8),
     tag: Tag,
     list: ArrayList(Element),
 
@@ -175,9 +175,12 @@ pub const Element = union(enum) {
     }
 
     pub fn render(self: Element, result: *ArrayList(u8)) !void {
-        _  = &self;
-        _ = &result;
-        // TODO
+        switch (self) {
+            .nil => {},
+            .text => |text| { 
+                for (text) |char|
+            }
+        }
     }
 };
 
