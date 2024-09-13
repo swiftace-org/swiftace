@@ -138,7 +138,7 @@ pub const Element = union(enum) {
         if (!Tag.matchEndTag(name, input[3])) return error.HtmlParseError;
         const attributes = try initAttributes(allocator, input[1]);
         const contents = try initElements(allocator, input[2]);
-        return .{ .tag = .{ .name = name, .attributes = attributes, .contents = contents } };
+        return .{ .tag = .{ .name = Text.init(name), .attributes = attributes, .contents = contents } };
     }
 
     pub fn isComponent(input_type: anytype) bool {
@@ -309,15 +309,69 @@ test "Element.init and Element.initThree - Tuple of 3" {
     }
 }
 
-test "Element.init and Element.initFour" {
+fn expectInitFour(alloc: Allocator, expected: Element, input: anytype) !void {
+    const actual = try Element.initFour(alloc, input);
+    defer actual.deinit();
+    try expectEqualDeep(expected, actual);
+}
+
+test "Element.init and Element.initFour for tuple of 4" {
+    const alloc = testing.allocator;
+
+    {
+        // Component with contents
+        const ColoredDiv = struct {
+            color: []const u8,
+
+            pub fn build(self: @This(), allocator: Allocator, contents: Elements) !Element {
+                var style = ArrayList(u8).init(allocator);
+                try style.appendSlice("color: ");
+                try style.appendSlice(self.color);
+                try style.appendSlice(";");
+
+                return Element.init(
+                    allocator,
+                    .{ "<div>", .{ .style = style }, contents, "</div>" },
+                );
+            }
+        };
+
+        const input = .{ "<", ColoredDiv{ .color = "blue" }, "Hello, blue", "/>" };
+        var style = ArrayList(u8).init(alloc);
+        try style.appendSlice("color: blue;");
+        const expected = Element{ .tag = .{
+            .name = Text.init("div"),
+            .attributes = try initAttributes(alloc, .{ .style = style }),
+            .contents = try initElements(alloc, "Hello, blue"),
+        } };
+        defer expected.deinit();
+        try expectInitFour(alloc, expected, input);
+        try expectInit(alloc, expected, input);
+    }
+
+    {
+        // Non-void tag with attributes and contents
+        const input = .{ "<div>", .{ .class = "container", .style = "margin-top: 10px;" }, .{
+            .{ "<h1>", "Page Title", "</h1>" },
+            .{ "<span>", "Page Content", "</span>" },
+        }, "</div>" };
+        const expected = Element{ .tag = .{
+            .name = Text.init("div"),
+            .attributes = try initAttributes(alloc, .{ .class = "container", .style = "margin-top: 10px;" }),
+            .contents = try initElements(alloc, .{
+                .{ "<h1>", "Page Title", "</h1>" },
+                .{ "<span>", "Page Content", "</span>" },
+            }),
+        } };
+        defer expected.deinit();
+        try expectInitFour(alloc, expected, input);
+        try expectInit(alloc, expected, input);
+    }
+}
+
+test "Element.render" {
     // TODO
 }
-
-test "Element.deinit" {
-    // TODO - skip/combine ?
-}
-
-test "Element.render" {}
 
 pub fn initElements(allocator: Allocator, input: anytype) !Elements {
     const InputType: type = @TypeOf(input);
@@ -878,65 +932,6 @@ test "SliceOrList.canInit" {
 }
 
 // OLD TESTS
-
-// fn expectInitFour(alloc: Allocator, expected: Element, input: anytype) !void {
-//     const actual = try Element.initFour(alloc, input);
-//     defer actual.deinit();
-//     try expectEqualDeep(expected, actual);
-// }
-
-// test "Element.init and Element.initFour for tuple of 4" {
-//     const alloc = testing.allocator;
-
-//     {
-//         // Component with contents
-//         const ColoredDiv = struct {
-//             color: []const u8,
-
-//             pub fn build(self: @This(), allocator: Allocator, contents: ArrayList(Element)) !Element {
-//                 var style = ArrayList(u8).init(allocator);
-//                 try style.appendSlice("color: ");
-//                 try style.appendSlice(self.color);
-//                 try style.appendSlice(";");
-//                 defer style.deinit();
-
-//                 return Element.init(
-//                     allocator,
-//                     .{ "<div>", .{ .style = style.items }, contents, "</div>" },
-//                 );
-//             }
-//         };
-
-//         const input = .{ "<", ColoredDiv{ .color = "blue" }, "Hello, blue", "/>" };
-//         const expected = Element{ .tag = .{
-//             .name = "div",
-//             .attributes = try Element.initAttributes(alloc, .{ .style = "color: blue;" }),
-//             .contents = try Element.initContents(alloc, "Hello, blue"),
-//         } };
-//         defer expected.deinit();
-//         try expectInitFour(alloc, expected, input);
-//         try expectInit(alloc, expected, input);
-//     }
-
-//     {
-//         // Non-void tag with attributes and contents
-//         const input = .{ "<div>", .{ .class = "container", .style = "margin-top: 10px;" }, .{
-//             .{ "<h1>", "Page Title", "</h1>" },
-//             .{ "<span>", "Page Content", "</span>" },
-//         }, "</div>" };
-//         const expected = Element{ .tag = .{
-//             .name = "div",
-//             .attributes = try Element.initAttributes(alloc, .{ .class = "container", .style = "margin-top: 10px;" }),
-//             .contents = try Element.initContents(alloc, .{
-//                 .{ "<h1>", "Page Title", "</h1>" },
-//                 .{ "<span>", "Page Content", "</span>" },
-//             }),
-//         } };
-//         defer expected.deinit();
-//         try expectInitFour(alloc, expected, input);
-//         try expectInit(alloc, expected, input);
-//     }
-// }
 
 // test "Element.deinit" {
 //     // TODO
