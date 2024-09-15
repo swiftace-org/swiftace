@@ -930,29 +930,3 @@ test "SliceOrList.canInit" {
     try testing.expect(!SliceOrList(u32).canInit(@TypeOf(12345)));
     try testing.expect(!SliceOrList(u32).canInit(@TypeOf(&[_]f32{ 1.0, 2.0 })));
 }
-
-// OLD TESTS
-
-// test "Element.deinit" {
-//     // TODO
-// }
-
-// test "Element.isAttributes" {
-//     // TODO
-// }
-
-// test "Element.initAttributes" {
-//     // TODO
-// }
-
-// test "Element.initContents" {
-//     // TODO
-// }
-
-// test "Element.isComponent" {
-//     // TODO
-// }
-
-// test "Element.render" {
-//     // TODO
-// }
