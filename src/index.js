@@ -1,5 +1,7 @@
+import { onGetHome } from "./pages/index.jsx";
+
 async function onRequest(request) {
-  return new Response("Hello, world");
+  return await onGetHome(request);
 }
 
 export default { fetch: onRequest };
