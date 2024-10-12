@@ -129,9 +129,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Cloudflare
-.wrangler
-.dev.vars
-
-# macOs
+# MacOS generated files
 .DS_Store
+.DS_Store?
