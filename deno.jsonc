@@ -1,0 +1,40 @@
+{
+  "tasks": {
+    "start": "deno serve --allow-read --watch src/index.js"
+  },
+  "lint": {
+    "include": ["./src/"],
+    "rules": {
+      "tags": ["recommended"],
+      "include": [
+        "no-undef",
+        "ban-untagged-todo",
+        "camelcase",
+        "default-param-last",
+        "no-await-in-loop",
+        "no-boolean-literal-for-arguments",
+        "no-console",
+        "no-const-assign",
+        "no-eval",
+        "no-external-import",
+        "no-self-compare",
+        "no-sparse-arrays",
+        "no-sync-fn-in-async-fn",
+        "no-throw-literal"
+        // "eqeqeq",
+        // "single-var-declarator"
+      ]
+    }
+  },
+  "imports": {
+    "./": "./",
+    "/": "./src/",
+    "@std/assert": "jsr:@std/assert@^1.0.6",
+    "@std/fs": "jsr:@std/fs@^1.0.4",
+    "jsx/jsx-runtime": "./src/jsx/jsx-runtime.js"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "jsx"
+  }
+}
