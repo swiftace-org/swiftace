@@ -1,4 +1,4 @@
-import server from "./server/index.jsx";
+import server from "./index.jsx";
 import pluginManager from "./plugin-manager/index.js";
 
 pluginManager.loadPlugins();

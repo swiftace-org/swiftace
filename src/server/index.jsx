@@ -1,3 +1,5 @@
+import { renderToString } from "/shared/jsx/render.js";
+
 function RootLayout({ children }) {
   return (
     <html>
@@ -9,15 +11,17 @@ function RootLayout({ children }) {
 }
 
 async function onRequest(_request) {
-  const name = "Deno";
+  const name = "Deno <div>Hello</div>";
   const body = (
     <RootLayout>
-      <div>Hello, {name}</div>
+      <div class="container">Hello, {name}</div>
     </RootLayout>
   );
   console.log(body);
+  const bodyStr = renderToString(body);
+  console.log(bodyStr);
   return await new Response(
-    body,
+    bodyStr,
     { headers: { "Content-Type": "text/html" } },
   );
 }

@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "start": "deno serve --allow-read --watch src/index.js"
+    "start": "deno serve --allow-read --watch src/server/index.js"
   },
   "lint": {
     "include": ["./src/"],
@@ -8,7 +8,6 @@
       "tags": ["recommended"],
       "include": [
         "no-undef",
-        "ban-untagged-todo",
         "camelcase",
         "default-param-last",
         "no-await-in-loop",
@@ -20,8 +19,9 @@
         "no-self-compare",
         "no-sparse-arrays",
         "no-sync-fn-in-async-fn",
-        "no-throw-literal"
-        // "eqeqeq",
+        "no-throw-literal",
+        "eqeqeq"
+        // "ban-untagged-todo",
         // "single-var-declarator"
       ]
     }
@@ -31,7 +31,7 @@
     "/": "./src/",
     "@std/assert": "jsr:@std/assert@^1.0.6",
     "@std/fs": "jsr:@std/fs@^1.0.4",
-    "jsx/jsx-runtime": "./src/jsx/jsx-runtime.js"
+    "jsx/jsx-runtime": "./src/shared/jsx/jsx-runtime.js"
   },
   "compilerOptions": {
     "jsx": "react-jsx",
