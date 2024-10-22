@@ -6,7 +6,7 @@ import render from "shared/jsx/render/mod.js";
  * TODO:
  * - [ ] Add assertions (what are they even?)
  * - [ ] Add props as attributes for text nodes
- * - [ ] Add support for empty tags
+ * - [x] Add support for void tags
  * - [ ] What about props to raw tags not passed as strings?
  * - [ ] Add support for `className` and `htmlFor` ?
  * - [ ] Compare implementation with VHTML ?
@@ -30,10 +30,10 @@ export default function jsxToStr(element) {
     const attrsStr = render.attrsToString(attrs);
     if (render.voidTags.includes(type)) {
       // TODO - Throw error if children are passed (?)
-      return `<${type} ${attrsStr}>`;
+      return `<${type}${attrsStr}>`;
     } else {
       const childrenStr = jsxToStr(children);
-      return `<${type} ${attrsStr}>${childrenStr}</${type}>`;
+      return `<${type}${attrsStr}>${childrenStr}</${type}>`;
     }
   }
 

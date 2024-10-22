@@ -17,6 +17,24 @@ test.describe(runtime.jsx.name, () => {
     const expected = { type: Component, props: { id: "test" }, key: null };
     assert.equals(input, expected);
   });
+
+  test.it("throws if type is not a string or function", () => {
+    const msg = "'type' must be a string or function";
+    assert.throws(() => runtime.jsx(null, {}), Error, msg);
+    assert.throws(() => runtime.jsx(123, {}), Error, msg);
+  });
+
+  test.it("throws if props is not an object", () => {
+    const msg = "'props' must be an object";
+    assert.throws(() => runtime.jsx("div", null), Error, msg);
+    assert.throws(() => runtime.jsx("div", "Hello"), Error, msg);
+  });
+
+  test.it("throws if key is not a string or null", () => {
+    const msg = "'key' must be a string or null";
+    assert.throws(() => runtime.jsx("div", {}, 123), Error, msg);
+    assert.throws(() => runtime.jsx("div", {}, {}), Error, msg);
+  });
 });
 
 test.describe(runtime.Fragment.name, () => {

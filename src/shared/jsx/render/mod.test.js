@@ -78,3 +78,11 @@ test.describe(render.escapeForHtml.name, () => {
     assert.throws(() => render.escapeForHtml({}), Error, message);
   });
 });
+
+test.describe(render.jsxToStr.name, () => {
+  test.it("renders text element", () => {
+    const input = "Hello, world!";
+    const expected = "Hello, world!";
+    assert.equals(render.jsxToStr(input), expected);
+  });
+});

@@ -11,11 +11,11 @@ import voidTags from "shared/jsx/render/voidTags.js";
 import jsxToStr from "shared/jsx/render/jsxToStr.js";
 
 const render = {
+  jsxToStr,
   isValidAttr,
   attrsToStr,
   escapeForHtml,
   voidTags,
-  jsxToStr,
 };
 
 export default render;
