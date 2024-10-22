@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "start": "deno serve --allow-read --watch src/server/index.js"
+    "start": "deno serve --allow-read --watch /server/index.js"
   },
   "lint": {
     "include": ["./src/"],
@@ -27,7 +27,6 @@
     }
   },
   "imports": {
-    "./": "./",
     "/": "./src/",
     "@std/assert": "jsr:@std/assert@^1.0.6",
     "@std/fs": "jsr:@std/fs@^1.0.4",

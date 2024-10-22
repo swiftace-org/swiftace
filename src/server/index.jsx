@@ -1,4 +1,4 @@
-import { renderToString } from "/shared/jsx/render.js";
+import J from "/shared/jsx/mod.js";
 
 function RootLayout({ children }) {
   return (
@@ -17,9 +17,9 @@ async function onRequest(_request) {
       <div class="container">Hello, {name}</div>
     </RootLayout>
   );
-  console.log(body);
-  const bodyStr = renderToString(body);
-  console.log(bodyStr);
+  // console.log(body);
+  const bodyStr = J.renderToString(body);
+  // console.log(bodyStr);
   return await new Response(
     bodyStr,
     { headers: { "Content-Type": "text/html" } },
