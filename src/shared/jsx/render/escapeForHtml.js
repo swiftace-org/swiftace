@@ -1,4 +1,4 @@
-import assertion from "/shared/assertion/mod.js";
+import assert from "shared/assert/mod.js";
 
 /**
  * Escapes special characters in a string for safe usage in HTML.
@@ -9,7 +9,7 @@ import assertion from "/shared/assertion/mod.js";
  * @returns {string} The escaped string safe for use in HTML
  */
 export default function escapeForHtml(unsafeText) {
-  assertion.assert(
+  assert.is(
     typeof unsafeText === "string",
     "`unsafeText` must be a string",
   );
@@ -29,6 +29,6 @@ export default function escapeForHtml(unsafeText) {
         return match;
     }
   });
-  assertion.assert(typeof safeText === "string", "`safeText` must be a string");
+  assert.is(typeof safeText === "string", "`safeText` must be a string");
   return safeText;
 }

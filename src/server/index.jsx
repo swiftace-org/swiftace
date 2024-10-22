@@ -1,4 +1,4 @@
-import J from "/shared/jsx/mod.js";
+import J from "shared/jsx/mod.js";
 
 function RootLayout({ children }) {
   return (

@@ -1,3 +1,3 @@
-import jsxMod from "/shared/jsx/mod.js";
+import runtime from "shared/jsx/runtime/mod.js";
 
-export const { jsx, jsxs, Fragment } = jsxMod;
+export const { jsx, jsxs, Fragment } = runtime;

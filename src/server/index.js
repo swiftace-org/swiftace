@@ -1,5 +1,5 @@
-import pluginManager from "/server/plugin-manager/index.js";
-import server from "/server/index.jsx";
+import pluginManager from "server/plugin-manager/index.js";
+import server from "server/index.jsx";
 
 pluginManager.loadPlugins();
 

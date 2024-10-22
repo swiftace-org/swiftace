@@ -1,4 +1,4 @@
-import jsx from "/shared/jsx/mod.js";
+import render from "shared/jsx/render/mod.js";
 
 /**
  * Renders an JSX element to a string
@@ -15,30 +15,30 @@ import jsx from "/shared/jsx/mod.js";
  *
  * Reference: https://github.com/dodoas/stringjsx/blob/main/src/stringjsx.js
  */
-export default function renderToString(jsxElement) {
+export default function jsxToStr(element) {
   // Text element
-  if (typeof jsxElement === "string") return jsx.escapeForHtml(jsxElement);
+  if (typeof element === "string") return render.escapeForHtml(element);
 
   // Array or Fragment
-  if (Array.isArray(jsxElement)) return jsxElement.map(renderToString).join("");
+  if (Array.isArray(element)) return element.map(jsxToStr).join("");
 
-  const { type, props } = jsxElement;
+  const { type, props } = element;
 
   // HTML tag
   if (typeof type === "string") {
     const { children, ...attrs } = props;
-    const attrsStr = jsx.attrsToString(attrs);
-    if (jsx.voidTags.includes(type)) {
+    const attrsStr = render.attrsToString(attrs);
+    if (render.voidTags.includes(type)) {
       // TODO - Throw error if children are passed (?)
       return `<${type} ${attrsStr}>`;
     } else {
-      const childrenStr = renderToString(children);
+      const childrenStr = jsxToStr(children);
       return `<${type} ${attrsStr}>${childrenStr}</${type}>`;
     }
   }
 
   // Function component
   if (typeof type === "function") {
-    return renderToString(type(props));
+    return jsxToStr(type(props));
   }
 }

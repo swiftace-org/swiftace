@@ -2,7 +2,7 @@ import { existsSync } from "@std/fs";
 
 async function loadPlugins() {
   const cwd = Deno.cwd();
-  const pluginsDir = cwd + "/src/plugins";
+  const pluginsDir = cwd + "/plugins";
 
   if (!existsSync(pluginsDir)) {
     console.info(`Plugins directory does not exist: ${pluginsDir}`);
@@ -24,7 +24,7 @@ async function loadPlugins() {
       continue;
     }
 
-    await import(`/plugins/${entry.name}/index.js`);
+    await import(pluginIndexPath);
   }
 }
 
