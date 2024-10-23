@@ -12,7 +12,6 @@
         "camelcase",
         "default-param-last",
         "no-await-in-loop",
-        "no-boolean-literal-for-arguments",
         "no-console",
         "no-const-assign",
         "no-eval",
@@ -21,7 +20,8 @@
         "no-sparse-arrays",
         "no-sync-fn-in-async-fn",
         "no-throw-literal",
-        "eqeqeq"
+        "eqeqeq",
+        "no-boolean-literal-for-arguments"
         // "ban-untagged-todo",
         // "single-var-declarator"
       ]
