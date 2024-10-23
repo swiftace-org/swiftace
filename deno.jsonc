@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "start": "deno serve --allow-read --watch ./src/server/index.js"
+    "start": "deno serve --allow-read --watch ./src/server/index.js",
+    "coverage": "rm -rf ./coverage && deno test --coverage && deno coverage --html && open ./coverage/html/index.html"
   },
   "lint": {
     "include": ["./src/"],

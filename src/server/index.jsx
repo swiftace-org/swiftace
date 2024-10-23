@@ -1,4 +1,4 @@
-import J from "shared/jsx/mod.js";
+import render from "shared/jsx/render/mod.js";
 
 function RootLayout({ children }) {
   return (
@@ -18,7 +18,7 @@ async function onRequest(_request) {
     </RootLayout>
   );
   // console.log(body);
-  const bodyStr = J.renderToString(body);
+  const bodyStr = render.jsxToStr(body);
   // console.log(bodyStr);
   return await new Response(
     bodyStr,

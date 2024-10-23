@@ -13,7 +13,7 @@ export default function escapeForHtml(unsafeText) {
     typeof unsafeText === "string",
     "`unsafeText` must be a string",
   );
-  const safeText = unsafeText.replace(/[&<>"']/g, (match) => {
+  return unsafeText.replace(/[&<>"']/g, (match) => {
     switch (match) {
       case "&":
         return "&amp;";
@@ -25,10 +25,6 @@ export default function escapeForHtml(unsafeText) {
         return "&quot;";
       case "'":
         return "&#39;";
-      default:
-        return match;
     }
   });
-  assert.is(typeof safeText === "string", "`safeText` must be a string");
-  return safeText;
 }
