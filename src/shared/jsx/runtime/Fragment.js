@@ -1,4 +1,4 @@
-import assert from "shared/assert/mod.js";
+import assert from "shared/assert/@.js";
 
 /** Implements the <> (fragment) tag in JSX */
 export default function Fragment(props) {

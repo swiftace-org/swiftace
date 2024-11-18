@@ -2,5 +2,8 @@
   "editor.tabSize": 2,
   "editor.defaultFormatter": "denoland.vscode-deno",
   "editor.formatOnSave": true,
-  "deno.enable": true
+  "deno.enable": true,
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

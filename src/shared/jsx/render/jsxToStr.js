@@ -1,20 +1,17 @@
-import render from "shared/jsx/render/mod.js";
-import assert from "shared/assert/mod.js";
+import render from "shared/jsx/render/@.js";
+import assert from "shared/assert/@.js";
 
 /**
- * Renders an JSX element to a string
+ * Renders a JSX element to its HTML string representation
+ * Supports text, array, HTML tags, and function components
  *
  * TODO:
- * - [x] Add assertions (what are they even?)
- * - [x] Add props as attributes for text nodes
- * - [x] Add support for void tags
- * - [x] What about props to raw tags not passed as strings?
  * - [ ] Add support for `className` and `htmlFor` ?
- * - [ ] Compare implementation with VHTML ?
- * - [x] Support dangerouslySetInnerHTML ?
- * - [x] Handle special cases in attribute setting (e.g. boolean)
+ * - [ ] Add support for pretty printing (separate function?)
+ * - [ ] Add support for numbers (??)
  *
- * Reference: https://github.com/dodoas/stringjsx/blob/main/src/stringjsx.js
+ * @param {unknown} element - JSX element to render
+ * @returns {string} HTML string representation of `element`
  */
 export default function jsxToStr(element) {
   // Empty elements

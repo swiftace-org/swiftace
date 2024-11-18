@@ -1,4 +1,4 @@
-import assert from "shared/assert/mod.js";
+import assert from "../../assert/@.js";
 
 /**
  * Creates a JSX element with zero or one children
@@ -9,12 +9,12 @@ import assert from "shared/assert/mod.js";
 export default function jsx(type, props, key = null) {
   assert.is(
     typeof type === "string" || typeof type === "function",
-    "'type' must be a string or function",
+    "'type' must be a string or function"
   );
   assert.is(assert.isObject(props), "'props' must be an object");
   assert.is(
     key === null || typeof key === "string",
-    "'key' must be a string or null",
+    "'key' must be a string or null"
   );
   return {
     type,

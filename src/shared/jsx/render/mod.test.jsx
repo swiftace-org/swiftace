@@ -1,6 +1,6 @@
 import test from "shared/test/mod.js";
-import assert from "shared/assert/mod.js";
-import render from "shared/jsx/render/mod.js";
+import assert from "shared/assert/@.js";
+import render from "shared/jsx/render/@.js";
 
 test.describe(render.isValidAttr.name, () => {
   test.it("accepts valid attribute names", () => {
@@ -218,6 +218,22 @@ test.describe(render.jsxToStr.name, () => {
         </div>
       </>
     );
+    const input2 = [
+      [`<h1>`, "Hello, ", ["<strong>", "world"], `</h1>`],
+      [
+        `<div>`,
+        { class: "container", style: "margin-bottom:10px;" },
+        [
+          "Goodbye, ",
+          [`<strong>`, "world"],
+          ["<span>", "Hello, today", "</span>"],
+        ],
+        `</div>`,
+      ],
+    ];
+
+    const input3 = ["h1", "Hello, ", ["strong", "world"]];
+
     const expected =
       "<h1>Hello, <strong>world</strong>!</h1><div>Goodbye, <strong>world</strong>!</div>";
     assert.equals(render.jsxToStr(input), expected);
@@ -294,3 +310,43 @@ test.describe(render.jsxToStr.name, () => {
     assert.throws(() => render.jsxToStr(input), msg);
   });
 });
+
+document.body.append([
+  "table",
+  ["caption", "Demo Table"],
+  [
+    "thead",
+    [
+      "tr",
+      ["th_col", "Item"],
+      ["th_col", "Quantity"],
+      ["th_col", "Price"],
+      ["th_col", "Total"],
+    ],
+  ],
+  [
+    "tbody",
+    [
+      "tr",
+      ["th_row", "Cecilio Eb Alto Saxophone"],
+      ["td", 1],
+      ["td", 399.99],
+      ["td", 399.99],
+    ],
+    [
+      "tr",
+      ["th_row", "Yamaha 5C Alto Sax Mouthpiece"],
+      ["td", 1],
+      ["td", 39.99],
+      ["td", 39.99],
+    ],
+    [
+      "tr",
+      ["th_row", "#2 Alto Sax Reeds (5 pack)"],
+      ["td", 2],
+      ["td", 5.99],
+      ["td", 11.98],
+    ],
+  ],
+  ["tfoot", ["tr", ["th_row", { colSpan: 3 }, "Grand Total"], ["td", 451.96]]],
+]);

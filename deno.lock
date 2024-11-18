@@ -2,6 +2,8 @@
   "version": "4",
   "specifiers": {
     "jsr:@std/assert@^1.0.6": "1.0.6",
+    "jsr:@std/async@^1.0.5": "1.0.7",
+    "jsr:@std/data-structures@^1.0.4": "1.0.4",
     "jsr:@std/fs@^1.0.4": "1.0.4",
     "jsr:@std/internal@^1.0.4": "1.0.4",
     "jsr:@std/path@^1.0.6": "1.0.6",
@@ -14,6 +16,12 @@
       "dependencies": [
         "jsr:@std/internal"
       ]
+    },
+    "@std/async@1.0.7": {
+      "integrity": "f4fadc0124432e37cba11e8b3880164661a664de00a65118d976848f32f96290"
+    },
+    "@std/data-structures@1.0.4": {
+      "integrity": "fa0e20c11eb9ba673417450915c750a0001405a784e2a4e0c3725031681684a0"
     },
     "@std/fs@1.0.4": {
       "integrity": "2907d32d8d1d9e540588fd5fe0ec21ee638134bd51df327ad4e443aaef07123c",
@@ -31,7 +39,11 @@
       "integrity": "f98c2bee53860a5916727d7e7d3abe920dd6f9edace022e2d059f00d05c2cf42",
       "dependencies": [
         "jsr:@std/assert",
-        "jsr:@std/internal"
+        "jsr:@std/async",
+        "jsr:@std/data-structures",
+        "jsr:@std/fs",
+        "jsr:@std/internal",
+        "jsr:@std/path"
       ]
     }
   },

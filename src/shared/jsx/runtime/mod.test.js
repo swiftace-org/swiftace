@@ -1,6 +1,6 @@
 import runtime from "shared/jsx/runtime/mod.js";
 import test from "shared/test/mod.js";
-import assert from "shared/assert/mod.js";
+import assert from "shared/assert/@.js";
 
 test.describe(runtime.jsx.name, () => {
   test.it("creates a JSX element with an HTML tag", () => {

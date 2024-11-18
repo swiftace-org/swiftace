@@ -1,4 +1,4 @@
-import assert from "shared/assert/mod.js";
+import assert from "shared/assert/@.js";
 
 /** Checks if an attribute name is legal as per the HTML spec */
 export default function isValidAttr(attrName) {

@@ -1,5 +1,5 @@
-import assert from "shared/assert/mod.js";
-import render from "shared/jsx/render/mod.js";
+import assert from "shared/assert/@.js";
+import render from "shared/jsx/render/@.js";
 
 /**
  * Converts an object of HTML attributes to a string

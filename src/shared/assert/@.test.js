@@ -1,4 +1,4 @@
-import assert from "shared/assert/mod.js";
+import assert from "shared/assert/@.js";
 import test from "shared/test/mod.js";
 
 test.describe(assert.is.name, () => {

@@ -1,4 +1,4 @@
-import assert from "shared/assert/mod.js";
+import assert from "shared/assert/@.js";
 
 /**
  * Escapes special characters in a string for safe usage in HTML.

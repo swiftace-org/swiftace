@@ -1,4 +1,4 @@
-import render from "shared/jsx/render/mod.js";
+import render from "shared/jsx/render/@.js";
 
 function RootLayout({ children }) {
   return (

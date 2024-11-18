@@ -1,4 +1,4 @@
-import assert from "shared/assert/mod.js";
+import assert from "shared/assert/@.js";
 
 /** Asserts that the input is a valid JSX element. */
 export default function assertJsxObj(element) {
