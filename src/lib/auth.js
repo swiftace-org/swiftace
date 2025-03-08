@@ -4,7 +4,7 @@ import { parse } from "./cookie";
 export function generateVerificationCode() {
   var vals = new Uint8Array(3);
   crypto.getRandomValues(vals);
-  return ((vals[0] & 255) * 100000 + (vals[1] & 255) * 1000 + (vals[2] & 255)).toString().slice(0, 6);
+  return ((vals[0] & 255) * 100000 + (vals[1] & 255) * 1000 + (vals[2] & 255)).toString().slice(0, 6).padEnd(6,"0");
 }
 
 export async function hashSessionToken(token) {
