@@ -1,0 +1,45 @@
+/* Main styles for SwiftAce */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background: #f8f9fa;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+}
+
+p {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+li::before {
+  content: "•";
+  color: #2563eb;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
