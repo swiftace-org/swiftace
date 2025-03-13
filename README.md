@@ -4,7 +4,7 @@
 courses. It can be self-hosted, white labeled, customized, and extended using
 plugins. SwiftAce is built with Deno, using plain HTML, CSS, and JavaScript.
 
-## Project Structure
+### Project Structure
 
 All code lives under the `src` directory, and is organized into scoped packages.
 This modular approach enables clear separation of concerns and enables
@@ -48,6 +48,10 @@ JavaScript files (i.e. modules) inside a package must follow these conventions:
 - To indicate that a particular function or variable is not part of the stable
   public API, its name can be prefixed with an underscore (`_`).
 
+- something about imports
+
+- something about documentation
+
 This design allows any individual function or variable to be overridden by an
 external plugin, enhancing extensibility.
 
@@ -58,7 +62,7 @@ Here's an example:
 const myModule = {
   publicFunction() {
     console.log("This is a public function.");
-    this._privateFunction(); // Referencing an internal function
+    myModule._privateFunction(); // Referencing an internal function
   },
 
   _privateFunction() {
