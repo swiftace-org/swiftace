@@ -53,10 +53,12 @@ const coreServer = {
    * @returns {Response} Response containing the file content or error message
    */
   async servePublicFile(scope, project, filePath) {
+    const resolved = await import(`@${scope}/${project}/server.js`);
+    const resolvedDirname = resolved.default.dirname;
+    const resolvedPath = `${resolvedDirname}/public/${filePath}`;
+
     try {
-      const fileContent = await Deno.readFile(
-        `src/@${scope}/${project}/public/${filePath}`,
-      );
+      const fileContent = await Deno.readFile(resolvedPath);
       const contentType = coreServer.getContentType(filePath);
       return new Response(fileContent, {
         headers: { "content-type": contentType },
@@ -121,6 +123,8 @@ const coreServer = {
     return coreServer.extensionContentTypes[extension] ||
       "application/octet-stream";
   },
+
+  dirname: import.meta.dirname,
 };
 
 export default coreServer;

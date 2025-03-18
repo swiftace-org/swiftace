@@ -6,95 +6,97 @@ plugins. SwiftAce is built with Deno, using plain HTML, CSS, and JavaScript.
 
 ### Project Structure
 
-All code lives under the `src` directory, and is organized into scoped packages.
-This modular approach enables clear separation of concerns and enables
-extensibility through third-party packages.
+The codebase is organized into scoped packages under the root directory.
+Multiple scopes allow logical grouping of related packages. This modular
+approach enables clear separation of concerns and extensibility through
+third-party packages.
 
 ```
-src/
-├── @scope1/          
-│   ├── package-a/    
-│   └── package-b/    
-└── @scope2/           
-    ├── package-c/    
-    └── package-c/
+@scope1/            
+├── package-a/     
+└── package-b/     
+@scope2/            
+├── package-c/     
+└── package-d/
 ```
 
 ### Package Structure
 
-Files within a package are organized according to the following conventions:
+Each package must contain a `deno.json` file with:
 
-- A `server.js` file containing server-side JavaScript code for the package
-- A `public` folder whose contents are served as-is at the path
-  `/@scope/package-name/public`
-  - A `client.js` file containing browser-specific JavaScript code
-  - A `shared.js` file containing JavaScript code shared between server & client
-  - A `styles.css` file containing CSS rules
-  - Images, icons, and other static assets
-- A `README.md` file describing the purpose and functinality of the package.
+```json
+{
+  "name": "@scope/package-name",
+  "version": "1.0.0",
+  "exports": {
+    "./server.js": "./server.js",
+    "./public/client.js": "./public/client.js",
+    "./public/shared.js": "./public/shared.js"
+  }
+}
+```
 
-All of the above are optional. Packages can be client-only, server-only, or
-mixed.
+Other files within a package follow these conventions:
+
+- `server.js` - Server-side JavaScript code
+- `public/` - Static assets served at `/@scope/[package-name]/public/`
+  - `client.js` - Browser-specific JavaScript code
+  - `shared.js` - Code shared between server & client
+  - CSS files, images, icons, and other assets
+- `README.md` - Package documentation
+
+All files except `deno.json` are optional. Packages can be client-only,
+server-only, or mixed.
 
 ### Module Structure
 
-JavaScript files (i.e. modules) inside a package must follow these conventions:
+JavaScript files (modules) must follow these conventions:
 
-- Each JavaScript file must contain a single named object as its default export.
+1. Each file exports a single named object as its default export
+2. All functions, variables, and classes must be properties of this object
+3. Internal references must use `objectName.propertyName` syntax
+4. Private/internal members are prefixed with underscore (`_`)
 
-- All functions, variables, classes, etc., must be part of this object and refer
-  to each other using the `objectName.key` syntax.
-
-- To indicate that a particular function or variable is not part of the stable
-  public API, its name can be prefixed with an underscore (`_`).
-
-- something about imports
-
-- something about documentation
-
-This design allows any individual function or variable to be overridden by an
-external plugin, enhancing extensibility.
-
-Here's an example:
+This design allows any function or variable to be overridden by plugins.
+Example:
 
 ```javascript
-// myModule.js
-const myModule = {
-  publicFunction() {
-    console.log("This is a public function.");
-    myModule._privateFunction(); // Referencing an internal function
+// utils.js
+const utils = {
+  formatData(input) {
+    console.log("Processing input...");
+    utils._validate(input); // Internal reference using object name
   },
 
-  _privateFunction() {
-    console.log("This is a private function, not part of the public API.");
+  _validate(data) {
+    console.log("Internal validation logic");
   },
 };
 
-export default myModule;
+export default utils;
 ```
 
 ### Core Packages
 
-SwiftAce's core functionality is organized into scoped packages under
-`@swiftace`:
+The platform's core functionality is organized into scoped packages:
 
-#### @swiftace/main
+#### @scope/core
 
-The main application package that handles:
+A typical core package might handle:
 
-- HTTP request routing and handling
-- Core application functionality
-- Integration with other packages
-- Server-side rendering
+- Request routing and handling
+- Core functionality
+- Package integration
+- Content rendering
 
-#### @swiftace/jshtml
+#### @scope/utils
 
-A lightweight templating package that:
+A typical utility package might provide:
 
-- Provides server-side HTML rendering
-- Uses a simple array-based syntax for template definition
-- Supports dynamic content and component composition
-- Enables clean separation of markup and logic
+- Helper functions
+- Shared components
+- Data processing
+- Common interfaces
 
 ## Core Design Principles
 
@@ -114,5 +116,5 @@ A lightweight templating package that:
 2. Clone the repository
 3. Run the development server:
    ```bash
-   deno run --allow-net src/@swiftace/main/server.js
+   deno task dev
    ```

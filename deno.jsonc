@@ -1,10 +1,8 @@
 {
   "tasks": {
-    "start": "deno serve --allow-read --watch ./src/@swiftace/main/server.js"
+    "start": "deno serve --allow-read --watch ./@swiftace/main/server.js"
   },
-  "imports": {
-    "@swiftace/": "./src/@swiftace/"
-  },
+  "workspace": ["@swiftace/main", "@swiftace/jshtml"],
   "lint": {
     "include": ["./src/"],
     "rules": {

@@ -1,0 +1,9 @@
+{
+  "name": "@swiftace/jshtml",
+  "version": "0.0.1",
+  "exports": {
+    "./server.js": "./server.js"
+    // "./public/client.js": "./public/client.js",
+    // "./public/shared.js": "./public/shared.js"
+  }
+}
