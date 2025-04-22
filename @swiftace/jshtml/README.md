@@ -175,7 +175,7 @@ Non-string attribute values are handled as follows while rendering:
 
 Children can be provided in two ways:
 
-1. As additional array elements after the tag and props:
+1. As additional elements after the tag and props:
 
 ```javascript
 const element1 = [
@@ -191,6 +191,22 @@ const element2 = [
   [`h1`, "Title"],
   [`p`, "First paragraph"],
   [`p`, "Second paragraph"],
+];
+```
+
+**NOTE**: When passing children as array elements, make sure not to wrap them in
+another array. The following is invalid:
+
+```javascript
+// ❌ Wrong
+const element2 = [
+  `div`,
+  { class: "container" },
+  [
+    [`h1`, "Title"],
+    [`p`, "First paragraph"],
+    [`p`, "Second paragraph"],
+  ],
 ];
 ```
 

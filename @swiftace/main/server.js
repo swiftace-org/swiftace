@@ -1,9 +1,11 @@
 import jshtmlServer from "@swiftace/jshtml/server.js";
+import router from "@swiftace/router/server.js";
 
 const coreServer = {
   async fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;
+    const method = req.method;
 
     // Check if the request is for a public file
     const publicFileMatch = coreServer.isPublicFilePath(path);
@@ -12,12 +14,36 @@ const coreServer = {
       return coreServer.servePublicFile(scope, project, filePath);
     }
 
-    // Return the home page for the root path
-    const html = jshtmlServer.renderToHtml([coreServer.homePage]);
-    return new Response(html, {
-      headers: { "content-type": "text/html" },
+    // Use router to match the request
+    const match = router.match({
+      routes: coreServer.routes,
+      path,
+      method,
     });
+
+    if (match.handler) {
+      const html = jshtmlServer.renderToHtml([match.handler]);
+      return new Response(html, {
+        headers: { "content-type": "text/html" },
+      });
+    }
+
+    // Return 404 if no route matches
+    return new Response("Not Found", { status: 404 });
   },
+
+  routes: [
+    {
+      path: "/",
+      method: "GET",
+      handler: () => coreServer.homePage(),
+    },
+    {
+      path: "/about",
+      method: "GET",
+      handler: () => coreServer.aboutPage(),
+    },
+  ],
 
   /**
    * Maps file extensions to their corresponding MIME content types
@@ -71,6 +97,15 @@ const coreServer = {
     }
   },
 
+  Nav() {
+    return [
+      `nav`,
+      { style: "display: flex; gap: 1rem;" },
+      [`a`, { href: "/" }, "Home"],
+      [`a`, { href: "/about" }, "About"],
+    ];
+  },
+
   /**
    * Creates the home page component
    * @returns {Array} JSHTML element array representing the home page
@@ -97,18 +132,74 @@ const coreServer = {
       ],
       [
         `body`,
-        [`div`, { class: "container" }, [`h1`, "Welcome to SwiftAce"], [
-          `p`,
-          "A modern web application built with Deno and pure JavaScript.",
-        ], [
-          `ul`,
-          [`li`, "No frontend frameworks"],
-          [`li`, "No third-party services"],
-          [`li`, "Deployed to plain cloud VMs"],
-          [`li`, "100% test coverage"],
-          [`li`, "No build step"],
-          [`li`, "Extensible by design"],
-        ]],
+        [
+          `div`,
+          { class: "container" },
+          [`h1`, "Welcome to SwiftAce"],
+          [coreServer.Nav],
+          [
+            `p`,
+            "A modern web application built with Deno and pure JavaScript.",
+          ],
+          [
+            `ul`,
+            [`li`, "No frontend frameworks"],
+            [`li`, "No third-party services"],
+            [`li`, "Deployed to plain cloud VMs"],
+            [`li`, "100% test coverage"],
+            [`li`, "No build step"],
+            [`li`, "Extensible by design"],
+          ],
+        ],
+      ],
+    ];
+  },
+
+  aboutPage() {
+    return [
+      `html`,
+      [
+        `head`,
+        [`title`, "About SwiftAce"],
+        [`meta`, { charset: "utf-8" }],
+        [
+          `meta`,
+          { name: "viewport", content: "width=device-width, initial-scale=1" },
+        ],
+        [
+          `link`,
+          { rel: "stylesheet", href: "/@swiftace/main/public/styles.css" },
+        ],
+        [
+          `script`,
+          { src: "/@swiftace/main/public/client.js", defer: true },
+        ],
+      ],
+      [
+        `body`,
+        [
+          `div`,
+          { class: "container" },
+          [`h1`, "About SwiftAce"],
+          [coreServer.Nav],
+          [
+            `p`,
+            "SwiftAce is a modern web application framework built with Deno and pure JavaScript.",
+          ],
+          [
+            `p`,
+            "It focuses on simplicity, performance, and developer experience.",
+          ],
+          [`h2`, "Key Features"],
+          [
+            `ul`,
+            [`li`, "Lightweight and fast"],
+            [`li`, "No build step required"],
+            [`li`, "Built-in routing system"],
+            [`li`, "Component-based architecture"],
+            [`li`, "Server-side rendering"],
+          ],
+        ],
       ],
     ];
   },
