@@ -98,22 +98,44 @@ A typical utility package might provide:
 - Data processing
 - Common interfaces
 
-## Core Design Principles
+## Coding Guidelines
 
-1. **No Frontend Frameworks**: Built with raw HTML, CSS, and JavaScript for
-   maximum control and performance
-2. **No Third-Party Services**: All functionality built in-house or using
-   open-source tools
-3. **Plain Cloud VMs**: Deployed to traditional cloud VMs for better performance
-   and reliability
-4. **100% Test Coverage**: Comprehensive testing for stable, bug-free releases
-5. **No Build Step**: Direct execution without transpilation or build steps
-6. **Extensible by Design**: Plugin system for extending every component
+SwiftAce is a web application written in JavaScript using the Deno runtime. Here
+are some design principles:
+
+1. **No Frontend Frameworks**: I'm using raw HTML, CSS, and JavaScript (no
+   React, Next.js, Tailwind, TypeScript etc.) to ensure maximum control, reduce
+   complexity, allow customization, and improve performance.
+
+2. **No Third-Party Services**: All functionality (database, user
+   authentication, analytics, monitoring, email, background jobs) will be built
+   in-house or using open-source tools/libraries to avoid vendor lock-in, reduce
+   costs, improve stability, and ensure privacy.
+
+3. **Deployed to Plain Old Cloud VMs**: I've decided to ditch serverless for
+   plain old cloud VMs, as it will make the application faster, cheaper, and
+   more reliable.
+
+4. **100% Test Coverage**: Unlike SaaS platforms where new features are deployed
+   weekly/daily, open-source software has a slower release cycle and users
+   expect new versions to be stable and bug-free, so we need extensive testing.
+
+5. **No Build Step**: There is no transpilation, building, or build step. The
+   exact same command will run in both development and production. We'll use
+   Deno's built-in HTTP server to handle HTTP requests, make database queries,
+   and return HTML/JSON.
+
+6. **Extensible by Design**: User-installed plugins should be able to modify or
+   extend every single component of SwiftAce, down to individual functions,
+   variables, and HTML elements. To achive this, every module will export a
+   single named object as its default export, which contains all its contents.
 
 ## Development
 
-1. Install Deno (version 1.x or later)
+1. Install Deno (version 2.x or later)
+
 2. Clone the repository
+
 3. Run the development server:
    ```bash
    deno task dev
