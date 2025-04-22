@@ -4,7 +4,7 @@
 courses. It can be self-hosted, white labeled, customized, and extended using
 plugins. SwiftAce is built with Deno, using plain HTML, CSS, and JavaScript.
 
-### Project Structure
+## Project Structure
 
 The codebase is organized into scoped packages under the root directory.
 Multiple scopes allow logical grouping of related packages. This modular
@@ -20,7 +20,7 @@ third-party packages.
 └── package-d/
 ```
 
-### Package Structure
+## Package Structure
 
 Each package must contain a `deno.json` file with:
 
@@ -48,7 +48,7 @@ Other files within a package follow these conventions:
 All files except `deno.json` are optional. Packages can be client-only,
 server-only, or mixed.
 
-### Module Structure
+## File Structure
 
 JavaScript files (modules) must follow these conventions:
 
@@ -76,7 +76,7 @@ const utils = {
 export default utils;
 ```
 
-## Coding Guidelines
+## Design Principles
 
 SwiftAce is a web application written in JavaScript using the Deno runtime. Here
 are some design principles:
@@ -110,7 +110,7 @@ are some design principles:
 
 ## Development
 
-1. Install Deno (version 2.x or later)
+1. Install [Deno](https://deno.com) (version 2.x or later)
 
 2. Clone the repository
 
