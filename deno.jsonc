@@ -20,8 +20,8 @@
         "no-sparse-arrays",
         "no-sync-fn-in-async-fn",
         "no-throw-literal",
-        "eqeqeq",
-        "no-boolean-literal-for-arguments"
+        "eqeqeq"
+        // "no-boolean-literal-for-arguments"
         // "ban-untagged-todo",
         // "single-var-declarator"
       ]
