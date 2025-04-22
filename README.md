@@ -65,7 +65,7 @@ Example:
 const utils = {
   formatData(input) {
     console.log("Processing input...");
-    utils._validate(input); // Internal reference using object name
+    utils._validate(input); // Internal reference using object name (not this)
   },
 
   _validate(data) {
@@ -75,28 +75,6 @@ const utils = {
 
 export default utils;
 ```
-
-### Core Packages
-
-The platform's core functionality is organized into scoped packages:
-
-#### @scope/core
-
-A typical core package might handle:
-
-- Request routing and handling
-- Core functionality
-- Package integration
-- Content rendering
-
-#### @scope/utils
-
-A typical utility package might provide:
-
-- Helper functions
-- Shared components
-- Data processing
-- Common interfaces
 
 ## Coding Guidelines
 
