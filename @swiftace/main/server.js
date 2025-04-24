@@ -1,4 +1,4 @@
-import jshtmlServer from "@swiftace/jshtml/server.js";
+import jshtmlServer from "@shipjs/jshtml/server.js";
 
 const coreServer = {
   async fetch(req) {

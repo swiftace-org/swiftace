@@ -17,7 +17,7 @@
   },
   "workspace": {
     "members": {
-      "@swiftace/jshtml": {
+      "@shipjs/jshtml": {
         "dependencies": [
           "jsr:@std/assert@^1.0.12"
         ]
