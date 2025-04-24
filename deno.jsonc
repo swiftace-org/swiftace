@@ -2,8 +2,15 @@
   "tasks": {
     "start": "deno serve --allow-read --watch ./@swiftace/main/server.js"
   },
-  "workspace": ["@swiftace/main", "@shipjs/jshtml", "@swiftace/router"],
+  "workspace": [
+    "@swiftace/main",
+    "@shipjs/jshtml"
+  ],
   "lint": {
+    "include": [
+      "./@swiftace",
+      "./@shipjs"
+    ],
     "rules": {
       "tags": ["recommended"],
       "include": [

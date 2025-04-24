@@ -184,7 +184,7 @@ Deno.test(`${renderToHtml.name} - throws for invalid tag in array`, () => {
   assertThrows(
     () => renderToHtml(input),
     Error,
-    "'element[0]' must be a string or a function. Received: {}",
+    "'element[0]' must be a string or function. Received: {}",
   );
 });
 
@@ -251,7 +251,7 @@ Deno.test(`${renderToJson.name} - throws for invalid tag in array`, () => {
   assertThrows(
     () => renderToJson(input),
     Error,
-    "'element[0]' must be a string or a function",
+    "'element[0]' must be a string or function. Received: {}",
   );
 });
 

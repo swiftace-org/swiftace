@@ -214,7 +214,8 @@ const jshtmlServer = {
     const [tag, props] = element;
     jshtmlServer._assert(
       typeof tag === "string" || typeof tag === "function",
-      "'element[0]' must be a string or function. Received: " + tag,
+      "'element[0]' must be a string or function. Received: " +
+        JSON.stringify(tag),
     );
     const assertResult = jshtmlServer._makeAssert(
       (r) => typeof r === "object",

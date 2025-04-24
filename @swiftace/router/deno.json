@@ -1,6 +1,0 @@
-{
-  "name": "@swiftace/router",
-  "exports": {
-    "./server.js": "./server.js"
-  }
-}
