@@ -1,6 +1,20 @@
+/**
+ * @module @swiftace/main/server
+ * @description Core server implementation for SwiftAce, handling routing, file serving, and page rendering.
+ */
+
 import jshtmlServer from "@shipjs/jshtml/server.js";
 
+/**
+ * Core server implementation for SwiftAce
+ * @type {Object}
+ */
 const coreServer = {
+  /**
+   * Main request handler for the server
+   * @param {Request} req - The incoming HTTP request
+   * @returns {Promise<Response>} The HTTP response
+   */
   async fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;
@@ -31,6 +45,13 @@ const coreServer = {
     return new Response("Not Found", { status: 404 });
   },
 
+  /**
+   * Array of route definitions for the server
+   * @type {Array<Object>}
+   * @property {string} path - The route path pattern
+   * @property {string} method - HTTP method for the route
+   * @property {Function} handler - The handler function for the route
+   */
   routes: [
     {
       path: "/",
@@ -96,6 +117,10 @@ const coreServer = {
     }
   },
 
+  /**
+   * Navigation component for the application
+   * @returns {Array} JSHTML element array representing the navigation bar
+   */
   Nav() {
     return [
       `nav`,
@@ -159,6 +184,10 @@ const coreServer = {
     ];
   },
 
+  /**
+   * Creates the about page component
+   * @returns {Array} JSHTML element array representing the about page
+   */
   aboutPage() {
     return [
       `html`,
@@ -330,6 +359,10 @@ const coreServer = {
     return {};
   },
 
+  /**
+   * Directory name of the current module
+   * @type {string}
+   */
   dirname: import.meta.dirname,
 };
 
