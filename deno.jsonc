@@ -4,7 +4,7 @@
   },
   "workspace": [
     "@swiftace/main",
-    "@shipjs/jshtml"
+    "@shipjs/markup"
   ],
   "lint": {
     "include": [

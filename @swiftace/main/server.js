@@ -3,7 +3,7 @@
  * @description Core server implementation for SwiftAce, handling routing, file serving, and page rendering.
  */
 
-import jshtmlServer from "@shipjs/jshtml/server.js";
+import markup from "@shipjs/markup/server.js";
 
 /**
  * Core server implementation for SwiftAce
@@ -35,7 +35,7 @@ const coreServer = {
     });
 
     if (match.handler) {
-      const html = jshtmlServer.renderToHtml([match.handler]);
+      const html = markup.renderToHtml([match.handler]);
       return new Response(html, {
         headers: { "content-type": "text/html" },
       });
@@ -119,7 +119,7 @@ const coreServer = {
 
   /**
    * Navigation component for the application
-   * @returns {Array} JSHTML element array representing the navigation bar
+   * @returns {Array} Markup element array representing the navigation bar
    */
   Nav() {
     return [
@@ -132,7 +132,7 @@ const coreServer = {
 
   /**
    * Creates the home page component
-   * @returns {Array} JSHTML element array representing the home page
+   * @returns {Array} Markup element array representing the home page
    */
   homePage() {
     return [
@@ -186,7 +186,7 @@ const coreServer = {
 
   /**
    * Creates the about page component
-   * @returns {Array} JSHTML element array representing the about page
+   * @returns {Array} Markup element array representing the about page
    */
   aboutPage() {
     return [

@@ -17,7 +17,7 @@
   },
   "workspace": {
     "members": {
-      "@shipjs/jshtml": {
+      "@shipjs/markup": {
         "dependencies": [
           "jsr:@std/assert@^1.0.12"
         ]

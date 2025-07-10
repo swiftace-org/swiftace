@@ -1,15 +1,15 @@
 /**
- * `jshtml` is a lightweight library for writing clean and performant HTML in pure JavaScript.
+ * `@shipjs/markup` is a lightweight library for writing clean and performant HTML in pure JavaScript.
  * Create HTML elements and custom components naturally using JavaScript arrays and functions,
  * then render them to spec-compliant HTML strings or serializable JSON.
  *
  * @example
  * ```js
- * import jshtml from "@swiftace/jshtml/server.js";
+ * import markup from "@shipjs/markup/server.js";
  *
  * // Define your components using regular JavaScript functions
  * function App() {
- *   const title = "My JSHTML App";
+ *   const title = "My Markup App";
  *   const items = ["Apple", "Banana", "Orange"];
  *
  *   // Use nested arrays to create HTML elements
@@ -37,34 +37,34 @@
  *
  * // Components can accept children
  * function Footer({ children }) {
- *   return [`footer`, [`p`, "© 2024 JSHTML"], ...children];
+ *   return [`footer`, [`p`, "© 2024 Markup"], ...children];
  * }
  *
  * // Render to a spec-compliant HTML string
- * const html = jshtml.renderToHtml([App]);
+ * const html = markup.renderToHtml([App]);
  * console.log(html);
  * ```
  *
  * @todo
  * - [ ] Include `rawHtml` before children (and remove errors for both present case)
  */
-const jshtmlServer = {
+const markup = {
   /**
-   * Renders a JSHTML element into a valid spec-compliant HTML string
-   * Supports raw data types and well as array-based JSHTML elements
+   * Renders a Markup element into a valid spec-compliant HTML string
+   * Supports raw data types and well as array-based Markup elements
    *
-   * @param {any} element - The JSHTML element to be rendered as HTML
+   * @param {any} element - The Markup element to be rendered as HTML
    * @returns {string} - The HTML string representation of the element
    */
   renderToHtml(element) {
     const elType = typeof element;
     const rawTypes = ["string", "number", "bigint", "boolean", "undefined"];
-    jshtmlServer._assert(
+    markup._assert(
       rawTypes.indexOf(elType) !== -1 || Array.isArray(element) ||
         element === null,
       "Invalid 'element'",
     );
-    const assertResult = jshtmlServer._makeAssert(
+    const assertResult = markup._makeAssert(
       (result) => typeof result === "string",
       "'result' must be a string",
     );
@@ -76,7 +76,7 @@ const jshtmlServer = {
 
     // Text
     if (elType === "string") {
-      return assertResult(jshtmlServer._escapeForHtml(element));
+      return assertResult(markup._escapeForHtml(element));
     }
 
     // Other primitive types
@@ -85,7 +85,7 @@ const jshtmlServer = {
     }
 
     // Array
-    const { tag, props, children } = jshtmlServer._parseArray(element);
+    const { tag, props, children } = markup._parseArray(element);
     // Empty tag
     if (tag === ``) {
       const { rawHtml, ...attrs } = props;
@@ -105,18 +105,18 @@ const jshtmlServer = {
       }
 
       // List of elements
-      return assertResult(children.map(jshtmlServer.renderToHtml).join(""));
+      return assertResult(children.map(markup.renderToHtml).join(""));
 
       // HTML tag
     } else if (typeof tag === "string") {
-      if (!jshtmlServer._isValidTag(tag)) {
+      if (!markup._isValidTag(tag)) {
         throw Error(`Invalid tag name: ${tag}`);
       }
       const { rawHtml, ...attrs } = props;
-      const attrsStr = jshtmlServer._attrsToStr(attrs);
+      const attrsStr = markup._attrsToStr(attrs);
 
       // Void Tag
-      if (jshtmlServer.VOID_TAGS.indexOf(tag) !== -1) {
+      if (markup.VOID_TAGS.indexOf(tag) !== -1) {
         if (children.length > 0) {
           throw Error(`Void tag ${tag} can't have children`);
         }
@@ -136,13 +136,13 @@ const jshtmlServer = {
       }
 
       // Normal tag with children
-      const childrenStr = children.map(jshtmlServer.renderToHtml).join("");
+      const childrenStr = children.map(markup.renderToHtml).join("");
       return assertResult(`<${tag}${attrsStr}>${childrenStr}</${tag}>`);
 
       // Function component
     } else if (typeof tag === "function") {
       return assertResult(
-        jshtmlServer.renderToHtml(tag({ children, ...props })),
+        markup.renderToHtml(tag({ children, ...props })),
       );
     }
 
@@ -151,30 +151,30 @@ const jshtmlServer = {
   },
 
   /**
-   * Renders a JSHTML element into JSON-serializable format
+   * Renders a Markup element into JSON-serializable format
    * Invokes all function components with their props and children
    *
-   * @param {any} element - The JSHTML element to be rendered as HTML
+   * @param {any} element - The Markup element to be rendered as HTML
    * @returns {any} - A JSON-serializable representation of the element
    */
   renderToJson(element) {
     const elType = typeof element;
     const rawTypes = ["string", "number", "bigint", "boolean", "undefined"];
-    jshtmlServer._assert(
+    markup._assert(
       rawTypes.indexOf(elType) !== -1 || Array.isArray(element) ||
         element === null,
       "Invalid 'element'",
     );
-    const assertResult = jshtmlServer._makeAssert(
+    const assertResult = markup._makeAssert(
       (r) =>
         rawTypes.indexOf(typeof r) !== -1 || Array.isArray(r) || r === null,
       "Invalid 'result'",
     );
 
     if (!Array.isArray(element)) return assertResult(element);
-    const { tag, props, children } = jshtmlServer._parseArray(element);
+    const { tag, props, children } = markup._parseArray(element);
     if (typeof tag === "string") {
-      const renderedChildren = children.map(jshtmlServer.renderToJson);
+      const renderedChildren = children.map(markup.renderToJson);
       const hasProps = Object.keys(props).length > 0;
       return assertResult(
         hasProps
@@ -183,7 +183,7 @@ const jshtmlServer = {
       );
     } else if (typeof tag === "function") {
       return assertResult(
-        jshtmlServer.renderToJson(tag({ children, ...props })),
+        markup.renderToJson(tag({ children, ...props })),
       );
     }
     throw Error("'element[0]' must be a string or a function");
@@ -192,14 +192,14 @@ const jshtmlServer = {
   /**
    * Create a "raw" HTML element that won't be escaped while rendering
    * @param {string} htmlStr  - The raw HTML string
-   * @returns {any} - A `jshtml` element for the raw HTML
+   * @returns {any} - A `markup` element for the raw HTML
    */
   rawHtml(htmlStr) {
     return [``, { rawHtml: htmlStr }];
   },
 
   /**
-   * Parses an array representing a JSHTML element into tag, props, and children
+   * Parses an array representing a Markup element into tag, props, and children
    * @param {Array} element - A non-empty array where:
    *   - The first item is the tag (string or function).
    *   - The second item (optional) is an object of properties (`props`).
@@ -207,23 +207,23 @@ const jshtmlServer = {
    * @returns {Object} - an object with keys `tag`, `props`, and `children`
    */
   _parseArray(element) {
-    jshtmlServer._assert(
+    markup._assert(
       Array.isArray(element) && element.length > 0,
       "'element' must be a non-empty array",
     );
     const [tag, props] = element;
-    jshtmlServer._assert(
+    markup._assert(
       typeof tag === "string" || typeof tag === "function",
       "'element[0]' must be a string or function. Received: " +
         JSON.stringify(tag),
     );
-    const assertResult = jshtmlServer._makeAssert(
+    const assertResult = markup._makeAssert(
       (r) => typeof r === "object",
       "result must be an object",
     );
 
     // No props
-    if (!jshtmlServer._isObject(element[1])) {
+    if (!markup._isObject(element[1])) {
       return assertResult({ tag, props: {}, children: element.slice(1) });
     }
 
@@ -249,11 +249,11 @@ const jshtmlServer = {
    * @returns {string} - The santized string
    */
   _escapeForHtml(unsafeStr) {
-    jshtmlServer._assert(
+    markup._assert(
       typeof unsafeStr === "string",
       `'unsafeStr' must be a string`,
     );
-    const assertResult = jshtmlServer._makeAssert(
+    const assertResult = markup._makeAssert(
       (res) => typeof res === "string",
       "result must be a string",
     );
@@ -270,11 +270,11 @@ const jshtmlServer = {
    * @returns {string} - Attributes converted to a string
    */
   _attrsToStr(attrs) {
-    jshtmlServer._assert(
-      jshtmlServer._isObject(attrs),
+    markup._assert(
+      markup._isObject(attrs),
       `'attrs' must be an object`,
     );
-    const assertResult = jshtmlServer._makeAssert(
+    const assertResult = markup._makeAssert(
       (res) => typeof res === "string",
       "result must be a string",
     );
@@ -283,13 +283,13 @@ const jshtmlServer = {
     const attrsStr = Object.keys(attrs)
       .filter((name) => emptyVals.indexOf(attrs[name]) === -1)
       .map((name) => {
-        jshtmlServer._assert(
-          jshtmlServer._isValidAttr(name),
+        markup._assert(
+          markup._isValidAttr(name),
           `Illegal attribute name: ${name}`,
         );
         const value = attrs[name];
         if (value === true) return ` ${name}`;
-        return ` ${name}="${jshtmlServer._escapeForHtml(value.toString())}"`;
+        return ` ${name}="${markup._escapeForHtml(value.toString())}"`;
       })
       .join("");
     return assertResult(attrsStr);
@@ -303,8 +303,8 @@ const jshtmlServer = {
    * @returns {boolean} - `true` if `name` is valid, `false` otherwise
    */
   _isValidAttr(name) {
-    jshtmlServer._assert(typeof name === "string", "'name' must be a string");
-    const assertResult = jshtmlServer._makeAssert(
+    markup._assert(typeof name === "string", "'name' must be a string");
+    const assertResult = markup._makeAssert(
       (r) => typeof r === "boolean",
       "'result' must be a boolean",
     );
@@ -325,11 +325,11 @@ const jshtmlServer = {
    * @returns {boolean} `true` if `name` is valid, `false` otherwise
    */
   _isValidTag(name) {
-    jshtmlServer._assert(
+    markup._assert(
       typeof name === "string",
       "'name' must be a non-empty string",
     );
-    const assertResult = jshtmlServer._makeAssert(
+    const assertResult = markup._makeAssert(
       (r) => typeof r === "boolean",
       "'result' must be a boolean",
     );
@@ -379,10 +379,10 @@ const jshtmlServer = {
    * @param {any} expr - The expression to be checked
    * @param {string} [msg] - Message to be included in the error
    * @returns {undefined} - No return value
-   * @throws {jshtml.AssertionError} - If `expr` evaluates to false
+   * @throws {markupServer.AssertionError} - If `expr` evaluates to false
    */
   _assert(expr, msg = "") {
-    if (!expr) throw new jshtmlServer.AssertionError(msg);
+    if (!expr) throw new markup.AssertionError(msg);
   },
 
   /**
@@ -394,7 +394,7 @@ const jshtmlServer = {
    */
   _makeAssert(predicate, msg = "") {
     return function (value) {
-      jshtmlServer._assert(predicate(value), msg);
+      markup._assert(predicate(value), msg);
       return value;
     };
   },
@@ -403,4 +403,4 @@ const jshtmlServer = {
   AssertionError: class extends Error {},
 };
 
-export default jshtmlServer;
+export default markup;

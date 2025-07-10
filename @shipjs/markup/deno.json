@@ -1,5 +1,5 @@
 {
-  "name": "@shipjs/jshtml",
+  "name": "@shipjs/markup",
   "version": "0.0.1",
   "exports": {
     "./server.js": "./server.js"

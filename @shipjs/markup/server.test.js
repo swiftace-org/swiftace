@@ -1,7 +1,7 @@
-import jshtml from "./server.js";
+import markup from "./server.js";
 import { assertEquals, assertThrows } from "@std/assert";
 
-const { renderToHtml } = jshtml;
+const { renderToHtml } = markup;
 
 Deno.test(`${renderToHtml.name} - renders empty elements`, () => {
   assertEquals(renderToHtml(null), "");
@@ -203,7 +203,7 @@ Deno.test(`${renderToHtml.name} - throws if children are included twice for a fu
   );
 });
 
-const { renderToJson } = jshtml;
+const { renderToJson } = markup;
 
 Deno.test(`${renderToJson.name} - returns element as-is if not an array`, () => {
   assertEquals(renderToJson("text"), "text");
@@ -212,7 +212,7 @@ Deno.test(`${renderToJson.name} - returns element as-is if not an array`, () => 
   assertEquals(renderToJson(null), null);
 });
 
-Deno.test(`${renderToJson.name} - converts a JSHTML element to JSON`, () => {
+Deno.test(`${renderToJson.name} - converts a Markup element to JSON`, () => {
   const input = [`div`, { class: "container" }, "Hello", [`span`, {}, "World"]];
   const expected = [`div`, { class: "container" }, "Hello", ["span", "World"]];
   assertEquals(renderToJson(input), expected);
@@ -270,7 +270,7 @@ Deno.test(`${renderToJson.name} - throws if children are included twice for a fu
   );
 });
 
-const { _parseArray } = jshtml;
+const { _parseArray } = markup;
 
 Deno.test(`${_parseArray.name} - throws if 'element' is not a non-empty array`, () => {
   const msg = "'element' must be a non-empty array";
@@ -325,7 +325,7 @@ Deno.test(`${_parseArray.name} - throws if children is not an array`, () => {
   );
 });
 
-const { _escapeForHtml } = jshtml;
+const { _escapeForHtml } = markup;
 
 Deno.test(`${_escapeForHtml.name} - escapes &, <, >, \", and '`, () => {
   const input = 'Tom & Jerry\'s < "quotes" >';
@@ -347,7 +347,7 @@ Deno.test(`${_escapeForHtml.name} - throws for non-string input`, () => {
   assertThrows(() => _escapeForHtml({}), Error, message);
 });
 
-const { _attrsToStr } = jshtml;
+const { _attrsToStr } = markup;
 
 Deno.test(`${_attrsToStr.name} - renders empty object`, () => {
   assertEquals(_attrsToStr({}), "");
@@ -382,7 +382,7 @@ Deno.test(`${_attrsToStr.name} - throws for illegal attribute names`, () => {
   assertThrows(() => _attrsToStr(input), Error, msg);
 });
 
-const { _isValidAttr } = jshtml;
+const { _isValidAttr } = markup;
 
 Deno.test(`${_isValidAttr.name} - returns false for the empty string`, () => {
   assertEquals(_isValidAttr(""), false);
@@ -422,7 +422,7 @@ Deno.test(`${_isValidAttr.name} - throws for non-string input`, () => {
   assertThrows(() => _isValidAttr(undefined), Error, "'name' must be a string");
 });
 
-const { _isValidTag } = jshtml;
+const { _isValidTag } = markup;
 
 Deno.test(`${_isValidTag.name} - returns false for invalid tag names`, () => {
   assertEquals(_isValidTag(""), false);
