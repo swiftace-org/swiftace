@@ -13,6 +13,7 @@ Each task file must include YAML front matter with the following fields:
 id: 00001
 title: Task title goes here
 status: TODO
+created: 2025-09-30
 ---
 ```
 
@@ -21,6 +22,7 @@ status: TODO
 - `TODO` - Task has not been started
 - `DOING` - Task is currently in progress
 - `DONE` - Task has been completed
+- `SKIP` - Task has been skipped or cancelled
 
 ## Description
 
@@ -33,6 +35,7 @@ After the front matter, include a markdown description of the task with any rele
 id: 00001
 title: Set up project structure
 status: DOING
+created: 2025-09-30
 ---
 
 Create the initial directory structure for the SwiftAce project including:
