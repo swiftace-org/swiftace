@@ -18,7 +18,8 @@ CREATE TABLE "account_subscriptions" (
 	"stripe_price_id" text,
 	"status" text NOT NULL,
 	"current_period_end" timestamp,
-	"cancel_at_period_end" boolean DEFAULT false NOT NULL
+	"cancel_at_period_end" boolean DEFAULT false NOT NULL,
+	CONSTRAINT "account_subscriptions_stripe_subscription_id_key" UNIQUE("stripe_subscription_id")
 );
 --> statement-breakpoint
 CREATE TABLE "accounts" (
@@ -31,7 +32,8 @@ CREATE TABLE "accounts" (
 	"email" varchar(128) NOT NULL,
 	"deleted" boolean DEFAULT false NOT NULL,
 	"is_admin" boolean DEFAULT false NOT NULL,
-	"flagged_as_spammer" boolean DEFAULT false NOT NULL
+	"flagged_as_spammer" boolean DEFAULT false NOT NULL,
+	CONSTRAINT "accounts_email_key" UNIQUE("email")
 );
 --> statement-breakpoint
 CREATE TABLE "ai_tutor_conversations" (
@@ -88,7 +90,7 @@ CREATE TABLE "course_assignment_submissions" (
 	"assignment_url" text,
 	"blog_url" text,
 	"description" text,
-	"assignment" jsonb,
+	"assignment" json,
 	"evaluator_id" bigint,
 	"assignment_status" text,
 	"comments" text,
@@ -100,8 +102,8 @@ CREATE TABLE "course_assignment_submissions" (
 	"is_plagiarised" boolean,
 	"plagiarism_checked_at" timestamp,
 	"original_submission_id" bigint,
-	"assignment_file_cells_hash_list" jsonb,
-	"level_2_plagiarised_info" jsonb
+	"assignment_file_cells_hash_list" json,
+	"level_2_plagiarised_info" json
 );
 --> statement-breakpoint
 CREATE TABLE "course_certificates" (
@@ -125,7 +127,7 @@ CREATE TABLE "course_enrollments" (
 	"certification_status" text,
 	"payment_status" text,
 	"comments" text,
-	"preferences" jsonb,
+	"preferences" json,
 	CONSTRAINT "course_enrollments_pkey" PRIMARY KEY("course_id","enrollee_id")
 );
 --> statement-breakpoint
@@ -167,7 +169,7 @@ CREATE TABLE "course_sections" (
 	"title_prefix" text,
 	"description" text,
 	"section_type" varchar(20),
-	"modules" jsonb,
+	"modules" json,
 	"deleted" boolean DEFAULT false NOT NULL,
 	"is_optional" boolean DEFAULT false NOT NULL,
 	"require_questions" boolean DEFAULT false NOT NULL,
@@ -175,7 +177,7 @@ CREATE TABLE "course_sections" (
 	"allow_draft" boolean DEFAULT false NOT NULL,
 	"visibility" text,
 	"video_url" text,
-	"notebooks" jsonb,
+	"notebooks" json,
 	"discussion_url" text,
 	"quiz_url" text,
 	"transcript" text,
@@ -186,10 +188,10 @@ CREATE TABLE "course_sections" (
 	"evaluation_script" text,
 	"evaluation_email_automated" boolean DEFAULT true NOT NULL,
 	"evaluation_guide_internal" text,
-	"submission_requirements" jsonb,
+	"submission_requirements" json,
 	"evaluation_email_manual" boolean DEFAULT true NOT NULL,
 	"additional_information" text,
-	"notebooks_hash_list" jsonb
+	"notebooks_hash_list" json
 );
 --> statement-breakpoint
 CREATE TABLE "courses" (
@@ -203,8 +205,8 @@ CREATE TABLE "courses" (
 	"description" text,
 	"cover" text,
 	"meta_image" text,
-	"meta" jsonb,
-	"sections" jsonb,
+	"meta" json,
+	"sections" json,
 	"published" boolean DEFAULT false NOT NULL,
 	"slack_enabled" boolean DEFAULT false NOT NULL,
 	"show_right_sidebar" boolean DEFAULT false NOT NULL,
@@ -225,7 +227,7 @@ CREATE TABLE "courses" (
 	"welcome_email_content_preview" text,
 	"discussion_url" text,
 	"additional_information" text,
-	"application_form" jsonb,
+	"application_form" json,
 	"slack_workspace_id" varchar(20),
 	"level" varchar(20),
 	"send_class_reminder" boolean DEFAULT false NOT NULL,
@@ -287,12 +289,15 @@ CREATE TABLE "github_accounts" (
 	"email_verified" boolean DEFAULT false NOT NULL,
 	"email_primary" boolean DEFAULT false NOT NULL,
 	"email_public" boolean DEFAULT false NOT NULL,
-	"emails_list" jsonb,
+	"emails_list" json,
 	"display_name" text,
 	"profile_url" text,
 	"github_updated_at" text,
 	"access_token" text,
-	"account_id" bigint NOT NULL
+	"account_id" bigint NOT NULL,
+	CONSTRAINT "github_accounts_github_id_key" UNIQUE("github_id"),
+	CONSTRAINT "github_accounts_username_key" UNIQUE("username"),
+	CONSTRAINT "github_accounts_normalized_username_key" UNIQUE("normalized_username")
 );
 --> statement-breakpoint
 CREATE TABLE "google_accounts" (
@@ -302,7 +307,9 @@ CREATE TABLE "google_accounts" (
 	"google_id" text NOT NULL,
 	"email" text NOT NULL,
 	"email_verified" boolean DEFAULT false NOT NULL,
-	"account_id" bigint NOT NULL
+	"account_id" bigint NOT NULL,
+	CONSTRAINT "google_accounts_google_id_key" UNIQUE("google_id"),
+	CONSTRAINT "google_accounts_email_key" UNIQUE("email")
 );
 --> statement-breakpoint
 CREATE TABLE "questions" (
@@ -312,7 +319,7 @@ CREATE TABLE "questions" (
 	"title" text,
 	"explanation" text,
 	"answer_type" text,
-	"options" jsonb,
+	"options" json,
 	"correct_answer" text,
 	"deleted" boolean DEFAULT false NOT NULL,
 	"optional" boolean DEFAULT false NOT NULL,
@@ -350,7 +357,7 @@ CREATE TABLE "quizzes" (
 	"short_description" text,
 	"cover" text,
 	"question_count" bigint,
-	"json_data" jsonb,
+	"json_data" json,
 	"deleted" boolean DEFAULT false NOT NULL,
 	"max_attempts" bigint,
 	"time_limit" bigint,
@@ -415,11 +422,9 @@ CREATE INDEX "ix_account_subscriptions_created_at" ON "account_subscriptions" US
 CREATE INDEX "ix_account_subscriptions_account_id" ON "account_subscriptions" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "ix_account_subscriptions_stripe_customer_id" ON "account_subscriptions" USING btree ("stripe_customer_id");--> statement-breakpoint
 CREATE INDEX "ix_account_subscriptions_status" ON "account_subscriptions" USING btree ("status");--> statement-breakpoint
-CREATE UNIQUE INDEX "account_subscriptions_stripe_subscription_id_key" ON "account_subscriptions" USING btree ("stripe_subscription_id");--> statement-breakpoint
 CREATE INDEX "ix_accounts_created_at" ON "accounts" USING btree ("created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "ix_accounts_username" ON "accounts" USING btree ("username");--> statement-breakpoint
 CREATE UNIQUE INDEX "ix_accounts_normalized_username" ON "accounts" USING btree ("normalized_username");--> statement-breakpoint
-CREATE UNIQUE INDEX "accounts_email_key" ON "accounts" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "ix_accounts_email_lower" ON "accounts" USING btree (lower("email"));--> statement-breakpoint
 CREATE INDEX "ix_accounts_deleted" ON "accounts" USING btree ("deleted");--> statement-breakpoint
 CREATE INDEX "ix_accounts_flagged_as_spammer" ON "accounts" USING btree ("flagged_as_spammer");--> statement-breakpoint
@@ -442,7 +447,7 @@ CREATE INDEX "ix_course_assignment_submissions_is_draft" ON "course_assignment_s
 CREATE INDEX "ix_course_assignment_submissions_is_plagiarised" ON "course_assignment_submissions" USING btree ("is_plagiarised");--> statement-breakpoint
 CREATE INDEX "ix_course_assignment_submissions_plagiarism_checked_at" ON "course_assignment_submissions" USING btree ("plagiarism_checked_at");--> statement-breakpoint
 CREATE INDEX "ix_course_assignment_submissions_original_submission_id" ON "course_assignment_submissions" USING btree ("original_submission_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "course_certificates_slug_key" ON "course_certificates" USING btree ("slug");--> statement-breakpoint
+CREATE UNIQUE INDEX "ix_course_certificates_slug" ON "course_certificates" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "ix_course_certificates_course_id" ON "course_certificates" USING btree ("course_id");--> statement-breakpoint
 CREATE INDEX "ix_course_certificates_owner_id" ON "course_certificates" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "ix_course_certificates_deleted" ON "course_certificates" USING btree ("deleted");--> statement-breakpoint
@@ -465,7 +470,7 @@ CREATE INDEX "ix_course_section_progress_reaction" ON "course_section_progress" 
 CREATE INDEX "ix_course_section_progress_deleted" ON "course_section_progress" USING btree ("deleted");--> statement-breakpoint
 CREATE INDEX "ix_course_sections_course_id" ON "course_sections" USING btree ("course_id");--> statement-breakpoint
 CREATE INDEX "ix_course_sections_legacy_slug" ON "course_sections" USING btree ("legacy_slug");--> statement-breakpoint
-CREATE UNIQUE INDEX "course_sections_short_slug_key" ON "course_sections" USING btree ("short_slug");--> statement-breakpoint
+CREATE UNIQUE INDEX "ix_course_sections_short_slug" ON "course_sections" USING btree ("short_slug");--> statement-breakpoint
 CREATE INDEX "ix_course_sections_deleted" ON "course_sections" USING btree ("deleted");--> statement-breakpoint
 CREATE INDEX "ix_course_sections_is_optional" ON "course_sections" USING btree ("is_optional");--> statement-breakpoint
 CREATE INDEX "ix_course_sections_require_questions" ON "course_sections" USING btree ("require_questions");--> statement-breakpoint
@@ -473,7 +478,7 @@ CREATE INDEX "ix_course_sections_disable_execution" ON "course_sections" USING b
 CREATE INDEX "ix_course_sections_allow_draft" ON "course_sections" USING btree ("allow_draft");--> statement-breakpoint
 CREATE INDEX "ix_course_sections_visibility" ON "course_sections" USING btree ("visibility");--> statement-breakpoint
 CREATE UNIQUE INDEX "ix_course_sections_course_id_slug" ON "course_sections" USING btree ("course_id","slug");--> statement-breakpoint
-CREATE UNIQUE INDEX "courses_name_key" ON "courses" USING btree ("name");--> statement-breakpoint
+CREATE UNIQUE INDEX "ix_courses_name" ON "courses" USING btree ("name");--> statement-breakpoint
 CREATE INDEX "ix_courses_owner_id" ON "courses" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "ix_courses_published" ON "courses" USING btree ("published");--> statement-breakpoint
 CREATE INDEX "ix_courses_slack_enabled" ON "courses" USING btree ("slack_enabled");--> statement-breakpoint
@@ -493,7 +498,7 @@ CREATE UNIQUE INDEX "ix_email_account_attempts_state_token" ON "email_account_at
 CREATE INDEX "ix_gists_created_at" ON "gists" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "ix_gists_updated_at" ON "gists" USING btree ("updated_at");--> statement-breakpoint
 CREATE INDEX "ix_gists_account_id" ON "gists" USING btree ("account_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "gists_slug_key" ON "gists" USING btree ("slug");--> statement-breakpoint
+CREATE UNIQUE INDEX "ix_gists_slug" ON "gists" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "ix_gists_deleted" ON "gists" USING btree ("deleted");--> statement-breakpoint
 CREATE INDEX "ix_gists_archive" ON "gists" USING btree ("archive");--> statement-breakpoint
 CREATE INDEX "ix_gists_archived_at" ON "gists" USING btree ("archived_at");--> statement-breakpoint
@@ -502,13 +507,8 @@ CREATE INDEX "ix_gists_legacy_title" ON "gists" USING btree ("legacy_title");-->
 CREATE INDEX "ix_gists_google_drive_file_id" ON "gists" USING btree ("google_drive_file_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "ix_gists_account_id_title" ON "gists" USING btree ("account_id","title");--> statement-breakpoint
 CREATE INDEX "ix_github_accounts_created_at" ON "github_accounts" USING btree ("created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "github_accounts_github_id_key" ON "github_accounts" USING btree ("github_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "github_accounts_username_key" ON "github_accounts" USING btree ("username");--> statement-breakpoint
-CREATE UNIQUE INDEX "github_accounts_normalized_username_key" ON "github_accounts" USING btree ("normalized_username");--> statement-breakpoint
 CREATE INDEX "ix_github_accounts_account_id" ON "github_accounts" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "ix_google_accounts_created_at" ON "google_accounts" USING btree ("created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "google_accounts_google_id_key" ON "google_accounts" USING btree ("google_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "google_accounts_email_key" ON "google_accounts" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "ix_google_accounts_account_id" ON "google_accounts" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "ix_questions_title" ON "questions" USING btree ("title");--> statement-breakpoint
 CREATE INDEX "ix_questions_creator_id" ON "questions" USING btree ("creator_id");--> statement-breakpoint
@@ -517,7 +517,7 @@ CREATE INDEX "ix_quiz_question_attempts_account_id" ON "quiz_question_attempts" 
 CREATE INDEX "ix_quiz_question_attempts_quiz_id" ON "quiz_question_attempts" USING btree ("quiz_id");--> statement-breakpoint
 CREATE INDEX "ix_quiz_question_attempts_question_id" ON "quiz_question_attempts" USING btree ("question_id");--> statement-breakpoint
 CREATE INDEX "ix_quiz_questions_question_id" ON "quiz_questions" USING btree ("question_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "quizzes_url_slug_key" ON "quizzes" USING btree ("url_slug");--> statement-breakpoint
+CREATE UNIQUE INDEX "ix_quizzes_url_slug" ON "quizzes" USING btree ("url_slug");--> statement-breakpoint
 CREATE INDEX "ix_quizzes_sort_category" ON "quizzes" USING btree ("sort_category");--> statement-breakpoint
 CREATE INDEX "ix_quizzes_start_date" ON "quizzes" USING btree ("start_date");--> statement-breakpoint
 CREATE INDEX "ix_quizzes_end_date" ON "quizzes" USING btree ("end_date");--> statement-breakpoint

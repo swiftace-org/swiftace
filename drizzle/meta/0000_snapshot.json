@@ -1,5 +1,5 @@
 {
-  "id": "758cc028-1dab-45b3-95d3-bcdb36f08c4a",
+  "id": "ae741e70-b430-4f69-b6d1-7b80d6418a1f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -220,21 +220,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "account_subscriptions_stripe_subscription_id_key": {
-          "name": "account_subscriptions_stripe_subscription_id_key",
-          "columns": [
-            {
-              "expression": "stripe_subscription_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -253,7 +238,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "account_subscriptions_stripe_subscription_id_key": {
+          "name": "account_subscriptions_stripe_subscription_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "stripe_subscription_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -374,21 +367,6 @@
           "method": "btree",
           "with": {}
         },
-        "accounts_email_key": {
-          "name": "accounts_email_key",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "ix_accounts_email_lower": {
           "name": "ix_accounts_email_lower",
           "columns": [
@@ -437,7 +415,15 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "accounts_email_key": {
+          "name": "accounts_email_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -956,7 +942,7 @@
         },
         "assignment": {
           "name": "assignment",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -1030,13 +1016,13 @@
         },
         "assignment_file_cells_hash_list": {
           "name": "assignment_file_cells_hash_list",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
         "level_2_plagiarised_info": {
           "name": "level_2_plagiarised_info",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         }
@@ -1359,8 +1345,8 @@
         }
       },
       "indexes": {
-        "course_certificates_slug_key": {
-          "name": "course_certificates_slug_key",
+        "ix_course_certificates_slug": {
+          "name": "ix_course_certificates_slug",
           "columns": [
             {
               "expression": "slug",
@@ -1547,7 +1533,7 @@
         },
         "preferences": {
           "name": "preferences",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         }
@@ -2107,7 +2093,7 @@
         },
         "modules": {
           "name": "modules",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -2160,7 +2146,7 @@
         },
         "notebooks": {
           "name": "notebooks",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -2228,7 +2214,7 @@
         },
         "submission_requirements": {
           "name": "submission_requirements",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -2247,7 +2233,7 @@
         },
         "notebooks_hash_list": {
           "name": "notebooks_hash_list",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         }
@@ -2283,8 +2269,8 @@
           "method": "btree",
           "with": {}
         },
-        "course_sections_short_slug_key": {
-          "name": "course_sections_short_slug_key",
+        "ix_course_sections_short_slug": {
+          "name": "ix_course_sections_short_slug",
           "columns": [
             {
               "expression": "short_slug",
@@ -2499,13 +2485,13 @@
         },
         "meta": {
           "name": "meta",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
         "sections": {
           "name": "sections",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -2642,7 +2628,7 @@
         },
         "application_form": {
           "name": "application_form",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -2725,8 +2711,8 @@
         }
       },
       "indexes": {
-        "courses_name_key": {
-          "name": "courses_name_key",
+        "ix_courses_name": {
+          "name": "ix_courses_name",
           "columns": [
             {
               "expression": "name",
@@ -3263,8 +3249,8 @@
           "method": "btree",
           "with": {}
         },
-        "gists_slug_key": {
-          "name": "gists_slug_key",
+        "ix_gists_slug": {
+          "name": "ix_gists_slug",
           "columns": [
             {
               "expression": "slug",
@@ -3482,7 +3468,7 @@
         },
         "emails_list": {
           "name": "emails_list",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -3533,51 +3519,6 @@
           "method": "btree",
           "with": {}
         },
-        "github_accounts_github_id_key": {
-          "name": "github_accounts_github_id_key",
-          "columns": [
-            {
-              "expression": "github_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "github_accounts_username_key": {
-          "name": "github_accounts_username_key",
-          "columns": [
-            {
-              "expression": "username",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "github_accounts_normalized_username_key": {
-          "name": "github_accounts_normalized_username_key",
-          "columns": [
-            {
-              "expression": "normalized_username",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "ix_github_accounts_account_id": {
           "name": "ix_github_accounts_account_id",
           "columns": [
@@ -3610,7 +3551,29 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "github_accounts_github_id_key": {
+          "name": "github_accounts_github_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "github_id"
+          ]
+        },
+        "github_accounts_username_key": {
+          "name": "github_accounts_username_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        },
+        "github_accounts_normalized_username_key": {
+          "name": "github_accounts_normalized_username_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "normalized_username"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3681,36 +3644,6 @@
           "method": "btree",
           "with": {}
         },
-        "google_accounts_google_id_key": {
-          "name": "google_accounts_google_id_key",
-          "columns": [
-            {
-              "expression": "google_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "google_accounts_email_key": {
-          "name": "google_accounts_email_key",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "ix_google_accounts_account_id": {
           "name": "ix_google_accounts_account_id",
           "columns": [
@@ -3743,7 +3676,22 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "google_accounts_google_id_key": {
+          "name": "google_accounts_google_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "google_id"
+          ]
+        },
+        "google_accounts_email_key": {
+          "name": "google_accounts_email_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3792,7 +3740,7 @@
         },
         "options": {
           "name": "options",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -4206,7 +4154,7 @@
         },
         "json_data": {
           "name": "json_data",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -4263,8 +4211,8 @@
         }
       },
       "indexes": {
-        "quizzes_url_slug_key": {
-          "name": "quizzes_url_slug_key",
+        "ix_quizzes_url_slug": {
+          "name": "ix_quizzes_url_slug",
           "columns": [
             {
               "expression": "url_slug",

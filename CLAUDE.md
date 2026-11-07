@@ -83,6 +83,7 @@ middlewares), `utils.server.ts`, `db.server.ts`, `schema.server.ts`, `config.ts`
   - timestamps are `timestamp` holding UTC, defaulting to `utcNow` rather than `now()`, which follows the server's `TimeZone`
   - `created_at` and `updated_at` are handled by the column definitions, so never pass them from a call site
   - index the columns a query filters or sorts on, and nothing a primary key already covers
+  - strings are `text`, with a `varchar(n)` only where a length is enforced
 - after changing the schema, `vp run db:generate` writes a migration into `drizzle/`; never edit
   one that's been released, since the migrator records each by its hash
 - develop against your own Postgres (`DATABASE_URL` in `.env`), never a production database
