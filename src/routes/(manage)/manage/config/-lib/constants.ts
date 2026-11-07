@@ -15,8 +15,6 @@ export const MANAGE_CONFIG_TABS: { value: ManageConfigTab; label: string }[] = [
   { value: "pricing", label: "Pricing" },
   { value: "legal", label: "Legal" },
   { value: "integrations", label: "Integrations" },
-  { value: "email", label: "Email" },
-  { value: "objectStorage", label: "Object storage" },
   { value: "notebookPreview", label: "Jupyter output preview" },
 ]
 
@@ -176,14 +174,14 @@ export const INTEGRATION_DETAILS: { [I in Integration]: IntegrationDetail<I> } =
 
 /** The order the Integrations tab lists them in. */
 export const INTEGRATION_ORDER: Integration[] = [
+  "email",
+  "objectStorage",
   "turnstile",
   "googleLogin",
   "githubLogin",
   "billing",
   "posthog",
   "openai",
-  "email",
-  "objectStorage",
   "notebookPreview",
 ]
 

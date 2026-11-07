@@ -29,7 +29,7 @@ export type PublicSiteConfig = {
 /** Each section is a row of its own, so saving one can't write back a stale copy of another. */
 export type SiteConfigSection = keyof SiteConfig
 
-export type ManageConfigTab = SiteConfigSection | "email" | "objectStorage" | "notebookPreview"
+export type ManageConfigTab = SiteConfigSection | "notebookPreview"
 
 export type GeneralSettings = {
   siteName: string

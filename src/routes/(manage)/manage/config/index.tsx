@@ -70,16 +70,13 @@ function ManageConfigPage() {
         <TabsContent value="integrations" className="pt-4">
           <IntegrationSettingsForm settings={integrations} savedSecrets={savedSecrets} />
         </TabsContent>
-        {(["email", "objectStorage", "notebookPreview"] as const).map((integration) => (
-          <TabsContent key={integration} value={integration} className="pt-4">
-            <IntegrationSettingsForm
-              key={integration}
-              settings={integrations}
-              savedSecrets={savedSecrets}
-              integration={integration}
-            />
-          </TabsContent>
-        ))}
+        <TabsContent value="notebookPreview" className="pt-4">
+          <IntegrationSettingsForm
+            settings={integrations}
+            savedSecrets={savedSecrets}
+            integration="notebookPreview"
+          />
+        </TabsContent>
       </Tabs>
     </main>
   )

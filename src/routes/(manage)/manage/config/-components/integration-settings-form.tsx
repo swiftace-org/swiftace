@@ -37,9 +37,7 @@ export function IntegrationSettingsForm({
 }) {
   const shown = integration
     ? [integration]
-    : INTEGRATION_ORDER.filter(
-        (key) => !["email", "objectStorage", "notebookPreview"].includes(key),
-      )
+    : INTEGRATION_ORDER.filter((key) => key !== "notebookPreview")
   const router = useRouter()
   const origin = getSiteOrigin()
   const [values, setValues] = useState(settings)
