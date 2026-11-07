@@ -10,14 +10,15 @@ admin at `/manage/config`, so there's nothing to change in code to run your own.
 ## Install
 
 SwiftAce runs on Linux and macOS (x64 and arm64). This downloads the binary for your machine from
-the [latest release](https://github.com/swiftace-org/swiftace/releases/latest) into the current
-folder as `swiftace`, checked against the release's `SHA256SUMS`:
+the [latest release](https://github.com/swiftace-org/swiftace/releases/latest), checks it against
+the release's `SHA256SUMS` and installs it as `/usr/local/bin/swiftace`, with sudo if needed:
 
 ```sh
 curl -fsSL https://github.com/swiftace-org/swiftace/releases/latest/download/install.sh | sh
 ```
 
-`SWIFTACE_VERSION=0.1.1` before `sh` installs a given release. Or download
+Running it again upgrades. `SWIFTACE_VERSION=0.1.2` before `sh` installs a given release, and
+`SWIFTACE_INSTALL_DIR=~/bin` installs somewhere else. Or download
 `swiftace-<linux|darwin>-<x64|arm64>` from the release yourself and check it with
 `sha256sum --check --ignore-missing SHA256SUMS`.
 
@@ -30,12 +31,12 @@ On a Linux server with [Caddy](https://caddyserver.com/docs/install) installed a
 domains pointing at it, run as root:
 
 ```sh
-sudo ./swiftace deploy example.com www.example.com --preview-domain preview.example.com
+sudo swiftace deploy example.com www.example.com --preview-domain preview.example.com
 ```
 
 The first domain is the site; any others redirect to it. `deploy`:
 
-1. installs the binary as `/usr/local/bin/swiftace`
+1. installs the binary as `/usr/local/bin/swiftace`, if it was run from elsewhere
 2. creates `/etc/swiftace.env`, readable only by root, with every variable the server needs and
    new `JWT_SECRET_KEY` and `HASH_SECRET_KEY`. It stops there until you fill in the rest, then
    you run it again. It never overwrites a value that's already set
