@@ -1,0 +1,183 @@
+.social-image {
+  position: relative;
+  isolation: isolate;
+  width: 1200px;
+  height: 630px;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  --primary: oklch(0.43 0.2 264.376);
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --social-accent: color-mix(in oklab, var(--primary), var(--foreground) 70%);
+  --social-muted: color-mix(in oklab, var(--background), var(--foreground) 84%);
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.social-cover-background {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-image-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--background) 40%, transparent);
+}
+
+.social-image-cover {
+  --social-accent: color-mix(in oklab, var(--chart-1), var(--foreground) 85%);
+  --social-muted: color-mix(in oklab, var(--background), var(--foreground) 95%);
+}
+
+.social-image-content {
+  position: absolute;
+  inset: 48px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.social-image-top,
+.social-image-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  font-size: 30px;
+  font-weight: 550;
+}
+
+.social-image-top img {
+  height: 60px;
+  width: auto;
+}
+
+.social-image h1 {
+  font-size: 88px;
+  font-weight: 780;
+  line-height: 1.1;
+  letter-spacing: -3.5px;
+}
+
+.social-image-message p {
+  margin-top: 22px;
+  font-size: 36px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.6px;
+}
+
+.social-image-bottom {
+  font-size: 30px;
+}
+
+.social-image-bottom strong {
+  font-weight: 700;
+}
+
+.social-image-frame {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+}
+
+.social-image-frame .social-image-content {
+  inset: 32px;
+  border-radius: 20px;
+  background: var(--background);
+  padding: 28px 36px;
+}
+
+.social-image-frame .social-image-message p {
+  margin-top: 18px;
+}
+
+.social-artwork {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-artwork-shade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: color-mix(in srgb, var(--background) 90%, transparent);
+}
+
+.social-image-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  align-items: center;
+  gap: 20px;
+}
+
+.social-image-hero h1 {
+  font-size: 82px;
+  font-weight: 650;
+  letter-spacing: -2px;
+}
+
+.social-image-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 28px;
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.6px;
+  color: var(--social-muted);
+}
+
+.social-image-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  white-space: nowrap;
+}
+
+.social-image-benefits svg {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  color: var(--social-accent);
+}
+
+.social-image-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  text-align: center;
+}
+
+.social-image-stats > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+}
+
+.social-image-stats dd {
+  font-size: 74px;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -2.5px;
+  color: var(--social-accent);
+}
+
+.social-image-stats dt {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  color: var(--social-muted);
+}

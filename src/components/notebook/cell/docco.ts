@@ -1,0 +1,38 @@
+import type { CSSProperties } from "react"
+
+export function docco(dark = false): Record<string, CSSProperties> {
+  return {
+    hljs: { display: "block", color: dark ? "#f8f8f2" : "#000", overflowX: "auto" },
+    "hljs-comment": { color: dark ? "#d4d0ab" : "#408080", fontStyle: "italic" },
+    "hljs-quote": { color: dark ? "#d4d0ab" : "#408080", fontStyle: "italic" },
+    "hljs-keyword": { color: dark ? "#dcc6e0" : "#954121" },
+    "hljs-selector-tag": { color: dark ? "#dcc6e0" : "#954121" },
+    "hljs-literal": { color: dark ? "#dcc6e0" : "#954121" },
+    "hljs-subst": { color: dark ? "#dcc6e0" : "#954121" },
+    "hljs-number": { color: dark ? "#f5ab35" : "#40a070" },
+    "hljs-string": { color: dark ? "#abe338" : "#219161" },
+    "hljs-doctag": { color: dark ? "#abe338" : "#219161" },
+    "hljs-selector-id": { color: dark ? "#ffa07a" : "#19469d" },
+    "hljs-selector-class": { color: dark ? "#ffa07a" : "#19469d" },
+    "hljs-section": { color: dark ? "#00e0e0" : "#19469d" },
+    "hljs-type": { color: dark ? "#f5ab35" : "#19469d" },
+    "hljs-params": { color: dark ? "#f5ab35" : "#00f" },
+    "hljs-title": { color: dark ? "#00e0e0" : "#458", fontWeight: "bold" },
+    "hljs-tag": { color: dark ? "#00e0e0" : "#000080", fontWeight: "normal" },
+    "hljs-name": { color: dark ? "#ffa07a" : "#000080", fontWeight: "normal" },
+    "hljs-attribute": { color: dark ? "#ffd700" : "#000080", fontWeight: "normal" },
+    "hljs-variable": { color: dark ? "#ffa07a" : "#008080" },
+    "hljs-template-variable": { color: dark ? "#ffa07a" : "#008080" },
+    "hljs-regexp": { color: dark ? "#ffa07a" : "#b68" },
+    "hljs-link": { color: dark ? "#f5ab35" : "#b68" },
+    "hljs-symbol": { color: dark ? "#abe338" : "#990073" },
+    "hljs-bullet": { color: dark ? "#abe338" : "#990073" },
+    "hljs-built_in": { color: dark ? "#f5ab35" : "#0086b3" },
+    "hljs-builtin-name": { color: dark ? "#f5ab35" : "#0086b3" },
+    "hljs-meta": { color: dark ? "#f5ab35" : "#999", fontWeight: "bold" },
+    "hljs-deletion": { background: dark ? "#ffa07a" : "#fdd" },
+    "hljs-addition": { background: dark ? "#abe338" : "#dfd" },
+    "hljs-emphasis": { fontStyle: "italic" },
+    "hljs-strong": { fontWeight: "bold" },
+  }
+}
