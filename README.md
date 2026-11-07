@@ -72,24 +72,44 @@ To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and 
 
 ## Configuration
 
-The binary is configured by its environment alone; it never reads a `.env` file.
+The binary reads its bootstrap settings from the environment; it never reads a `.env` file.
 
-| Variable                                                                   | What it's for                                                                 |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                             | Postgres, e.g. `postgres://user:password@localhost:5432/swiftace`             |
-| `JWT_SECRET_KEY`, `HASH_SECRET_KEY`                                        | Long random strings. Changing the first signs everyone out                    |
-| `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY_SECRET`, `AWS_REGION`                 | Amazon SES, which sends every email                                           |
-| `EMAIL_DOMAIN`                                                             | The domain email is sent from, as `notify@EMAIL_DOMAIN`; verify it in SES     |
-| `R2_ENDPOINT_URL`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Cloudflare R2 or any S3-compatible store; the bucket needn't be public        |
-| `NOTEBOOK_PREVIEW_URL`                                                     | The notebook preview's public URL, e.g. `https://preview.example.com`         |
-| `PORT`                                                                     | The site's port (4000)                                                        |
-| `PREVIEW_PORT`                                                             | The notebook preview's port (4100), or 0 to turn it off                       |
-| `PREVIEW_ALLOWED_PARENT_ORIGINS`                                           | The origins that may embed the preview, e.g. `https://example.com` (required) |
-| `HOST`                                                                     | The address both listen on (every address)                                    |
+| Variable                            | What it's for                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| `DATABASE_URL`                      | Postgres, e.g. `postgres://user:password@localhost:5432/swiftace`             |
+| `JWT_SECRET_KEY`, `HASH_SECRET_KEY` | Long random strings. Changing the first signs everyone out                    |
+| `PORT`                              | The site's port (4000)                                                        |
+| `PREVIEW_PORT`                      | The notebook preview's port (4100), or 0 to turn it off                       |
+| `PREVIEW_ALLOWED_PARENT_ORIGINS`    | The origins that may embed the preview, e.g. `https://example.com` (required) |
+| `HOST`                              | The address both listen on (every address)                                    |
 
-The rest (login providers, Stripe, Turnstile, PostHog, OpenAI for the AI tutor, branding, pricing
+The rest (SES email, S3-compatible object storage, rich Jupyter output previews, login providers,
+Stripe, Turnstile, PostHog, OpenAI for the AI tutor, branding, pricing
 copy, legal pages) is set at `/manage/config` and kept in the `site_config` table, so changing it
 needs no restart. Secrets are write-only there and never sent to the browser.
+
+On a fresh database, configure SES before signing in. Save this JSON to a local file with mode
+`0600`, fill in the SES credentials and verified sender, then run
+`swiftace configure-integrations /path/to/integrations.json` (after `swiftace migrate`):
+
+```json
+{
+  "email": {
+    "enabled": true,
+    "region": "us-east-1",
+    "accessKeyId": "YOUR_ACCESS_KEY_ID",
+    "secretAccessKey": "YOUR_SECRET_ACCESS_KEY",
+    "fromEmail": "notify@example.com"
+  }
+}
+```
+
+Sign up at `/login`, run `swiftace make-admin you@example.com`, then configure storage and other
+settings at `/manage/config`. The CLI accepts any integration sections, preserves omitted ones,
+and keeps saved secrets when their submitted values are blank. Remove the local JSON file once
+setup is complete. Existing SES, R2 and preview environment variables are no longer used. After
+upgrading, save those settings using the CLI or `/manage/config`. Authentication keys stay in the
+environment.
 
 Behind a reverse proxy, the site's address must be a concrete hostname, like `example.com {
 reverse_proxy 127.0.0.1:4000 }` in Caddy. Sign-in links are built from the request's `Host`
@@ -99,8 +119,10 @@ header, so a proxy that forwards any host would let a forged one put a live link
 
 Notebook outputs whose scripts have to run, like Plotly charts, render in a page on a domain of
 its own (e.g. `preview.example.com`), which `swiftace start` serves on `PREVIEW_PORT` and the site
-embeds in an iframe from `NOTEBOOK_PREVIEW_URL`. The page runs arbitrary notebook script, and it
-may live on a subdomain of the site, so it never gets a real origin:
+embeds in an iframe using the URL in `/manage/config` → Jupyter output preview.
+Rich previews default to off. Enable them and enter a separate preview origin to render interactive
+outputs; static HTML and text alternatives remain available while off. The page runs arbitrary
+notebook script, and it may live on a subdomain of the site, so it never gets a real origin:
 
 - the site embeds it with `sandbox="allow-scripts"` and no `allow-same-origin`
 - its `Content-Security-Policy: sandbox …` header forces the same opaque origin even if something

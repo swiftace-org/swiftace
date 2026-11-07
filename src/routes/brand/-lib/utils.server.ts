@@ -3,8 +3,7 @@ import crypto from "node:crypto"
 import { GetObjectCommand, NoSuchKey, PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { DEFAULT_ICON_PATH } from "@/lib/config"
-import { R2_BUCKET } from "@/lib/config.server"
-import { getSiteConfig, getSiteUrl, r2Client } from "@/lib/utils.server"
+import { getSiteConfig, getSiteUrl, getObjectStorage } from "@/lib/utils.server"
 import type { BrandAsset } from "@/types/site-config"
 
 import {
@@ -25,9 +24,10 @@ export async function uploadBrandAsset(
 ): Promise<string> {
   const hash = crypto.createHash("sha256").update(body).digest("hex").slice(0, 12)
   const key = `brand/${BRAND_ASSET_KEY_NAMES[asset]}-${hash}.${type}`
-  await r2Client.send(
+  const { client, bucket } = await getObjectStorage()
+  await client.send(
     new PutObjectCommand({
-      Bucket: R2_BUCKET,
+      Bucket: bucket,
       Key: key,
       Body: body,
       ContentType: BRAND_IMAGE_CONTENT_TYPES[type],
@@ -39,7 +39,8 @@ export async function uploadBrandAsset(
 export async function readBrandAsset(key: string) {
   if (!BRAND_ASSET_KEY_PATTERN.test(key)) return null
   try {
-    return await r2Client.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }))
+    const { client, bucket } = await getObjectStorage()
+    return await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
   } catch (error) {
     if (error instanceof NoSuchKey) return null
     throw error

@@ -44,7 +44,7 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
 
   const binary = await installBinary()
 
-  const env = await ensureEnvFile(ENV_FILE, domains.previewDomain)
+  const env = await ensureEnvFile(ENV_FILE)
   await chmod(ENV_FILE, 0o600)
   if (env.created) console.log(`Created ${ENV_FILE}, with new JWT_SECRET_KEY and HASH_SECRET_KEY`)
   const ports = servicePorts(env.variables)

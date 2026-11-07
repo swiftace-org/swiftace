@@ -69,9 +69,9 @@ describe("environment", () => {
   it("reports what's missing or blank", () => {
     const env = Object.fromEntries(REQUIRED_VARIABLES.map((name) => [name, "x"]))
     expect(missingVariables(env)).toEqual([])
-    expect(missingVariables({ ...env, R2_BUCKET: " ", DATABASE_URL: undefined })).toEqual([
+    expect(missingVariables({ ...env, HASH_SECRET_KEY: " ", DATABASE_URL: undefined })).toEqual([
       "DATABASE_URL",
-      "R2_BUCKET",
+      "HASH_SECRET_KEY",
     ])
   })
 

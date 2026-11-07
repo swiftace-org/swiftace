@@ -3,20 +3,7 @@
 import { CommandError } from "./shell.ts"
 
 /** What `src/lib/config.server.ts` refuses to run without, in the order `.env.example` has them. */
-export const REQUIRED_VARIABLES = [
-  "DATABASE_URL",
-  "JWT_SECRET_KEY",
-  "HASH_SECRET_KEY",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_ACCESS_KEY_SECRET",
-  "AWS_REGION",
-  "EMAIL_DOMAIN",
-  "R2_ENDPOINT_URL",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_BUCKET",
-  "NOTEBOOK_PREVIEW_URL",
-] as const
+export const REQUIRED_VARIABLES = ["DATABASE_URL", "JWT_SECRET_KEY", "HASH_SECRET_KEY"] as const
 
 export const DEFAULT_PORT = 4000
 export const DEFAULT_PREVIEW_PORT = 4100

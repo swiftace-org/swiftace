@@ -9,19 +9,7 @@ import { PostHog } from "posthog-node"
 import type { ReactElement } from "react"
 
 import { AUTH_COOKIE_NAME, DEFAULT_COURSE_COVER_PATH } from "@/lib/config"
-import {
-  AWS_ACCESS_KEY_ID,
-  AWS_ACCESS_KEY_SECRET,
-  AWS_REGION,
-  DEFAULT_SITE_CONFIG,
-  JWT_SECRET_KEY,
-  NOTEBOOK_PREVIEW_URL,
-  NOTIFICATION_EMAIL_ADDRESS,
-  R2_ACCESS_KEY_ID,
-  R2_BUCKET,
-  R2_ENDPOINT_URL,
-  R2_SECRET_ACCESS_KEY,
-} from "@/lib/config.server"
+import { DEFAULT_SITE_CONFIG, JWT_SECRET_KEY } from "@/lib/config.server"
 import type { Account, JWTPayload } from "@/types/account"
 import type { AiTutorModel } from "@/types/ai-tutor"
 import type { AnalyticsEvent } from "@/types/analytics"
@@ -159,7 +147,8 @@ export function toPublicSiteConfig({
   integrations,
   aiTutor,
 }: SiteConfig): PublicSiteConfig {
-  const { googleLogin, githubLogin, billing, turnstile, posthog, openai } = integrations
+  const { googleLogin, githubLogin, billing, turnstile, posthog, openai, notebookPreview } =
+    integrations
   const iconVersion = toBrandAssetVersion(branding.icon)
   const logoLightUrl = toBrandAssetUrl(branding.logoLight)
   return {
@@ -187,7 +176,10 @@ export function toPublicSiteConfig({
       name: aiTutor.name,
       avatarUrl: toBrandAssetUrl(branding.aiTutorAvatar),
     },
-    deployment: { notebookPreviewUrl: NOTEBOOK_PREVIEW_URL },
+    notebookPreview: {
+      enabled: notebookPreview.enabled,
+      url: notebookPreview.enabled ? notebookPreview.url : "",
+    },
   }
 }
 
@@ -338,37 +330,62 @@ export function captureServerException(error: unknown, properties?: Record<strin
   )
 }
 
-export const r2Client = new S3Client({
-  region: "auto",
-  endpoint: R2_ENDPOINT_URL,
-  credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY },
-})
+let storageClientCache:
+  | { settings: IntegrationSettings["objectStorage"]; client: S3Client }
+  | undefined
 
-/** In batches of R2's 1000-key limit. A missing key isn't an error; a refused one throws. */
-export async function deleteR2Objects(keys: string[]): Promise<void> {
-  for (let start = 0; start < keys.length; start += R2_DELETE_BATCH_SIZE) {
-    const batch = keys.slice(start, start + R2_DELETE_BATCH_SIZE)
-    const { Errors } = await r2Client.send(
+export async function getObjectStorage() {
+  const { objectStorage: settings } = (await getSiteConfig()).integrations
+  if (!settings.enabled)
+    throw new Error("Enable object storage in /manage/config before using uploads or certificates.")
+  if (storageClientCache?.settings !== settings) {
+    storageClientCache = {
+      settings,
+      client: new S3Client({
+        region: requireIntegrationSetting(settings.region, "Object storage region"),
+        endpoint: requireIntegrationSetting(settings.endpoint, "Object storage endpoint"),
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: requireIntegrationSetting(
+            settings.accessKeyId,
+            "Object storage access key ID",
+          ),
+          secretAccessKey: requireIntegrationSetting(
+            settings.secretAccessKey,
+            "Object storage secret access key",
+          ),
+        },
+      }),
+    }
+  }
+  return {
+    client: storageClientCache.client,
+    bucket: requireIntegrationSetting(settings.bucket, "Object storage bucket"),
+  }
+}
+
+/** S3 accepts at most 1000 keys per delete request. Missing keys aren't errors. */
+export async function deleteStorageObjects(keys: string[]): Promise<void> {
+  if (!keys.length) return
+  const { client, bucket } = await getObjectStorage()
+  for (let start = 0; start < keys.length; start += STORAGE_DELETE_BATCH_SIZE) {
+    const batch = keys.slice(start, start + STORAGE_DELETE_BATCH_SIZE)
+    const { Errors } = await client.send(
       new DeleteObjectsCommand({
-        Bucket: R2_BUCKET,
+        Bucket: bucket,
         Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
       }),
     )
     if (Errors?.length) {
-      throw new Error(`R2 refused to delete ${Errors.map((error) => error.Key).join(", ")}`)
+      throw new Error(
+        `Object storage refused to delete ${Errors.map((error) => error.Key).join(", ")}`,
+      )
     }
   }
 }
 
-const R2_DELETE_BATCH_SIZE = 1000
-
-const sesClient = new SESv2Client({
-  region: AWS_REGION,
-  credentials: {
-    accessKeyId: AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_ACCESS_KEY_SECRET,
-  },
-})
+const STORAGE_DELETE_BATCH_SIZE = 1000
+let emailClientCache: { settings: IntegrationSettings["email"]; client: SESv2Client } | undefined
 
 /**
  * Every email is sent from a no-reply address, so replies go to the support inbox instead of
@@ -391,13 +408,32 @@ export async function sendSesEmail({
   const textBody = toPlainText(htmlBody)
 
   try {
-    const { general } = await getSiteConfig()
-    await sesClient.send(
+    const {
+      general,
+      integrations: { email },
+    } = await getSiteConfig()
+    if (!email.enabled) throw new Error("Enable email in /manage/config before sending email.")
+    if (emailClientCache?.settings !== email) {
+      emailClientCache = {
+        settings: email,
+        client: new SESv2Client({
+          region: requireIntegrationSetting(email.region, "Email AWS region"),
+          credentials: {
+            accessKeyId: requireIntegrationSetting(email.accessKeyId, "Email access key ID"),
+            secretAccessKey: requireIntegrationSetting(
+              email.secretAccessKey,
+              "Email secret access key",
+            ),
+          },
+        }),
+      }
+    }
+    await emailClientCache.client.send(
       new SendEmailCommand({
         // The display name is what inboxes list as the sender, in place of the bare address.
-        FromEmailAddress: `${toEmailDisplayName(`${general.siteName} Notifications`)} <${NOTIFICATION_EMAIL_ADDRESS}>`,
+        FromEmailAddress: `${toEmailDisplayName(`${general.siteName} Notifications`)} <${requireIntegrationSetting(email.fromEmail, "Sender email address")}>`,
         Destination: { ToAddresses: [to], CcAddresses: cc },
-        ReplyToAddresses: [general.supportEmail],
+        ReplyToAddresses: general.supportEmail ? [general.supportEmail] : undefined,
         Content: {
           Simple: {
             Subject: { Data: subject, Charset: "UTF-8" },

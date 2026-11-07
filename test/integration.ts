@@ -37,8 +37,6 @@ const env = {
   DATABASE_URL,
   JWT_SECRET_KEY: "integration-jwt-secret",
   HASH_SECRET_KEY: "integration-hash-secret",
-  EMAIL_DOMAIN: "example.com",
-  NOTEBOOK_PREVIEW_URL: `http://127.0.0.1:${PREVIEW_PORT}`,
   HOST: "127.0.0.1",
   PORT: String(PORT),
   PREVIEW_PORT: String(PREVIEW_PORT),
@@ -111,7 +109,7 @@ try {
       )
     document.body.append(iframe)
     return reply
-  }, env.NOTEBOOK_PREVIEW_URL)
+  }, `http://127.0.0.1:${PREVIEW_PORT}`)
   check(
     sandboxed.origin === "null" && sandboxed.cookie === "blocked",
     "the notebook preview runs posted code with an opaque origin and no cookies",
@@ -226,6 +224,22 @@ async function signIn(page: Page) {
 /** A published course with a lesson and a certificate template, and the integrations on. */
 async function seed(client: pg.Client) {
   const integrations = {
+    email: {
+      enabled: true,
+      region: "us-east-1",
+      accessKeyId: "fake",
+      secretAccessKey: "fake",
+      fromEmail: "notify@example.com",
+    },
+    objectStorage: {
+      enabled: true,
+      endpoint: fakes.url,
+      region: "auto",
+      accessKeyId: "fake",
+      secretAccessKey: "fake",
+      bucket: "swiftace-test",
+    },
+    notebookPreview: { enabled: true, url: `http://127.0.0.1:${PREVIEW_PORT}` },
     googleLogin: { enabled: false, clientId: "", clientSecret: "" },
     githubLogin: { enabled: false, clientId: "", clientSecret: "" },
     billing: {

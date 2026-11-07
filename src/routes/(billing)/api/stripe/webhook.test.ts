@@ -9,15 +9,6 @@ if (DATABASE_URL) {
     DATABASE_URL,
     JWT_SECRET_KEY: "test",
     HASH_SECRET_KEY: "test",
-    AWS_ACCESS_KEY_ID: "test",
-    AWS_ACCESS_KEY_SECRET: "test",
-    AWS_REGION: "us-east-1",
-    EMAIL_DOMAIN: "example.com",
-    R2_ENDPOINT_URL: "http://127.0.0.1:9",
-    R2_ACCESS_KEY_ID: "test",
-    R2_SECRET_ACCESS_KEY: "test",
-    R2_BUCKET: "test",
-    NOTEBOOK_PREVIEW_URL: "http://127.0.0.1:9",
   })
 }
 

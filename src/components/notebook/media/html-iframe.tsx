@@ -16,7 +16,7 @@ export function HtmlIframe({ html }: { html: string }) {
   const mounted = useIsClient()
   const [height, setHeight] = useState(0)
   const { resolvedTheme } = useTheme()
-  const { notebookPreviewUrl } = useSiteConfig().deployment
+  const { enabled, url } = useSiteConfig().notebookPreview
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -33,12 +33,12 @@ export function HtmlIframe({ html }: { html: string }) {
     postToHost(iframeRef.current, { theme: resolvedTheme })
   }, [resolvedTheme])
 
-  if (!mounted) return null
+  if (!mounted || !enabled || !url) return null
 
   return (
     <iframe
       ref={iframeRef}
-      src={notebookPreviewUrl}
+      src={url}
       title="Notebook output"
       className="w-full border-0"
       style={{ height }}

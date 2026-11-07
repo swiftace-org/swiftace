@@ -31,18 +31,10 @@ export type FakeServices = {
 /** What the AI tutor's fake model replies with, streamed a word at a time. */
 export const FAKE_TUTOR_REPLY = "Hello from the fake tutor. Keep going, you're doing great!"
 
-/** The environment that sends the app's SES, R2 and OpenAI traffic to the fakes. */
+/** SDK endpoint overrides; email and storage credentials are seeded into site_config. */
 export function fakeServiceEnv(url: string): Record<string, string> {
   return {
-    AWS_ACCESS_KEY_ID: "fake",
-    AWS_ACCESS_KEY_SECRET: "fake",
-    AWS_REGION: "us-east-1",
-    // Read by the AWS SDK for SES only, so R2's endpoint below still applies.
     AWS_ENDPOINT_URL_SESV2: url,
-    R2_ENDPOINT_URL: url,
-    R2_ACCESS_KEY_ID: "fake",
-    R2_SECRET_ACCESS_KEY: "fake",
-    R2_BUCKET: "swiftace-test",
     OPENAI_BASE_URL: `${url}/v1`,
   }
 }

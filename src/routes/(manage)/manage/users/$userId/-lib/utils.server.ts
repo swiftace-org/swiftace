@@ -5,7 +5,7 @@ import { runInTransaction } from "@/lib/schema.server"
 import { slugify } from "@/lib/utils"
 import {
   captureServerException,
-  deleteR2Objects,
+  deleteStorageObjects,
   getSiteConfig,
   readEmailBrand,
   sendSesEmail,
@@ -82,7 +82,7 @@ export function toUserDeletionBlockers({
 
 /** The legacy app's layout for notebook files, which nothing in this app writes any more. */
 export async function deleteNotebookFiles(slugs: string[]): Promise<void> {
-  await deleteR2Objects(slugs.filter(Boolean).map((slug) => `notebooks/${slug}.ipynb`))
+  await deleteStorageObjects(slugs.filter(Boolean).map((slug) => `notebooks/${slug}.ipynb`))
 }
 
 export async function sendAccountDeletedEmail(

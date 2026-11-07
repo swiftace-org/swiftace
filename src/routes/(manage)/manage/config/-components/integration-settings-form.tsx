@@ -29,10 +29,17 @@ import {
 export function IntegrationSettingsForm({
   settings,
   savedSecrets: initialSavedSecrets,
+  integration,
 }: {
   settings: IntegrationSettings
   savedSecrets: string[]
+  integration?: Integration
 }) {
+  const shown = integration
+    ? [integration]
+    : INTEGRATION_ORDER.filter(
+        (key) => !["email", "objectStorage", "notebookPreview"].includes(key),
+      )
   const router = useRouter()
   const origin = getSiteOrigin()
   const [values, setValues] = useState(settings)
@@ -53,7 +60,9 @@ export function IntegrationSettingsForm({
     setIsSaving(true)
     setError(undefined)
     try {
-      const result = await submitIntegrationSettings({ data: { values } })
+      const result = await submitIntegrationSettings({
+        data: { values: Object.fromEntries(shown.map((key) => [key, values[key]])) },
+      })
       if ("error" in result) {
         setError(result.error)
         return
@@ -76,7 +85,7 @@ export function IntegrationSettingsForm({
           Changes apply as soon as you save. Secrets are never shown again once saved — leave one
           blank to keep it, or type a new value to replace it.
         </FieldDescription>
-        {INTEGRATION_ORDER.map((integration, index) => {
+        {shown.map((integration, index) => {
           const { title, describe, fields } = INTEGRATION_DETAILS[integration]
           const current = values[integration] as unknown as Record<string, string | boolean>
           const id = `config-integration-${integration}`
@@ -97,20 +106,22 @@ export function IntegrationSettingsForm({
                   <FieldDescription>{describe(origin)}</FieldDescription>
                 </FieldContent>
               </Field>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {Object.entries(fields as Record<string, IntegrationFieldDetail>).map(
-                  ([key, field]) => (
-                    <IntegrationField
-                      key={key}
-                      id={`${id}-${key}`}
-                      field={field}
-                      value={String(current[key] ?? "")}
-                      isSaved={savedSecrets.includes(`${integration}.${key}`)}
-                      onChange={(value) => updateIntegration(integration, { [key]: value })}
-                    />
-                  ),
-                )}
-              </div>
+              {(integration !== "notebookPreview" || current.enabled) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {Object.entries(fields as Record<string, IntegrationFieldDetail>).map(
+                    ([key, field]) => (
+                      <IntegrationField
+                        key={key}
+                        id={`${id}-${key}`}
+                        field={field}
+                        value={String(current[key] ?? "")}
+                        isSaved={savedSecrets.includes(`${integration}.${key}`)}
+                        onChange={(value) => updateIntegration(integration, { [key]: value })}
+                      />
+                    ),
+                  )}
+                </div>
+              )}
             </div>
           )
         })}
@@ -141,7 +152,7 @@ function IntegrationField({
       <FieldLabel htmlFor={id}>{field.label}</FieldLabel>
       <Input
         id={id}
-        type={field.secret ? "password" : field.url ? "url" : "text"}
+        type={field.secret ? "password" : field.url ? "url" : field.email ? "email" : "text"}
         // Keeps the browser from offering to save, or autofill, an admin's login here.
         autoComplete={field.secret ? "new-password" : "off"}
         maxLength={field.url ? CONFIG_URL_MAX_LENGTH : INTEGRATION_KEY_MAX_LENGTH}

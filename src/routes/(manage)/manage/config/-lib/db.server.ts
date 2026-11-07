@@ -1,7 +1,12 @@
 import { sql } from "drizzle-orm"
 
 import { db, siteConfig } from "@/lib/schema.server"
-import type { BrandingSettings, SiteConfig, SiteConfigSection } from "@/types/site-config"
+import type {
+  BrandingSettings,
+  IntegrationSettings,
+  SiteConfig,
+  SiteConfigSection,
+} from "@/types/site-config"
 
 /** Inserts the section's row the first time it's saved, and replaces its settings after that. */
 export async function upsertSiteConfigSection<S extends SiteConfigSection>(
@@ -12,6 +17,19 @@ export async function upsertSiteConfigSection<S extends SiteConfigSection>(
     .insert(siteConfig)
     .values({ section, data })
     .onConflictDoUpdate({ target: siteConfig.section, set: { data, updatedAt: new Date() } })
+}
+
+/** Merge at the database so saves from separate settings tabs cannot overwrite each other. */
+export async function mergeIntegrationSettings(
+  change: Partial<IntegrationSettings>,
+): Promise<void> {
+  await db
+    .insert(siteConfig)
+    .values({ section: "integrations", data: change })
+    .onConflictDoUpdate({
+      target: siteConfig.section,
+      set: { data: sql`${siteConfig.data} || excluded.data`, updatedAt: new Date() },
+    })
 }
 
 /**
