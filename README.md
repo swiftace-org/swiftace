@@ -9,16 +9,17 @@ admin at `/manage/config`, so there's nothing to change in code to run your own.
 
 ## Install
 
-SwiftAce runs on Linux and macOS (x64 and arm64). Download the binary for your platform from the
-[latest release](https://github.com/swiftace-org/swiftace/releases/latest), and check it against
-the release's `SHA256SUMS`:
+SwiftAce runs on Linux and macOS (x64 and arm64). This downloads the binary for your machine from
+the [latest release](https://github.com/swiftace-org/swiftace/releases/latest) into the current
+folder as `swiftace`, checked against the release's `SHA256SUMS`:
 
 ```sh
-curl -fLO https://github.com/swiftace-org/swiftace/releases/latest/download/swiftace-linux-x64
-curl -fLO https://github.com/swiftace-org/swiftace/releases/latest/download/SHA256SUMS
-sha256sum --check --ignore-missing SHA256SUMS
-chmod +x swiftace-linux-x64 && mv swiftace-linux-x64 swiftace
+curl -fsSL https://github.com/swiftace-org/swiftace/releases/latest/download/install.sh | sh
 ```
+
+`SWIFTACE_VERSION=0.1.1` before `sh` installs a given release. Or download
+`swiftace-<linux|darwin>-<x64|arm64>` from the release yourself and check it with
+`sha256sum --check --ignore-missing SHA256SUMS`.
 
 It needs a Postgres database, Amazon SES to send email, and an S3-compatible bucket such as
 Cloudflare R2 for uploads and certificates.

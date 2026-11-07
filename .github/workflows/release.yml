@@ -186,11 +186,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/install.sh
+          sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: swiftace-*
           merge-multiple: true
+      - run: cp scripts/install.sh dist/
       - name: Publish
         working-directory: dist
         env:
@@ -201,6 +206,6 @@ jobs:
             echo "$TAG is released already"
             exit 0
           fi
-          sha256sum -- swiftace-* > SHA256SUMS
+          sha256sum -- swiftace-* install.sh > SHA256SUMS
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "$TAG" --generate-notes -- swiftace-* SHA256SUMS
+            --title "$TAG" --generate-notes -- swiftace-* install.sh SHA256SUMS

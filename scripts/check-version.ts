@@ -29,6 +29,8 @@ const BINARY = [
   "tsconfig.json",
   "vite.config.ts",
   "scripts/build.ts",
+  // Published beside the binaries, so a change to it is a release too.
+  "scripts/install.sh",
 ]
 const TESTS = /\.test\.tsx?$/
 /** What tests the binary, which needs a build to check but not a release. */
