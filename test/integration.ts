@@ -28,7 +28,9 @@ function check(condition: unknown, message: string): asserts condition {
   console.log(`ok - ${message}`)
 }
 
-const fakes = await startFakeServices()
+// The tutor thinks for longer than Bun's default idle timeout before it streams, as a reasoning
+// model can, so a server that cut quiet connections off would lose the reply.
+const fakes = await startFakeServices({ tutorThinkMs: 11_000 })
 const env = {
   ...process.env,
   ...fakeServiceEnv(fakes.url),
@@ -150,9 +152,9 @@ try {
   if (!(await message.isVisible())) await open.click()
   await (await hydrated(message)).fill("What is a list in Python?")
   await page.getByRole("button", { name: "Send" }).click()
-  await page.getByText(FAKE_TUTOR_REPLY).waitFor({ timeout: 20_000 })
+  await page.getByText(FAKE_TUTOR_REPLY).waitFor({ timeout: 40_000 })
   const tutorRequest = fakes.state.openaiRequests.find((body) => body.stream)
-  check(tutorRequest, "the AI tutor streams the model's reply")
+  check(tutorRequest, "the AI tutor streams the model's reply, after 11 quiet seconds")
 
   // Stripe's client, with a key Stripe refuses: the failure is Stripe's answer, not a crash.
   await page.goto(`${base}/pricing`)

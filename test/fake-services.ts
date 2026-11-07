@@ -51,11 +51,14 @@ export async function startFakeServices({
   port = 0,
   log = false,
   tutorWordDelayMs = 5,
+  tutorThinkMs = 0,
 }: {
   port?: number
   log?: boolean
   /** How long the fake tutor takes per word, slower to watch it stream. */
   tutorWordDelayMs?: number
+  /** How long the fake tutor pauses before its first word, as a model does while it thinks. */
+  tutorThinkMs?: number
 } = {}): Promise<FakeServices> {
   const state: FakeServices["state"] = { emails: [], objects: new Map(), openaiRequests: [] }
   const template = await blankCertificateTemplate()
@@ -63,6 +66,8 @@ export async function startFakeServices({
   const server = Bun.serve({
     hostname: "127.0.0.1",
     port,
+    // So the tutor's thinking pause isn't cut off at Bun's default of 10 seconds.
+    idleTimeout: 0,
     async fetch(request) {
       const url = new URL(request.url)
       if (log) console.log(`fake: ${request.method} ${url.pathname}${url.search}`)
@@ -80,7 +85,7 @@ export async function startFakeServices({
         const body = (await request.json()) as Record<string, unknown>
         state.openaiRequests.push(body)
         return body.stream
-          ? streamedResponse(String(body.model), tutorWordDelayMs)
+          ? streamedResponse(String(body.model), tutorWordDelayMs, tutorThinkMs)
           : Response.json(response(body))
       }
       return s3(request, url, state.objects)
@@ -215,7 +220,7 @@ function response(body: Record<string, unknown>, status = "completed") {
 }
 
 /** A Responses API stream: the message's text a word at a time, then the usage. */
-function streamedResponse(model: string, wordDelayMs: number): Response {
+function streamedResponse(model: string, wordDelayMs: number, thinkMs: number): Response {
   const item = { id: "msg_fake", type: "message", role: "assistant", status: "in_progress" }
   const part = { type: "output_text", text: "", annotations: [] }
   const words = FAKE_TUTOR_REPLY.split(/(?<= )/)
@@ -246,9 +251,11 @@ function streamedResponse(model: string, wordDelayMs: number): Response {
     { type: "response.completed", response: response({ model }) },
   ]
   const encoder = new TextEncoder()
+  const firstWord = events.findIndex((event) => event.type === "response.output_text.delta")
   const stream = new ReadableStream({
     async start(controller) {
       for (const [sequence_number, event] of events.entries()) {
+        if (sequence_number === firstWord) await Bun.sleep(thinkMs)
         const data = JSON.stringify({ ...event, sequence_number })
         controller.enqueue(encoder.encode(`event: ${String(event.type)}\ndata: ${data}\n\n`))
         await Bun.sleep(wordDelayMs)

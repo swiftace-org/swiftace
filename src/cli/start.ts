@@ -32,7 +32,9 @@ export async function start() {
   const servers: Bun.Server<unknown>[] = []
   const serve = Bun.serve
   Bun.serve = ((options: Parameters<typeof serve>[0]) => {
-    const server = serve(options)
+    // Bun closes a connection after 10 quiet seconds by default, cutting off a stream that waits,
+    // like the AI tutor's while the model thinks. Node, and so the app's design, has no such limit.
+    const server = serve({ ...options, idleTimeout: 0 } as typeof options)
     servers.push(server)
     return server
   }) as typeof Bun.serve
