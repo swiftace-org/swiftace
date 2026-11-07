@@ -1,0 +1,16 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env
+.nitro
+.tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+# Each developer's own Infisical project link, if they use one.
+.infisical.json
+# What test/integration.ts saw when it failed.
+integration-failure.png

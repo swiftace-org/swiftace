@@ -1,0 +1,206 @@
+# Checks the app and builds the swiftace binary for each platform, testing each on its own runner.
+# A PR that changes what goes into the binary bumps package.json's version, and others leave it be
+# (see scripts/check-version.ts). Merging a bump to main publishes the binaries as that version's
+# GitHub release, which `swiftace upgrade` installs; pushes to main that don't bump it skip
+# everything.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    # A bump changes package.json; the version job checks it was the version that changed.
+    paths: [package.json]
+  pull_request:
+    paths-ignore: ["**/*.md", LICENSE]
+  # Builds and releases the version, if it isn't released already.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Runs on main go one at a time, so releases are made in order. A PR's new push cancels its last
+# run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  BUN_VERSION: 1.4.4
+  NODE_VERSION: "26"
+
+jobs:
+  # Decides what to run: a PR is checked against its base, and a push against main before it.
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+      build: ${{ steps.version.outputs.build }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - name: Check the version
+        id: version
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        # With bash, a pipe fails if any part does.
+        shell: bash
+        run: |
+          if [[ -n "$BASE" && "$BASE" != 0000000000000000000000000000000000000000 ]]; then
+            git fetch --depth=1 origin "$BASE"
+            bun scripts/check-version.ts "$BASE" | tee -a "$GITHUB_OUTPUT"
+          else
+            bun scripts/check-version.ts | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  check:
+    needs: version
+    if: github.event_name == 'pull_request' || needs.version.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    # For the tests whose guarantees are the database's, like concurrent sign-ins and webhooks.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: swiftace_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/swiftace_test
+    steps:
+      - uses: actions/checkout@v7
+      # Installs the dependencies too, from the lockfile.
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: true
+      # `deploy`'s tests run `caddy validate` on real configs.
+      - run: sudo apt-get install -y --no-install-recommends caddy
+      - run: vp check
+      - run: vp test run
+
+  # Linux binaries are tested against Postgres: migrating an empty database, then serving.
+  build-linux:
+    needs: version
+    if: needs.version.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-24.04
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: swiftace
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/swiftace
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: vp run build
+      - run: bun scripts/smoke-test.ts dist/swiftace
+      # Production runs x64, so the whole site is driven in a browser there, against fakes of the
+      # services it uses (test/fake-services.ts).
+      - name: Integration test
+        if: matrix.target == 'linux-x64'
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres swiftace_integration
+          vp exec playwright install --with-deps --only-shell chromium
+          # Holds the client's scripts back, so every step has to wait for hydration.
+          TEST_SCRIPT_DELAY_MS=1000 \
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/swiftace_integration \
+            bun test/integration.ts dist/swiftace
+      - if: failure() && matrix.target == 'linux-x64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-failure
+          path: integration-failure.png
+          if-no-files-found: ignore
+      # Named as `swiftace upgrade` looks for it.
+      - run: mv dist/swiftace dist/swiftace-${{ matrix.target }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: swiftace-${{ matrix.target }}
+          path: dist/swiftace-${{ matrix.target }}
+          if-no-files-found: error
+
+  # macOS runners can't run service containers, so these binaries only show they start.
+  build-macos:
+    needs: version
+    if: needs.version.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-x64
+            runner: macos-15-intel
+          - target: darwin-arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: vp run build
+      - name: Smoke test
+        run: |
+          test "$(dist/swiftace version)" = "$(bun -p 'require("./package.json").version')"
+          dist/swiftace help | grep -q 'migrate \[--dry-run\]'
+      - run: mv dist/swiftace dist/swiftace-${{ matrix.target }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: swiftace-${{ matrix.target }}
+          path: dist/swiftace-${{ matrix.target }}
+          if-no-files-found: error
+
+  release:
+    needs: [version, check, build-linux, build-macos]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.version.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: swiftace-*
+          merge-multiple: true
+      - name: Publish
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.version.outputs.version }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "$TAG is released already"
+            exit 0
+          fi
+          sha256sum -- swiftace-* > SHA256SUMS
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "$TAG" --generate-notes -- swiftace-* SHA256SUMS
