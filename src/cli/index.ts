@@ -19,7 +19,7 @@ Commands:
   upgrade [version] [-y]
                         Replace this binary with the latest release, or the given one
   deploy <domain> [redirect-domains...] [--preview-domain <domain>]
-                        Install SwiftAce on this server as a service behind Caddy (as root)
+                        Install SwiftAce behind Caddy; asks for missing admin email and SES settings (as root)
   version               Print the version
   help                  Print this
 

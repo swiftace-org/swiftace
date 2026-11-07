@@ -8,10 +8,12 @@
 // Chromium comes from `vp exec playwright install chromium`.
 import { resolve } from "node:path"
 
+import { drizzle } from "drizzle-orm/node-postgres"
 import { Jimp } from "jimp"
 import pg from "pg"
 import { chromium, type Browser, type Locator, type Page } from "playwright"
 
+import { setupDeployment } from "../src/cli/deploy-setup.ts"
 import { FAKE_TUTOR_REPLY, fakeServiceEnv, startFakeServices } from "./fake-services.ts"
 
 const binary = resolve(process.argv[2] ?? "dist/swiftace")
@@ -47,6 +49,17 @@ const migrated = Bun.spawnSync([binary, "migrate"], { env })
 check(migrated.exitCode === 0, `swiftace migrate: ${migrated.stdout.toString().trim()}`)
 const db = new pg.Client({ connectionString: DATABASE_URL })
 await db.connect()
+await setupDeployment(
+  drizzle(db),
+  async (question) =>
+    ({
+      "Admin email address": EMAIL,
+      "SES AWS region": "us-east-1",
+      "SES access key ID": "fake",
+      "SES secret access key": "fake",
+      "SES verified sender email address": "notify@example.com",
+    })[question] ?? "",
+)
 await seed(db)
 
 const server = Bun.spawn([binary, "start"], { env, stdout: "inherit", stderr: "inherit" })
@@ -116,6 +129,12 @@ try {
   )
 
   await signIn(page)
+  await page.goto(`${base}/manage/config?tab=integrations`)
+  await page.getByLabel("AWS region").waitFor()
+  check(
+    page.url().includes("/manage/config"),
+    "the deploy-created first admin signs in with admin access",
+  )
   const made = Bun.spawnSync([binary, "make-admin", EMAIL], { env })
   check(made.exitCode === 0, `swiftace make-admin: ${made.stdout.toString().trim()}`)
   await db.query(
@@ -224,13 +243,6 @@ async function signIn(page: Page) {
 /** A published course with a lesson and a certificate template, and the integrations on. */
 async function seed(client: pg.Client) {
   const integrations = {
-    email: {
-      enabled: true,
-      region: "us-east-1",
-      accessKeyId: "fake",
-      secretAccessKey: "fake",
-      fromEmail: "notify@example.com",
-    },
     objectStorage: {
       enabled: true,
       endpoint: fakes.url,
@@ -255,7 +267,7 @@ async function seed(client: pg.Client) {
   }
   for (const [section, data] of Object.entries({ integrations, aiTutor: { enabled: true } })) {
     await client.query(
-      "insert into site_config (section, data) values ($1, $2) on conflict (section) do update set data = $2",
+      "insert into site_config (section, data) values ($1, $2) on conflict (section) do update set data = site_config.data || excluded.data",
       [section, JSON.stringify(data)],
     )
   }

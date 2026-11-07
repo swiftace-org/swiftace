@@ -40,20 +40,22 @@ The first domain is the site; any others redirect to it. `deploy`:
 2. creates `/etc/swiftace.env`, readable only by root, with every variable the server needs and
    new `JWT_SECRET_KEY` and `HASH_SECRET_KEY`. It stops there until you fill in the rest, then
    you run it again. It never overwrites a value that's already set
-3. installs `swiftace.service`, a locked-down systemd service listening on `127.0.0.1`
+3. validates the proposed Caddy configuration before changing it
 4. applies any database migrations, stopping before anything restarts if they fail
-5. restarts the service and checks it answers
-6. edits `/etc/caddy/Caddyfile`, which it never creates. A domain that already has a site block
+5. asks for an admin email if no active admin exists, and for any missing SES settings: AWS region,
+   access key ID, secret access key and a verified sender email address. Credentials are hidden
+   while typing. It creates (or promotes) the admin and saves SES in Postgres before restarting
+6. installs `swiftace.service`, a locked-down systemd service listening on `127.0.0.1`,
+   restarts it and checks it answers
+7. edits `/etc/caddy/Caddyfile`, which it never creates. A domain that already has a site block
    keeps it, with only its `reverse_proxy` upstreams pointed at SwiftAce, so custom rules
    survive; a domain without one gets a new block. The result is checked with `caddy validate`
    before it replaces the live file, and the old one is put back if Caddy won't reload it
 
-The domains are saved, so later runs can leave them out. Then sign up on the site and make
-yourself an admin:
-
-```sh
-sudo swiftace make-admin you@example.com
-```
+The domains are saved, so later runs can leave them out. Configured admins and SES settings are
+kept, so subsequent deploys skip those questions. After the first deploy, sign in at `/login`
+using the code sent to your admin email; no separate signup or `make-admin` step is needed.
+Use `swiftace make-admin <email>` when promoting additional accounts later.
 
 To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and restart.
 
@@ -88,7 +90,8 @@ Stripe, Turnstile, PostHog, OpenAI for the AI tutor, branding, pricing
 copy, legal pages) is set at `/manage/config` and kept in the `site_config` table, so changing it
 needs no restart. Secrets are write-only there and never sent to the browser.
 
-On a fresh database, configure SES before signing in. Save this JSON to a local file with mode
+`swiftace deploy` collects missing admin and SES settings interactively. If you manage the
+server another way, configure SES before signing in. Save this JSON to a local file with mode
 `0600`, fill in the SES credentials and verified sender, then run
 `swiftace configure-integrations /path/to/integrations.json` (after `swiftace migrate`):
 
@@ -104,8 +107,8 @@ On a fresh database, configure SES before signing in. Save this JSON to a local 
 }
 ```
 
-Sign up at `/login`, run `swiftace make-admin you@example.com`, then configure storage and other
-settings at `/manage/config`. The CLI accepts any integration sections, preserves omitted ones,
+Without `deploy`, sign up at `/login`, run `swiftace make-admin you@example.com`, then configure
+storage and other settings at `/manage/config`. The CLI accepts any integration sections, preserves omitted ones,
 and keeps saved secrets when their submitted values are blank. Remove the local JSON file once
 setup is complete. Existing SES, R2 and preview environment variables are no longer used. After
 upgrading, save those settings using the CLI or `/manage/config`. Authentication keys stay in the

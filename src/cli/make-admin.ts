@@ -1,5 +1,4 @@
-// `swiftace make-admin <email>`: makes an existing account an admin. A fresh site has no admin
-// and so no way into /manage/config, so sign up at /login first, then run this.
+// Promotes an additional existing account; deploy creates the first admin during initial setup.
 import { sql } from "drizzle-orm"
 
 import { commandDatabaseUrl, withDatabase } from "./migrations.ts"
