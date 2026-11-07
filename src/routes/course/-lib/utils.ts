@@ -74,7 +74,7 @@ export function toCourseSocialImage(cover: string | null): string | null {
 
 /** What the two gates below need to know about the caller — a `CourseForViewer`, structurally. */
 export type SectionViewer = {
-  course: { isPaid: boolean | null }
+  course: { isPaid: boolean }
   isAdmin: boolean
   isEnrolled: boolean
 }
@@ -87,17 +87,14 @@ export type SectionViewer = {
  * Separate from `isSectionOpen` because they answer different questions: that one is whether the
  * section is published at all, this one whether *this* viewer has bought their way past it.
  */
-export function isSectionLocked(
-  section: { alwaysOpen: boolean | null },
-  viewer: SectionViewer,
-): boolean {
+export function isSectionLocked(section: { alwaysOpen: boolean }, viewer: SectionViewer): boolean {
   if (viewer.isAdmin || viewer.isEnrolled || !viewer.course.isPaid) return false
   return !section.alwaysOpen
 }
 
 /** Both gates at once, for the server functions that only care whether to serve the content. */
 export function canOpenSection(
-  section: { visibility: string | null; alwaysOpen: boolean | null },
+  section: { visibility: string | null; alwaysOpen: boolean },
   viewer: SectionViewer,
 ): boolean {
   if (!viewer.isAdmin && !isSectionOpen(section)) return false

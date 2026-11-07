@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1792153230727,
-      "tag": "0000_baseline",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1793608317847,
-      "tag": "0001_ai_tutor",
+      "when": 1794032931328,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

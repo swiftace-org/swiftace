@@ -148,9 +148,8 @@ Other commands:
 
 `src/lib/schema.server.ts` defines the tables, and `drizzle/` holds the migrations generated from
 it. After changing the schema, `vp run db:generate` writes a new migration, which
-`vp run db:migrate` (or `swiftace migrate`) applies. The first migration is a baseline of the
-schema as a whole; on a database that already had these tables, record it as applied rather than
-running it.
+`vp run db:migrate` (or `swiftace migrate`) applies. The first migration, `0000_init`, creates
+the whole schema.
 
 ### Releases
 

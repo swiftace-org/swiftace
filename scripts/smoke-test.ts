@@ -59,7 +59,7 @@ try {
   check(/migrate \[--dry-run\]/.test(swiftace(["help"]).output), "swiftace help lists the commands")
 
   const dryRun = swiftace(["migrate", "--dry-run"])
-  check(dryRun.code === 0 && /0000_baseline/.test(dryRun.output), "migrate --dry-run lists them")
+  check(dryRun.code === 0 && /0000_init/.test(dryRun.output), "migrate --dry-run lists them")
   // Nothing beside the binary is read, neither a .env nor a bunfig.toml.
   await writeFile(join(dir, ".env"), "JWT_SECRET_KEY=from-dotenv\n")
   await writeFile(join(dir, "bunfig.toml"), 'preload = ["./preload.ts"]\n')

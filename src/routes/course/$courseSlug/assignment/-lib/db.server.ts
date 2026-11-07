@@ -47,7 +47,7 @@ export async function readEnrolleeAssignmentSubmissions(
     createdAt: Date
     answers: unknown
     assignmentStatus: string | null
-    isDraft: boolean | null
+    isDraft: boolean
     comments: string | null
   }[]
 > {

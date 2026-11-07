@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/node-postgres"
 import {
   bigserial,
@@ -55,33 +56,20 @@ export function runInTransaction<T>(callback: (tx: Transaction) => Promise<T>): 
 }
 
 /**
- * Drizzle schema mirroring the legacy SQLAlchemy models against the same Postgres database.
- *
- * ## Defaults: `.default()` vs `.$defaultFn()`
- *
- * Drizzle omits a column from the INSERT when it carries `.default()`, leaving Postgres to
- * fill it in — so `.default()` on a column Postgres has no default for silently writes NULL.
- * The legacy app applied most defaults in Python rather than as DB `DEFAULT` clauses:
- *
- * - `.default(x)`      — Postgres genuinely has that default.
- * - `.$defaultFn(fn)`  — no DB default; computed client-side, as SQLAlchemy's `default=` did.
- * - `.$onUpdateFn(fn)` — mirrors SQLAlchemy's `onupdate=`, used for `updated_at`.
- *
- * Every value below was checked against `information_schema.columns` in production, so
- * changing one means re-checking there first.
+ * Every default lives in Postgres, so a row is complete whoever inserts it, and every flag is
+ * `NOT NULL`. Timestamps are `timestamp` holding UTC: Drizzle writes and reads them as UTC, and
+ * the defaults take `now()` in UTC, so the server's `TimeZone` setting never shifts them.
  */
+const utcNow = sql`(now() at time zone 'utc')`
 
-/** `TimestampMixin.created_at`: `default=datetime.utcnow`, i.e. Python-side, not a DB default. */
-const createdAt = () =>
-  timestamp("created_at")
-    .$defaultFn(() => new Date())
+const createdAt = () => timestamp("created_at").default(utcNow).notNull()
+
+/** Postgres fills it on INSERT; `$onUpdateFn` moves it on every UPDATE made through Drizzle. */
+const updatedAt = () =>
+  timestamp("updated_at")
+    .default(utcNow)
+    .$onUpdateFn(() => new Date())
     .notNull()
-
-/**
- * `TimestampMixin.updated_at`: SQLAlchemy's `onupdate=`. Drizzle also runs `$onUpdateFn` on
- * INSERT, so new rows get `updated_at == created_at` where Flask left NULL — cosmetic only.
- */
-const updatedAt = () => timestamp("updated_at").$onUpdateFn(() => new Date())
 
 export const accounts = pgTable(
   "accounts",
@@ -90,19 +78,22 @@ export const accounts = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     name: varchar("name", { length: 64 }).notNull(),
-    username: varchar("username", { length: 64 }).default("").notNull(),
+    username: varchar("username", { length: 64 }).notNull(),
     normalizedUsername: varchar("normalized_username", { length: 64 }),
     email: varchar("email", { length: 128 }).notNull(),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     isAdmin: boolean("is_admin").default(false).notNull(),
     flaggedAsSpammer: boolean("flagged_as_spammer").default(false).notNull(),
   },
   (table) => ({
+    createdAtIdx: index("ix_accounts_created_at").on(table.createdAt),
     usernameUnique: uniqueIndex("ix_accounts_username").on(table.username),
     normalizedUsernameUnique: uniqueIndex("ix_accounts_normalized_username").on(
       table.normalizedUsername,
     ),
     emailUnique: uniqueIndex("accounts_email_key").on(table.email),
+    // For signing in with an address whose case differs from the one on record.
+    emailLowerIdx: index("ix_accounts_email_lower").on(sql`lower(${table.email})`),
     deletedIdx: index("ix_accounts_deleted").on(table.deleted),
     flaggedAsSpammerIdx: index("ix_accounts_flagged_as_spammer").on(table.flaggedAsSpammer),
   }),
@@ -119,7 +110,7 @@ export const accountIntegrations = pgTable(
       .references(() => accounts.id),
     googleDriveAuthToken: text("google_drive_auth_token"),
     googleDriveCredentials: text("google_drive_credentials"),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
   },
   (table) => ({
     accountIdIdx: index("ix_account_integrations_account_id").on(table.accountId),
@@ -130,28 +121,25 @@ export const emailAccountAttempts = pgTable(
   "email_account_attempts",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    // The only `created_at` in the schema with a real `DEFAULT now()` in Postgres.
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: createdAt(),
     updatedAt: updatedAt(),
     ipAddress: text("ip_address"),
     email: text("email").notNull(),
-    emailTriggered: boolean("email_triggered").$defaultFn(() => false),
+    emailTriggered: boolean("email_triggered").default(false).notNull(),
     codeHash: text("code_hash"),
     tokenHash: text("token_hash"),
-    // `consumed` postdates the Flask app, so it has no SQLAlchemy default either;
-    // rows written before this default was added can still be NULL.
-    consumed: boolean("consumed").$defaultFn(() => false),
+    consumed: boolean("consumed").default(false).notNull(),
     /**
      * Opaque handle for the `?state=` param on `/login/verify`, so the flow can resume in a new
      * tab. Deliberately not the id, which can be enumerated, and not `token_hash`, which signs a
-     * caller in — `state` travels in browser history and referrers. Nullable: older rows predate it.
+     * caller in — `state` travels in browser history and referrers. Null on attempts older than it.
      */
     stateToken: text("state_token"),
-    // Codes guessed, each counted before it's compared, so a 6-digit code can't be ground down. Unlike `consumed`
-    // this has a real `DEFAULT 0` in Postgres, applied to the existing rows too.
+    // Codes guessed, each counted before it's compared, so a 6-digit code can't be ground down.
     failedAttempts: integer("failed_attempts").notNull().default(0),
   },
   (table) => ({
+    createdAtIdx: index("ix_email_account_attempts_created_at").on(table.createdAt),
     ipAddressIdx: index("ix_email_account_attempts_ip_address").on(table.ipAddress),
     emailIdx: index("ix_email_account_attempts_email").on(table.email),
     emailTriggeredIdx: index("ix_email_account_attempts_email_triggered").on(table.emailTriggered),
@@ -167,26 +155,28 @@ export const gists = pgTable(
     id: bigserial("id", { mode: "number" }).primaryKey(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     accountId: bigint("account_id", { mode: "number" })
       .notNull()
       .references(() => accounts.id),
-    slug: varchar("slug", { length: 64 }).default("").notNull(),
-    public: boolean("public").$defaultFn(() => false),
+    slug: varchar("slug", { length: 64 }).notNull(),
+    public: boolean("public").default(false).notNull(),
     visibility: varchar("visibility", { length: 16 }),
-    archive: boolean("archive").default(false),
+    archive: boolean("archive").default(false).notNull(),
     archivedAt: timestamp("archived_at"),
     title: varchar("title", { length: 100 }),
     legacyTitle: varchar("legacy_title", { length: 100 }),
     description: text("description"),
-    runOnKernel: boolean("run_on_kernel").default(false),
-    googleDriveFileId: varchar("google_drive_file_id", { length: 100 }).$defaultFn(() => ""),
-    githubRepository: text("github_repository").$defaultFn(() => ""),
-    githubRepositoryWebhook: text("github_repository_webhook").$defaultFn(() => ""),
-    githubRepositoryBranch: text("github_repository_branch").$defaultFn(() => ""),
-    githubRepositoryFilePath: text("github_repository_file_path").$defaultFn(() => ""),
+    runOnKernel: boolean("run_on_kernel").default(false).notNull(),
+    googleDriveFileId: varchar("google_drive_file_id", { length: 100 }).default(""),
+    githubRepository: text("github_repository").default(""),
+    githubRepositoryWebhook: text("github_repository_webhook").default(""),
+    githubRepositoryBranch: text("github_repository_branch").default(""),
+    githubRepositoryFilePath: text("github_repository_file_path").default(""),
   },
   (table) => ({
+    createdAtIdx: index("ix_gists_created_at").on(table.createdAt),
+    updatedAtIdx: index("ix_gists_updated_at").on(table.updatedAt),
     accountIdx: index("ix_gists_account_id").on(table.accountId),
     slugUnique: uniqueIndex("gists_slug_key").on(table.slug),
     deletedIdx: index("ix_gists_deleted").on(table.deleted),
@@ -209,15 +199,9 @@ export const githubAccounts = pgTable(
     username: text("username").notNull(),
     normalizedUsername: text("normalized_username"),
     email: text("email").notNull(),
-    emailVerified: boolean("email_verified")
-      .$defaultFn(() => false)
-      .notNull(),
-    emailPrimary: boolean("email_primary")
-      .$defaultFn(() => false)
-      .notNull(),
-    emailPublic: boolean("email_public")
-      .$defaultFn(() => false)
-      .notNull(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    emailPrimary: boolean("email_primary").default(false).notNull(),
+    emailPublic: boolean("email_public").default(false).notNull(),
     emailsList: jsonb("emails_list").$type<unknown>(),
     displayName: text("display_name"),
     profileUrl: text("profile_url"),
@@ -228,6 +212,7 @@ export const githubAccounts = pgTable(
       .references(() => accounts.id),
   },
   (table) => ({
+    createdAtIdx: index("ix_github_accounts_created_at").on(table.createdAt),
     githubIdUnique: uniqueIndex("github_accounts_github_id_key").on(table.githubId),
     usernameUnique: uniqueIndex("github_accounts_username_key").on(table.username),
     normalizedUsernameUnique: uniqueIndex("github_accounts_normalized_username_key").on(
@@ -245,14 +230,13 @@ export const googleAccounts = pgTable(
     updatedAt: updatedAt(),
     googleId: text("google_id").notNull(),
     email: text("email").notNull(),
-    emailVerified: boolean("email_verified")
-      .$defaultFn(() => false)
-      .notNull(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
     accountId: bigint("account_id", { mode: "number" })
       .notNull()
       .references(() => accounts.id),
   },
   (table) => ({
+    createdAtIdx: index("ix_google_accounts_created_at").on(table.createdAt),
     googleIdUnique: uniqueIndex("google_accounts_google_id_key").on(table.googleId),
     emailUnique: uniqueIndex("google_accounts_email_key").on(table.email),
     accountIdx: index("ix_google_accounts_account_id").on(table.accountId),
@@ -267,9 +251,7 @@ export const quizzes = pgTable(
     updatedAt: updatedAt(),
     urlSlug: text("url_slug").notNull(),
     sortCategory: text("sort_category"),
-    enabled: boolean("enabled")
-      .$defaultFn(() => false)
-      .notNull(),
+    enabled: boolean("enabled").default(false).notNull(),
     displayTitle: text("display_title"),
     description: text("description"),
     shortDescription: text("short_description"),
@@ -278,13 +260,13 @@ export const quizzes = pgTable(
     // Null means "no cap" — it is not a cached count of the questions.
     questionCount: bigint("question_count", { mode: "number" }),
     jsonData: jsonb("json_data").$type<unknown>(),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     maxAttempts: bigint("max_attempts", { mode: "number" }),
     timeLimit: bigint("time_limit", { mode: "number" }),
     startDate: timestamp("start_date"),
     endDate: timestamp("end_date"),
-    showResult: boolean("show_result").$defaultFn(() => true),
-    isProctored: boolean("is_proctored").$defaultFn(() => false),
+    showResult: boolean("show_result").default(true).notNull(),
+    isProctored: boolean("is_proctored").default(false).notNull(),
     visibility: varchar("visibility", { length: 16 }),
   },
   (table) => ({
@@ -307,8 +289,8 @@ export const questions = pgTable(
     answerType: text("answer_type"),
     options: jsonb("options").$type<unknown>(),
     correctAnswer: text("correct_answer"),
-    deleted: boolean("deleted").$defaultFn(() => false),
-    optional: boolean("optional").default(false),
+    deleted: boolean("deleted").default(false).notNull(),
+    optional: boolean("optional").default(false).notNull(),
     creatorId: bigint("creator_id", { mode: "number" }).references(() => accounts.id),
   },
   (table) => ({
@@ -328,21 +310,14 @@ export const quizQuestions = pgTable(
       .references(() => questions.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
-    enabled: boolean("enabled")
-      .$defaultFn(() => true)
-      .notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
   },
   (table) => ({
     pk: primaryKey({
       columns: [table.quizId, table.questionId],
       name: "quiz_questions_pkey",
     }),
-    quizIdx: index("ix_quiz_questions_quiz_id").on(table.quizId),
     questionIdx: index("ix_quiz_questions_question_id").on(table.questionId),
-    quizQuestionUnique: uniqueIndex("ix_quiz_questions_quiz_id_question_id").on(
-      table.quizId,
-      table.questionId,
-    ),
   }),
 )
 
@@ -364,6 +339,7 @@ export const quizQuestionAttempts = pgTable(
     isCorrect: boolean("is_correct").notNull(),
   },
   (table) => ({
+    createdAtIdx: index("ix_quiz_question_attempts_created_at").on(table.createdAt),
     accountIdx: index("ix_quiz_question_attempts_account_id").on(table.accountId),
     quizIdx: index("ix_quiz_question_attempts_quiz_id").on(table.quizId),
     questionIdx: index("ix_quiz_question_attempts_question_id").on(table.questionId),
@@ -389,21 +365,21 @@ export const courses = pgTable(
     meta: jsonb("meta").$type<unknown>(),
     sections: jsonb("sections").$type<unknown>(),
     published: boolean("published").default(false).notNull(),
-    slackEnabled: boolean("slack_enabled").default(false),
-    showRightSidebar: boolean("show_right_sidebar").default(false),
-    showLeftSidebar: boolean("show_left_sidebar").default(false),
-    showJobsBoard: boolean("show_jobs_board").$defaultFn(() => false),
-    codeItYourself: boolean("code_it_yourself").default(false),
-    applicationFormVisibility: text("application_form_visiblity").$defaultFn(() => "PUBLIC"),
+    slackEnabled: boolean("slack_enabled").default(false).notNull(),
+    showRightSidebar: boolean("show_right_sidebar").default(false).notNull(),
+    showLeftSidebar: boolean("show_left_sidebar").default(false).notNull(),
+    showJobsBoard: boolean("show_jobs_board").default(false).notNull(),
+    codeItYourself: boolean("code_it_yourself").default(false).notNull(),
+    applicationFormVisibility: text("application_form_visiblity").default("PUBLIC"),
     certificateTemplate: text("certificate_template"),
     visibility: varchar("visibility", { length: 16 }),
     videoUrl: text("video_url"),
     referralForm: text("referral_form"),
-    offersCertificate: boolean("offers_certificate"),
-    isPaid: boolean("is_paid").$defaultFn(() => false),
+    offersCertificate: boolean("offers_certificate").default(false).notNull(),
+    isPaid: boolean("is_paid").default(false).notNull(),
     landingPageUrl: text("landing_page_url"),
-    welcomeEmail: boolean("welcome_email").default(true),
-    welcomeEmailCustom: boolean("welcome_email_custom").default(false),
+    welcomeEmail: boolean("welcome_email").default(true).notNull(),
+    welcomeEmailCustom: boolean("welcome_email_custom").default(false).notNull(),
     welcomeEmailContent: text("welcome_email_content"),
     welcomeEmailContentPreview: text("welcome_email_content_preview"),
     discussionUrl: text("discussion_url"),
@@ -411,20 +387,20 @@ export const courses = pgTable(
     applicationForm: jsonb("application_form").$type<unknown>(),
     slackWorkspaceId: varchar("slack_workspace_id", { length: 20 }),
     level: varchar("level", { length: 20 }),
-    sendClassReminder: boolean("send_class_reminder").$defaultFn(() => false),
+    sendClassReminder: boolean("send_class_reminder").default(false).notNull(),
     admissionQuiz: text("admission_quiz"),
     bookerUrl: text("booker_url"),
-    enableWeeklyUpdates: boolean("enable_weekly_updates").$defaultFn(() => false),
-    enableEvaluationAlerts: boolean("enable_evaluation_alerts").$defaultFn(() => false),
-    enableSectionDeadlineReminder: boolean("enable_section_deadline_reminder").$defaultFn(
-      () => false,
-    ),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    enableWeeklyUpdates: boolean("enable_weekly_updates").default(false).notNull(),
+    enableEvaluationAlerts: boolean("enable_evaluation_alerts").default(false).notNull(),
+    enableSectionDeadlineReminder: boolean("enable_section_deadline_reminder")
+      .default(false)
+      .notNull(),
+    deleted: boolean("deleted").default(false).notNull(),
     price: integer("price"),
     stripeProductId: text("stripe_product_id"),
     /**
-     * Where the course is listed, set by dragging on Manage Courses. Added by hand and nullable
-     * with no default, so Flask (which doesn't know it) inserts NULL, which lists after the rest.
+     * Where the course is listed, set by dragging on Manage Courses. Null until it's first
+     * dragged, which lists it after the rest.
      */
     position: integer("position"),
   },
@@ -453,28 +429,24 @@ export const courseEnrollments = pgTable(
       .references(() => accounts.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     certificationStatus: text("certification_status"),
     paymentStatus: text("payment_status"),
     comments: text("comments"),
     preferences: jsonb("preferences").$type<unknown>(),
   },
   (table) => ({
+    createdAtIdx: index("ix_course_enrollments_created_at").on(table.createdAt),
     pk: primaryKey({
       columns: [table.courseId, table.enrolleeId],
       name: "course_enrollments_pkey",
     }),
-    courseIdx: index("ix_course_enrollments_course_id").on(table.courseId),
     enrolleeIdx: index("ix_course_enrollments_enrollee_id").on(table.enrolleeId),
     deletedIdx: index("ix_course_enrollments_deleted").on(table.deleted),
     certificationStatusIdx: index("ix_course_enrollments_certification_status").on(
       table.certificationStatus,
     ),
     paymentStatusIdx: index("ix_course_enrollments_payment_status").on(table.paymentStatus),
-    courseEnrolleeUnique: uniqueIndex("ix_course_enrollments_course_id_enrollee_id").on(
-      table.courseId,
-      table.enrolleeId,
-    ),
   }),
 )
 
@@ -496,11 +468,11 @@ export const courseSections = pgTable(
     description: text("description"),
     sectionType: varchar("section_type", { length: 20 }),
     modules: jsonb("modules").$type<unknown>(),
-    deleted: boolean("deleted").$defaultFn(() => false),
-    isOptional: boolean("is_optional").default(false),
-    requireQuestions: boolean("require_questions").default(false),
-    disableExecution: boolean("disable_execution").$defaultFn(() => false),
-    allowDraft: boolean("allow_draft").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
+    isOptional: boolean("is_optional").default(false).notNull(),
+    requireQuestions: boolean("require_questions").default(false).notNull(),
+    disableExecution: boolean("disable_execution").default(false).notNull(),
+    allowDraft: boolean("allow_draft").default(false).notNull(),
     visibility: text("visibility"),
     videoUrl: text("video_url"),
     notebooks: jsonb("notebooks").$type<unknown>(),
@@ -508,16 +480,16 @@ export const courseSections = pgTable(
     quizUrl: text("quiz_url"),
     transcript: text("transcript"),
     resources: text("resources"),
-    alwaysOpen: boolean("always_open"),
+    alwaysOpen: boolean("always_open").default(false).notNull(),
     dueDate: timestamp("due_date"),
     // Automated evaluation is not supported: nothing here runs `evaluation_script`, so these
     // three are declared for a complete mirror and read by nothing. See `ASSIGNMENT_STATUS_OPTIONS`.
     evaluationType: text("evaluation_type"),
     evaluationScript: text("evaluation_script"),
-    evaluationEmailAutomated: boolean("evaluation_email_automated").default(true),
+    evaluationEmailAutomated: boolean("evaluation_email_automated").default(true).notNull(),
     evaluationGuideInternal: text("evaluation_guide_internal"),
     submissionRequirements: jsonb("submission_requirements").$type<unknown>(),
-    evaluationEmailManual: boolean("evaluation_email_manual").default(true),
+    evaluationEmailManual: boolean("evaluation_email_manual").default(true).notNull(),
     additionalInformation: text("additional_information"),
     notebooksHashList: jsonb("notebooks_hash_list").$type<unknown>(),
   },
@@ -550,26 +522,21 @@ export const courseSectionProgress = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     /** 0 - 100 */
-    progress: integer("progress")
-      .$defaultFn(() => 0)
-      .notNull(),
+    progress: integer("progress").default(0).notNull(),
     reaction: text("reaction"),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     completedAt: timestamp("completed_at"),
   },
   (table) => ({
+    createdAtIdx: index("ix_course_section_progress_created_at").on(table.createdAt),
+    updatedAtIdx: index("ix_course_section_progress_updated_at").on(table.updatedAt),
     pk: primaryKey({
       columns: [table.sectionId, table.enrolleeId],
       name: "course_section_progress_pkey",
     }),
-    sectionIdx: index("ix_course_section_progress_section_id").on(table.sectionId),
     enrolleeIdx: index("ix_course_section_progress_enrollee_id").on(table.enrolleeId),
     reactionIdx: index("ix_course_section_progress_reaction").on(table.reaction),
     deletedIdx: index("ix_course_section_progress_deleted").on(table.deleted),
-    sectionEnrolleeUnique: uniqueIndex("ix_course_section_progress_section_id_enrollee_id").on(
-      table.sectionId,
-      table.enrolleeId,
-    ),
   }),
 )
 
@@ -598,9 +565,9 @@ export const courseAssignmentSubmissions = pgTable(
     comments: text("comments"),
     internalStatus: text("internal_status"),
     internalComments: text("internal_comments"),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     assignmentFileContentHash: text("assignment_file_content_hash"),
-    isDraft: boolean("is_draft").default(false),
+    isDraft: boolean("is_draft").default(false).notNull(),
     isPlagiarised: boolean("is_plagiarised"),
     plagiarismCheckedAt: timestamp("plagiarism_checked_at"),
     originalSubmissionId: bigint("original_submission_id", {
@@ -610,6 +577,8 @@ export const courseAssignmentSubmissions = pgTable(
     level2PlagiarisedInfo: jsonb("level_2_plagiarised_info").$type<unknown>(),
   },
   (table) => ({
+    createdAtIdx: index("ix_course_assignment_submissions_created_at").on(table.createdAt),
+    updatedAtIdx: index("ix_course_assignment_submissions_updated_at").on(table.updatedAt),
     courseIdx: index("ix_course_assignment_submissions_course_id").on(table.courseId),
     sectionIdx: index("ix_course_assignment_submissions_section_id").on(table.sectionId),
     enrolleeIdx: index("ix_course_assignment_submissions_enrollee_id").on(table.enrolleeId),
@@ -650,7 +619,7 @@ export const courseCertificates = pgTable(
       .notNull()
       .references(() => accounts.id),
     printedName: text("printed_name"),
-    deleted: boolean("deleted").$defaultFn(() => false),
+    deleted: boolean("deleted").default(false).notNull(),
     issuedAt: timestamp("issued_at"),
   },
   (table) => ({
@@ -680,6 +649,7 @@ export const coursePayments = pgTable(
     currency: text("currency"),
   },
   (table) => ({
+    createdAtIdx: index("ix_course_payments_created_at").on(table.createdAt),
     pk: primaryKey({
       columns: [table.sessionId, table.paymentIntentId],
       name: "course_payments_pkey",
@@ -691,20 +661,13 @@ export const coursePayments = pgTable(
   }),
 )
 
-/**
- * One row per Stripe subscription rather than per account, so a resubscribe keeps the history.
- * The only table the Flask app never touched, so real Postgres defaults apply — but
- * `updated_at` still needs `$onUpdateFn`, since the DB default only fires on INSERT.
- */
+/** One row per Stripe subscription rather than per account, so a resubscribe keeps the history. */
 export const accountSubscriptions = pgTable(
   "account_subscriptions",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdateFn(() => new Date())
-      .notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
     accountId: bigint("account_id", { mode: "number" })
       .notNull()
       .references(() => accounts.id),
@@ -716,7 +679,11 @@ export const accountSubscriptions = pgTable(
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
   },
   (table) => ({
+    createdAtIdx: index("ix_account_subscriptions_created_at").on(table.createdAt),
     accountIdx: index("ix_account_subscriptions_account_id").on(table.accountId),
+    stripeCustomerIdx: index("ix_account_subscriptions_stripe_customer_id").on(
+      table.stripeCustomerId,
+    ),
     statusIdx: index("ix_account_subscriptions_status").on(table.status),
     stripeSubscriptionUnique: uniqueIndex("account_subscriptions_stripe_subscription_id_key").on(
       table.stripeSubscriptionId,
@@ -724,17 +691,11 @@ export const accountSubscriptions = pgTable(
   }),
 )
 
-/**
- * Landing-page testimonials, kept apart from `accounts` since most reviewers never signed up.
- * Created by hand rather than by Flask, so the Postgres defaults are real.
- */
+/** Landing-page testimonials, kept apart from `accounts` since most reviewers never signed up. */
 export const reviews = pgTable("reviews", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdateFn(() => new Date())
-    .notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
   name: text("name").notNull(),
   headline: text("headline"),
   body: text("body").notNull(),
@@ -744,32 +705,23 @@ export const reviews = pgTable("reviews", {
   visibility: varchar("visibility", { length: 16 }).default("PUBLIC").notNull(),
 })
 
-/**
- * `/manage/config`, one row per `SiteConfigSection` holding that section's settings as JSON.
- * Created by hand rather than by Flask, so the Postgres defaults are real.
- */
+/** `/manage/config`, one row per `SiteConfigSection` holding that section's settings as JSON. */
 export const siteConfig = pgTable("site_config", {
   section: varchar("section", { length: 32 }).primaryKey(),
   data: jsonb("data").notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdateFn(() => new Date())
-    .notNull(),
+  updatedAt: updatedAt(),
 })
 
 /**
- * The AI tutor's tables are new with it, so their Postgres defaults are real. Rows cascade from
- * the account, which keeps `/manage/users`' hard delete from tripping over them.
+ * The AI tutor's conversations. Rows cascade from the account, which keeps `/manage/users`' hard
+ * delete from tripping over them.
  */
 export const aiTutorConversations = pgTable(
   "ai_tutor_conversations",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdateFn(() => new Date())
-      .notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
     accountId: bigint("account_id", { mode: "number" })
       .notNull()
       .references(() => accounts.id, { onDelete: "cascade" }),
@@ -778,7 +730,7 @@ export const aiTutorConversations = pgTable(
       .references(() => courses.id),
     /** Written by the model after the first message; null until then. */
     title: text("title"),
-    lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
+    lastMessageAt: timestamp("last_message_at").default(utcNow).notNull(),
     /** The sum of its messages' `cost_micros`, so the admin list needn't add them up. */
     costMicros: bigint("cost_micros", { mode: "number" }).default(0).notNull(),
     deleted: boolean("deleted").default(false).notNull(),
@@ -799,7 +751,7 @@ export const aiTutorMessages = pgTable(
   "ai_tutor_messages",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: createdAt(),
     conversationId: bigint("conversation_id", { mode: "number" })
       .notNull()
       .references(() => aiTutorConversations.id, { onDelete: "cascade" }),
@@ -838,7 +790,7 @@ export const aiTutorUsageWindows = pgTable(
   "ai_tutor_usage_windows",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: createdAt(),
     accountId: bigint("account_id", { mode: "number" })
       .notNull()
       .references(() => accounts.id, { onDelete: "cascade" }),

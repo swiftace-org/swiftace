@@ -250,14 +250,10 @@ export async function readUserNotebooks(
     })
     .from(gists)
     .where(and(eq(gists.accountId, accountId), eq(gists.deleted, false)))
-    .orderBy(desc(sql`coalesce(${gists.updatedAt}, ${gists.createdAt})`), desc(gists.id))
+    .orderBy(desc(gists.updatedAt), desc(gists.id))
     .limit(limit)
 
-  return rows.map(({ slug, ...row }) => ({
-    ...row,
-    title: row.title || slug,
-    updatedAt: row.updatedAt ?? row.createdAt,
-  }))
+  return rows.map(({ slug, ...row }) => ({ ...row, title: row.title || slug }))
 }
 
 export async function readUserNotebooksCount(accountId: number): Promise<number> {
@@ -294,7 +290,7 @@ export async function readUserActivity(
   limit: number,
 ): Promise<UserActivity[]> {
   const { id, email } = account
-  const notDeleted = (column: AnyPgColumn) => sql`coalesce(${column}, false) = false`
+  const notDeleted = (column: AnyPgColumn) => sql`${column} = false`
 
   const result = await db.execute<UserActivityRow>(sql`
     select * from (
@@ -326,8 +322,7 @@ export async function readUserActivity(
       where ${courseEnrollments.enrolleeId} = ${id}
 
       union all
-      select 'SECTION_PROGRESS',
-        coalesce(${courseSectionProgress.updatedAt}, ${courseSectionProgress.createdAt}),
+      select 'SECTION_PROGRESS', ${courseSectionProgress.updatedAt},
         ${courses.slug}, ${courses.title}, ${courseSections.title}, ${courseSections.slug},
         ${courseSections.sectionType}, ${courseSectionProgress.progress}, null
       from ${courseSectionProgress}
@@ -357,7 +352,6 @@ export async function readUserActivity(
       where ${courseAssignmentSubmissions.enrolleeId} = ${id}
         and ${notDeleted(courseAssignmentSubmissions.deleted)}
         and ${courseAssignmentSubmissions.assignmentStatus} in ('PASS', 'FAIL')
-        and ${courseAssignmentSubmissions.updatedAt} is not null
 
       union all
       select 'QUIZ', max(${quizQuestionAttempts.createdAt}), null, null,
@@ -369,7 +363,7 @@ export async function readUserActivity(
       group by ${quizzes.id}, date_trunc('day', ${quizQuestionAttempts.createdAt})
 
       union all
-      select 'NOTEBOOK', coalesce(${gists.updatedAt}, ${gists.createdAt}), null, null,
+      select 'NOTEBOOK', ${gists.updatedAt}, null, null,
         coalesce(${gists.title}, ${gists.slug}), ${gists.slug}, ${gists.visibility}, null, null
       from ${gists} where ${gists.accountId} = ${id} and ${notDeleted(gists.deleted)}
 

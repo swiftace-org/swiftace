@@ -37,7 +37,7 @@ function toFormValues(course: AdminCourseDetails): CourseDetailsFormValues {
     visibility: course.visibility ?? DEFAULT_COURSE_VISIBILITY,
     videoUrl: course.videoUrl ?? "",
     certificateTemplate: course.certificateTemplate ?? "",
-    isPaid: course.isPaid ?? false,
+    isPaid: course.isPaid,
     stripeProductId: course.stripeProductId ?? "",
     additionalInformation: course.additionalInformation ?? "",
   }

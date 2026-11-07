@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm"
 import { commandDatabaseUrl, withDatabase } from "./migrations.ts"
 import { fail } from "./shell.ts"
 
-type Account = { id: number; email: string; username: string; is_admin: boolean | null }
+type Account = { id: number; email: string; username: string; is_admin: boolean }
 
 export async function makeAdmin(email: string | undefined) {
   email = email?.trim()

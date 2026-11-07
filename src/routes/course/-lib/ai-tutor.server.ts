@@ -119,7 +119,7 @@ export async function readDisplayedSections(viewer: CourseForViewer): Promise<Se
 
 /** Why the tutor can't read a section, phrased for the model to pass on. */
 function toLockedReason(
-  section: Section | { visibility: string | null; alwaysOpen: boolean | null },
+  section: Section | { visibility: string | null; alwaysOpen: boolean },
   viewer: CourseForViewer,
 ) {
   if (!viewer.isAdmin && !isSectionOpen(section)) {

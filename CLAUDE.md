@@ -78,10 +78,11 @@ middlewares), `utils.server.ts`, `db.server.ts`, `schema.server.ts`, `config.ts`
   them at the call site (usually the server function)
   - when several writes must land atomically, wrap them in `runInTransaction` and pass the `tx` it gives you as the optional last argument of each db function
   - soft deletes (`deleted = true`) are UPDATEs and belong beside the module's other queries
-- the schema mirrors a legacy SQLAlchemy app that applied most defaults in Python rather than in the DB, and Drizzle's `.default()` relies on the _database_ having the default — pairing the two silently writes NULL
-  - `.default(x)` only when Postgres genuinely has that default; `.$defaultFn(() => x)` when SQLAlchemy applied it in Python
-  - check `information_schema.columns` before adding either; the reasoning is documented at the top of `schema.server.ts`
+- every default lives in Postgres (`.default(x)`, never `.$defaultFn`), so a row is complete whoever inserts it
+  - flags are `boolean(...).default(x).notNull()`; a nullable boolean only where "unknown" is a real third state
+  - timestamps are `timestamp` holding UTC, defaulting to `utcNow` rather than `now()`, which follows the server's `TimeZone`
   - `created_at` and `updated_at` are handled by the column definitions, so never pass them from a call site
+  - index the columns a query filters or sorts on, and nothing a primary key already covers
 - after changing the schema, `vp run db:generate` writes a migration into `drizzle/`; never edit
   one that's been released, since the migrator records each by its hash
 - develop against your own Postgres (`DATABASE_URL` in `.env`), never a production database

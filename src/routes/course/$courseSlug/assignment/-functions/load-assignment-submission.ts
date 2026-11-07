@@ -63,7 +63,7 @@ async function toLearnerSubmission(
     createdAt: Date
     answers: unknown
     assignmentStatus: string | null
-    isDraft: boolean | null
+    isDraft: boolean
     comments: string | null
   },
   requirements: SubmissionRequirement[],
@@ -82,7 +82,7 @@ async function toLearnerSubmission(
  * stored status means waiting, a draft is called out separately, and anything unrecognized reads
  * as pending rather than reaching the UI as a status it has no label for.
  */
-function toLearnerStatus(assignmentStatus: string | null, isDraft: boolean | null) {
+function toLearnerStatus(assignmentStatus: string | null, isDraft: boolean) {
   if (!assignmentStatus || assignmentStatus === "PENDING") return isDraft ? "DRAFT" : "PENDING"
   return ASSIGNMENT_STATUS_VALUES.includes(assignmentStatus)
     ? (assignmentStatus as AssignmentStatus)

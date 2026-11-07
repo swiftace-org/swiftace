@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@/lib/config"
 import {
@@ -40,8 +40,7 @@ export const listedCourse = and(eq(courses.deleted, false), eq(courses.visibilit
 /** The order set on Manage Courses. Postgres sorts NULLs last, so an unplaced course lists after. */
 export const courseOrder = [asc(courses.position), asc(courses.id)]
 
-/** `accounts.deleted` is nullable, and NULL means "not deleted" on rows predating the default. */
-export const accountNotDeleted = or(eq(accounts.deleted, false), isNull(accounts.deleted))
+export const accountNotDeleted = eq(accounts.deleted, false)
 
 /** Keeps `%`, `_` and `\` in an admin's search box literal instead of wildcards. */
 export function escapeLikePattern(value: string): string {

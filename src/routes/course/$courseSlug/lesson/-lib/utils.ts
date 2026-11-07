@@ -19,7 +19,7 @@ export function isQuizReadable(visibility: string | null, isAdmin: boolean): boo
  * mirroring `count_quiz_unsolved_questions`: optional questions never count.
  */
 export function countQuestionsLeft(
-  questions: { id: number; optional: boolean | null }[],
+  questions: { id: number; optional: boolean }[],
   solvedQuestionIds: number[],
 ): number {
   const solved = new Set(solvedQuestionIds)

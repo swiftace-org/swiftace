@@ -164,9 +164,7 @@ export async function readListedCourseOutlines(): Promise<CourseOutlineRow[]> {
       shortDescription: courses.shortDescription,
       isPaid: courses.isPaid,
       sections: courses.sections,
-      lastModified: sql<Date>`coalesce(${courses.updatedAt}, ${courses.createdAt})`.mapWith(
-        courses.createdAt,
-      ),
+      lastModified: courses.updatedAt,
     })
     .from(courses)
     .where(listedCourse)
@@ -187,10 +185,7 @@ export async function readCourseSectionOutlines(
       sectionType: courseSections.sectionType,
       visibility: courseSections.visibility,
       alwaysOpen: courseSections.alwaysOpen,
-      lastModified:
-        sql<Date>`coalesce(${courseSections.updatedAt}, ${courseSections.createdAt})`.mapWith(
-          courseSections.createdAt,
-        ),
+      lastModified: courseSections.updatedAt,
     })
     .from(courseSections)
     .where(and(inArray(courseSections.courseId, courseIds), eq(courseSections.deleted, false)))

@@ -38,8 +38,6 @@ import { METRICS_PERIODS } from "./constants"
  */
 export async function readActiveUserCounts(starts: PeriodStarts): Promise<PeriodCounts> {
   const since = toTimestamp(earliestStart(starts))
-  const changedSince = (updatedAt: AnyPgColumn, createdAt: AnyPgColumn) =>
-    sql`(${updatedAt} >= ${since} or ${createdAt} >= ${since})`
 
   const result = await db.execute<Record<MetricsPeriod, string>>(sql`
     select ${countsByPeriod(sql`count(distinct account_id)`, sql`at`, starts)}
@@ -61,10 +59,8 @@ export async function readActiveUserCounts(starts: PeriodStarts): Promise<Period
       select ${courseEnrollments.enrolleeId}, ${courseEnrollments.createdAt}
       from ${courseEnrollments} where ${courseEnrollments.createdAt} >= ${since}
       union all
-      select ${courseSectionProgress.enrolleeId},
-        coalesce(${courseSectionProgress.updatedAt}, ${courseSectionProgress.createdAt})
-      from ${courseSectionProgress}
-      where ${changedSince(courseSectionProgress.updatedAt, courseSectionProgress.createdAt)}
+      select ${courseSectionProgress.enrolleeId}, ${courseSectionProgress.updatedAt}
+      from ${courseSectionProgress} where ${courseSectionProgress.updatedAt} >= ${since}
       union all
       select ${courseAssignmentSubmissions.enrolleeId}, ${courseAssignmentSubmissions.createdAt}
       from ${courseAssignmentSubmissions}
@@ -73,8 +69,8 @@ export async function readActiveUserCounts(starts: PeriodStarts): Promise<Period
       select ${quizQuestionAttempts.accountId}, ${quizQuestionAttempts.createdAt}
       from ${quizQuestionAttempts} where ${quizQuestionAttempts.createdAt} >= ${since}
       union all
-      select ${gists.accountId}, coalesce(${gists.updatedAt}, ${gists.createdAt})
-      from ${gists} where ${changedSince(gists.updatedAt, gists.createdAt)}
+      select ${gists.accountId}, ${gists.updatedAt}
+      from ${gists} where ${gists.updatedAt} >= ${since}
       union all
       select ${coursePayments.enrolleeId}, ${coursePayments.createdAt}
       from ${coursePayments} where ${coursePayments.createdAt} >= ${since}
@@ -127,7 +123,7 @@ export async function readSubmissionCounts(starts: PeriodStarts): Promise<Period
         gte(courseAssignmentSubmissions.createdAt, earliestStart(starts)),
         eq(courseAssignmentSubmissions.deleted, false),
         // A draft is a save, not a submission.
-        sql`coalesce(${courseAssignmentSubmissions.isDraft}, false) = false`,
+        eq(courseAssignmentSubmissions.isDraft, false),
         notInArray(courseAssignmentSubmissions.enrolleeId, staffAccountIds),
       ),
     )
@@ -161,11 +157,11 @@ export async function readSiteActivity(
   includeAdmins: boolean,
 ): Promise<{ rows: (UserActivityRow & SiteActivityColumns)[]; cursor: SiteActivityCursor | null }> {
   const cursorAt = cursor && sql`${cursor.at}::timestamp`
-  const notDeleted = (column: AnyPgColumn) => sql`coalesce(${column}, false) = false`
-  // Postgres can't derive an index bound from a `coalesce`-dated row comparison, so it's explicit.
-  const onPage = (key: SQL, indexed: AnyPgColumn, at: SQL | AnyPgColumn = indexed) =>
+  const notDeleted = (column: AnyPgColumn) => sql`${column} = false`
+  // The bound on the indexed column alone is what lets Postgres start the scan at the cursor.
+  const onPage = (key: SQL, at: AnyPgColumn) =>
     cursor
-      ? sql`${indexed} <= ${cursorAt} and (${at}, ${key}) < (${cursorAt}, ${cursor.key})`
+      ? sql`${at} <= ${cursorAt} and (${at}, ${key}) < (${cursorAt}, ${cursor.key})`
       : sql`true`
   // Filtered inside each branch, before its limit, so admins' rows can't crowd out the page.
   const byLearner = (accountId: AnyPgColumn) =>
@@ -177,27 +173,24 @@ export async function readSiteActivity(
   const githubKey = sql`'github:' || ${githubAccounts.id}`
   const enrollmentKey = sql`'enrollment:' || ${courseEnrollments.courseId} || ':' || ${courseEnrollments.enrolleeId}`
   const progressKey = sql`'progress:' || ${courseSectionProgress.sectionId} || ':' || ${courseSectionProgress.enrolleeId}`
-  const progressAt = sql`coalesce(${courseSectionProgress.updatedAt}, ${courseSectionProgress.createdAt})`
   const submissionKey = sql`'submission:' || ${courseAssignmentSubmissions.id}`
   const evaluationKey = sql`'evaluation:' || ${courseAssignmentSubmissions.id}`
   const notebookKey = sql`'notebook:' || ${gists.id}`
-  const notebookAt = sql`coalesce(${gists.updatedAt}, ${gists.createdAt})`
   const paymentKey = sql`'payment:' || ${coursePayments.sessionId}`
   const subscriptionKey = sql`'subscription:' || ${accountSubscriptions.id}`
   const certificateKey = sql`'certificate:' || ${courseCertificates.id}`
   const quizAt = sql`max(${quizQuestionAttempts.createdAt})`
   const quizKey = sql`'quiz:' || min(${quizQuestionAttempts.id})`
 
-  // Progress and notebooks are dated by `coalesce(updated_at, created_at)`, which no index
-  // covers: each takes the newest rows off both indexes, and `union` drops the overlap.
-  const progress = sql`select 'SECTION_PROGRESS', ${progressAt} as at, ${progressKey} as sort_key,
+  // Progress and notebooks are dated by when they last changed.
+  const progress = sql`select 'SECTION_PROGRESS', ${courseSectionProgress.updatedAt} as at, ${progressKey} as sort_key,
       ${courseSectionProgress.enrolleeId}, ${courses.slug}, ${courses.title}, ${courseSections.title},
       ${courseSections.slug}, ${courseSections.sectionType}, ${courseSectionProgress.progress}, null
     from ${courseSectionProgress}
     join ${courseSections} on ${courseSections.id} = ${courseSectionProgress.sectionId}
     join ${courses} on ${courses.id} = ${courseSections.courseId}
     where ${notDeleted(courseSectionProgress.deleted)}`
-  const notebooks = sql`select 'NOTEBOOK', ${notebookAt} as at, ${notebookKey} as sort_key,
+  const notebooks = sql`select 'NOTEBOOK', ${gists.updatedAt} as at, ${notebookKey} as sort_key,
       ${gists.accountId}, null, null, coalesce(${gists.title}, ${gists.slug}), ${gists.slug},
       ${gists.visibility}, null, null
     from ${gists} where ${notDeleted(gists.deleted)}`
@@ -246,14 +239,8 @@ export async function readSiteActivity(
 
       union
       (${progress}
-        and ${courseSectionProgress.updatedAt} is not null
         and ${onPage(progressKey, courseSectionProgress.updatedAt)} and ${byLearner(courseSectionProgress.enrolleeId)}
       order by ${courseSectionProgress.updatedAt} desc, sort_key desc limit ${limit})
-
-      union
-      (${progress}
-        and ${onPage(progressKey, courseSectionProgress.createdAt, progressAt)} and ${byLearner(courseSectionProgress.enrolleeId)}
-      order by ${courseSectionProgress.createdAt} desc, sort_key desc limit ${limit})
 
       union
       (select 'SUBMITTED', ${courseAssignmentSubmissions.createdAt} as at,
@@ -278,20 +265,13 @@ export async function readSiteActivity(
       left join ${accounts} as evaluators on ${evaluators.id} = ${courseAssignmentSubmissions.evaluatorId}
       where ${notDeleted(courseAssignmentSubmissions.deleted)}
         and ${courseAssignmentSubmissions.assignmentStatus} in ('PASS', 'FAIL')
-        and ${courseAssignmentSubmissions.updatedAt} is not null
         and ${onPage(evaluationKey, courseAssignmentSubmissions.updatedAt)} and ${byLearner(courseAssignmentSubmissions.enrolleeId)}
       order by at desc, sort_key desc limit ${limit})
 
       union
       (${notebooks}
-        and ${gists.updatedAt} is not null
         and ${onPage(notebookKey, gists.updatedAt)} and ${byLearner(gists.accountId)}
       order by ${gists.updatedAt} desc, sort_key desc limit ${limit})
-
-      union
-      (${notebooks}
-        and ${onPage(notebookKey, gists.createdAt, notebookAt)} and ${byLearner(gists.accountId)}
-      order by ${gists.createdAt} desc, sort_key desc limit ${limit})
 
       union
       (select 'PAYMENT', ${coursePayments.createdAt} as at, ${paymentKey} as sort_key,

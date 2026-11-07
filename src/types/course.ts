@@ -4,7 +4,7 @@ export type CourseDisplay = {
   slug: string
   shortDescription: string | null
   cover: string | null
-  isPaid: boolean | null
+  isPaid: boolean
   visibility: string | null
 }
 
@@ -25,7 +25,7 @@ export type AdminCourseDetails = {
   visibility: string | null
   videoUrl: string | null
   certificateTemplate: string | null
-  isPaid: boolean | null
+  isPaid: boolean
   stripeProductId: string | null
   additionalInformation: string | null
 }
@@ -73,7 +73,7 @@ export type AdminCourseSectionSummary = {
   sectionType: string | null
   visibility: string | null
   /** Listed so an admin can see which sections a paid course leaves open to visitors. */
-  alwaysOpen: boolean | null
+  alwaysOpen: boolean
 }
 
 export type CourseSectionDisplay = {
@@ -91,11 +91,11 @@ export type CourseSectionDisplay = {
   quizUrl: string | null
   visibility: string | null
   /** The "Enable Section Preview" checkbox — see `isSectionLocked`. */
-  alwaysOpen: boolean | null
+  alwaysOpen: boolean
   /** An optional section is listed but left out of the course's progress percentage. */
-  isOptional: boolean | null
+  isOptional: boolean
   /** When set, a lesson completes by answering its quiz rather than by a button. */
-  requireQuestions: boolean | null
+  requireQuestions: boolean
 }
 
 export type CourseOutlineRow = {
@@ -103,7 +103,7 @@ export type CourseOutlineRow = {
   slug: string
   title: string
   shortDescription: string | null
-  isPaid: boolean | null
+  isPaid: boolean
   sections: unknown
   lastModified: Date
 }
@@ -114,7 +114,7 @@ export type CourseSectionOutlineRow = {
   title: string
   sectionType: string | null
   visibility: string | null
-  alwaysOpen: boolean | null
+  alwaysOpen: boolean
   lastModified: Date
 }
 
@@ -136,7 +136,7 @@ export type CourseHeadData = {
     shortDescription: string | null
     descriptionHtml: string | null
     cover: string | null
-    isPaid: boolean | null
+    isPaid: boolean
     visibility: string | null
   }
   sections: Pick<

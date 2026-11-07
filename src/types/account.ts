@@ -43,7 +43,7 @@ export type EmailAccountAttempt = {
   codeHash: string | null
   tokenHash: string | null
   createdAt: Date
-  consumed: boolean | null
+  consumed: boolean
   failedAttempts: number
 }
 

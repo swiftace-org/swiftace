@@ -59,8 +59,7 @@ export async function withDatabase<T>(
 }
 
 /**
- * The migrations that haven't run, by drizzle's rule: those newer than the last one recorded. A
- * database whose baseline was recorded by hand, rather than run, so has nothing to apply.
+ * The migrations that haven't run, by drizzle's rule: those newer than the last one recorded.
  */
 export async function pendingMigrations(db: Database): Promise<string[]> {
   const { rows } = await db

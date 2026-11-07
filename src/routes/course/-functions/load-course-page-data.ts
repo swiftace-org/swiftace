@@ -132,7 +132,7 @@ export const loadCoursePageData = createServerFn({ method: "GET" })
  * certificate has been issued — an admin can grant one before every section is ticked off.
  */
 function toCourseProgress(
-  sections: { isOptional: boolean | null; isCompleted: boolean }[],
+  sections: { isOptional: boolean; isCompleted: boolean }[],
   viewer: { isEnrolled: boolean; hasCertificate: boolean },
 ): number {
   if (!viewer.isEnrolled) return 0

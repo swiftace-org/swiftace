@@ -74,7 +74,7 @@ export type QuizQuestionRow = {
   answerType: string | null
   options: unknown
   correctAnswer: string | null
-  optional: boolean | null
+  optional: boolean
 }
 
 /** The writable subset of `questions`, shared by the create and update paths. */

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, ne, or } from "drizzle-orm"
+import { and, desc, eq, gte, ne } from "drizzle-orm"
 
 import { accounts, db, emailAccountAttempts } from "@/lib/schema.server"
 import type { Account, EmailAccountAttempt } from "@/types/account"
@@ -79,7 +79,7 @@ export async function updateEmailAccountAttemptsConsumedExcept(
       and(
         eq(emailAccountAttempts.email, email),
         ne(emailAccountAttempts.id, exceptAttemptId),
-        or(eq(emailAccountAttempts.consumed, false), isNull(emailAccountAttempts.consumed)),
+        eq(emailAccountAttempts.consumed, false),
       ),
     )
 }
