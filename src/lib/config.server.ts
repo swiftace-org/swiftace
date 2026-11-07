@@ -4,7 +4,7 @@ import { DEFAULT_AI_TUTOR_SYSTEM_PROMPT, DEFAULT_INTEGRATION_SETTINGS } from "@/
 import type { SiteConfig } from "@/types/site-config"
 
 // For development only, and never overrides a variable that's already set. The production build
-// drops it: the binary is configured by its environment alone, wherever it's run from.
+// drops it: the binary reads its bootstrap environment wherever it's run from.
 if (!import.meta.env?.PROD && existsSync(".env")) process.loadEnvFile(".env")
 
 function ensureServerEnv(key: string) {
@@ -17,8 +17,6 @@ export const NODE_ENV = process.env.NODE_ENV
 
 export const DATABASE_URL = ensureServerEnv("DATABASE_URL")
 
-export const JWT_SECRET_KEY = ensureServerEnv("JWT_SECRET_KEY")
-export const HASH_SECRET_KEY = ensureServerEnv("HASH_SECRET_KEY")
 /** What a fresh deployment shows until an admin saves `/manage/config`. */
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   general: {

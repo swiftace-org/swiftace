@@ -37,11 +37,12 @@ sudo swiftace deploy example.com www.example.com --preview-domain preview.exampl
 The first domain is the site; any others redirect to it. `deploy`:
 
 1. installs the binary as `/usr/local/bin/swiftace`, if it was run from elsewhere
-2. creates `/etc/swiftace.env`, readable only by root, with every variable the server needs and
-   new `JWT_SECRET_KEY` and `HASH_SECRET_KEY`. It stops there until you fill in the rest, then
-   you run it again. It never overwrites a value that's already set
+2. creates `/etc/swiftace.env`, readable only by root, for the database URL. It stops until you
+   fill in `DATABASE_URL`, then you run it again. Existing entries are preserved
 3. validates the proposed Caddy configuration before changing it
-4. applies any database migrations, stopping before anything restarts if they fail
+4. applies database migrations and stores the authentication keys in Postgres: existing
+   `JWT_SECRET_KEY` and `HASH_SECRET_KEY` environment values are imported, otherwise independent
+   32-byte keys are securely generated. Stored keys are preserved on every subsequent deploy
 5. asks for an admin email if no active admin exists, and for any missing SES settings: AWS region,
    access key ID, secret access key and a verified sender email address. Credentials are hidden
    while typing. It creates (or promotes) the admin and saves SES in Postgres before restarting
@@ -76,14 +77,14 @@ To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and 
 
 The binary reads its bootstrap settings from the environment; it never reads a `.env` file.
 
-| Variable                            | What it's for                                                                 |
-| ----------------------------------- | ----------------------------------------------------------------------------- |
-| `DATABASE_URL`                      | Postgres, e.g. `postgres://user:password@localhost:5432/swiftace`             |
-| `JWT_SECRET_KEY`, `HASH_SECRET_KEY` | Long random strings. Changing the first signs everyone out                    |
-| `PORT`                              | The site's port (4000)                                                        |
-| `PREVIEW_PORT`                      | The notebook preview's port (4100), or 0 to turn it off                       |
-| `PREVIEW_ALLOWED_PARENT_ORIGINS`    | The origins that may embed the preview, e.g. `https://example.com` (required) |
-| `HOST`                              | The address both listen on (every address)                                    |
+| Variable                            | What it's for                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `DATABASE_URL`                      | Postgres, e.g. `postgres://user:password@localhost:5432/swiftace`               |
+| `JWT_SECRET_KEY`, `HASH_SECRET_KEY` | Optional first-setup imports into Postgres; omitted keys are securely generated |
+| `PORT`                              | The site's port (4000)                                                          |
+| `PREVIEW_PORT`                      | The notebook preview's port (4100), or 0 to turn it off                         |
+| `PREVIEW_ALLOWED_PARENT_ORIGINS`    | The origins that may embed the preview, e.g. `https://example.com` (required)   |
+| `HOST`                              | The address both listen on (every address)                                      |
 
 The rest (SES email, S3-compatible object storage, rich Jupyter output previews, login providers,
 Stripe, Turnstile, PostHog, OpenAI for the AI tutor, branding, pricing
@@ -111,8 +112,15 @@ Without `deploy`, sign up at `/login`, run `swiftace make-admin you@example.com`
 storage and other settings at `/manage/config`. The CLI accepts any integration sections, preserves omitted ones,
 and keeps saved secrets when their submitted values are blank. Remove the local JSON file once
 setup is complete. Existing SES, R2 and preview environment variables are no longer used. After
-upgrading, save those settings using the CLI or `/manage/config`. Authentication keys stay in the
-environment.
+upgrading, save those settings using the CLI or `/manage/config`. Authentication keys are stored in a private
+`site_config` row and excluded from public settings and `/manage/config`.
+
+Authentication keys are initialized by `deploy`, `migrate`, or the first `start`. The running
+app reads only the stored values, so environment imports can be removed after initialization.
+The signing key authenticates session tokens; the hash key protects stored email verification
+codes and magic-link tokens. Separate keys isolate those uses and allow independent rotation.
+Deliberate database rotation requires restarting the app: changing the signing key signs users
+out, while changing the hash key invalidates pending sign-in codes and links.
 
 Behind a reverse proxy, the site's address must be a concrete hostname, like `example.com {
 reverse_proxy 127.0.0.1:4000 }` in Caddy. Sign-in links are built from the request's `Host`

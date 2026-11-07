@@ -69,10 +69,7 @@ describe("environment", () => {
   it("reports what's missing or blank", () => {
     const env = Object.fromEntries(REQUIRED_VARIABLES.map((name) => [name, "x"]))
     expect(missingVariables(env)).toEqual([])
-    expect(missingVariables({ ...env, HASH_SECRET_KEY: " ", DATABASE_URL: undefined })).toEqual([
-      "DATABASE_URL",
-      "HASH_SECRET_KEY",
-    ])
+    expect(missingVariables({ ...env, DATABASE_URL: " " })).toEqual(["DATABASE_URL"])
   })
 
   it("reads ports, allowing 0 only where asked", () => {

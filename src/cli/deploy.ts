@@ -11,6 +11,7 @@ import { existsSync } from "node:fs"
 import { chmod, copyFile, readFile, realpath, rename, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, join } from "node:path"
 
+import { ensureAuthenticationKeys } from "./authentication-keys.ts"
 import { configureSites } from "./caddyfile.ts"
 import { setupDeployment } from "./deploy-setup.ts"
 import { ensureEnvFile } from "./env-file.ts"
@@ -47,7 +48,7 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
 
   const env = await ensureEnvFile(ENV_FILE)
   await chmod(ENV_FILE, 0o600)
-  if (env.created) console.log(`Created ${ENV_FILE}, with new JWT_SECRET_KEY and HASH_SECRET_KEY`)
+  if (env.created) console.log(`Created ${ENV_FILE}`)
   const ports = servicePorts(env.variables)
   if (!ports.ok) fail(ports.error)
   const missing = missingVariables(Object.fromEntries(env.variables))
@@ -68,6 +69,7 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
   await withDatabase(env.variables.get("DATABASE_URL")!, async (db) => {
     const applied = await applyMigrations(db)
     console.log(applied.length ? `Applied ${applied.join(", ")}` : "Nothing to apply")
+    await ensureAuthenticationKeys(db, { ...Object.fromEntries(env.variables), ...process.env })
     await setupDeployment(db)
   })
 

@@ -1,6 +1,5 @@
 // The service's env file, /etc/swiftace.env, which `swiftace deploy` creates: the variables in
 // REQUIRED_VARIABLES, readable only by root and loaded by systemd.
-import { randomBytes } from "node:crypto"
 import { lstat, readFile, rename, rm, writeFile } from "node:fs/promises"
 
 import { REQUIRED_VARIABLES } from "./environment.ts"
@@ -18,18 +17,10 @@ export function parseEnvFile(text: string): Map<string, string> {
   return variables
 }
 
-/**
- * Adds missing database and authentication variables while keeping existing lines.
- * Authentication secrets are generated; the database URL is left for the administrator.
- */
+/** Add missing bootstrap variables while preserving existing lines, including legacy keys. */
 export function withRequiredVariables(text: string): string {
   const present = parseEnvFile(text)
-  const added = REQUIRED_VARIABLES.filter((name) => !present.has(name)).map((name) => {
-    if (name === "JWT_SECRET_KEY" || name === "HASH_SECRET_KEY") {
-      return `${name}=${randomBytes(32).toString("hex")}`
-    }
-    return `${name}=`
-  })
+  const added = REQUIRED_VARIABLES.filter((name) => !present.has(name)).map((name) => `${name}=`)
   if (!added.length) return text
   const header = text
     ? ""

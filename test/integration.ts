@@ -6,10 +6,12 @@
 //   DATABASE_URL=postgres://… bun test/integration.ts dist/swiftace
 //
 // Chromium comes from `vp exec playwright install chromium`.
+import { createHmac } from "node:crypto"
 import { resolve } from "node:path"
 
 import { drizzle } from "drizzle-orm/node-postgres"
 import { Jimp } from "jimp"
+import jwt from "jsonwebtoken"
 import pg from "pg"
 import { chromium, type Browser, type Locator, type Page } from "playwright"
 
@@ -33,7 +35,7 @@ function check(condition: unknown, message: string): asserts condition {
 // The tutor thinks for longer than Bun's default idle timeout before it streams, as a reasoning
 // model can, so a server that cut quiet connections off would lose the reply.
 const fakes = await startFakeServices({ tutorThinkMs: 11_000 })
-const env = {
+const env: Record<string, string | undefined> = {
   ...process.env,
   ...fakeServiceEnv(fakes.url),
   DATABASE_URL,
@@ -47,8 +49,18 @@ const env = {
 
 const migrated = Bun.spawnSync([binary, "migrate"], { env })
 check(migrated.exitCode === 0, `swiftace migrate: ${migrated.stdout.toString().trim()}`)
+delete env.JWT_SECRET_KEY
+delete env.HASH_SECRET_KEY
 const db = new pg.Client({ connectionString: DATABASE_URL })
 await db.connect()
+const { rows: authentication } = await db.query(
+  "select data from site_config where section = 'authentication'",
+)
+check(
+  authentication[0]?.data.signingKey === "integration-jwt-secret" &&
+    authentication[0]?.data.hashKey === "integration-hash-secret",
+  "existing environment keys are imported into Postgres",
+)
 await setupDeployment(
   drizzle(db),
   async (question) =>
@@ -89,6 +101,10 @@ try {
 
   // Server rendering, then hydration: a client-side navigation keeps the page's window.
   const html = await (await fetch(base)).text()
+  check(
+    !html.includes("integration-jwt-secret") && !html.includes("integration-hash-secret"),
+    "authentication keys never enter the public page",
+  )
   check(html.includes("Hands-On Courses"), "the home page is rendered on the server")
   await page.goto(base)
   await page.waitForLoadState("networkidle")
@@ -128,9 +144,32 @@ try {
     "the notebook preview runs posted code with an opaque origin and no cookies",
   )
 
+  const { rows: firstAdmin } = await db.query("select id from accounts where email = $1", [EMAIL])
+  await page.context().addCookies([
+    {
+      name: "AUTH_TOKEN",
+      value: jwt.sign({ accountId: Number(firstAdmin[0].id) }, "integration-jwt-secret", {
+        expiresIn: "1h",
+      }),
+      url: base,
+      httpOnly: true,
+    },
+  ])
+  await page.goto(`${base}/manage/config?tab=integrations`)
+  await page.getByLabel("AWS region").waitFor()
+  check(
+    page.url().includes("/manage/config"),
+    "an existing session signed with the imported env key remains valid",
+  )
+  await page.context().clearCookies()
   await signIn(page)
   await page.goto(`${base}/manage/config?tab=integrations`)
   await page.getByLabel("AWS region").waitFor()
+  check(
+    !(await page.content()).includes("integration-jwt-secret") &&
+      !(await page.content()).includes("integration-hash-secret"),
+    "authentication keys are excluded from manage config",
+  )
   check(
     page.url().includes("/manage/config"),
     "the deploy-created first admin signs in with admin access",
@@ -224,6 +263,15 @@ async function signIn(page: Page) {
   check(
     email?.to.includes(EMAIL) && code,
     `the sign-in email is rendered and sent: "${email?.subject}"`,
+  )
+  const { rows: attempts } = await db.query(
+    "select code_hash from email_account_attempts where email = $1 order by id desc limit 1",
+    [EMAIL],
+  )
+  check(
+    attempts[0]?.code_hash ===
+      createHmac("sha256", "integration-hash-secret").update(code).digest("hex"),
+    "verification codes use the imported database hash key",
   )
   await page
     .locator("input[autocomplete='one-time-code'], input[data-input-otp]")

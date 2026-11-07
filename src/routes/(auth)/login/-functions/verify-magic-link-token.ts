@@ -12,7 +12,7 @@ import {
 export const verifyMagicLinkToken = createServerFn({ method: "POST" })
   .validator((data: { token: string }) => data)
   .handler(async ({ data }) => {
-    const attempt = await readEmailAccountAttemptByTokenHash(hashString(data.token))
+    const attempt = await readEmailAccountAttemptByTokenHash(await hashString(data.token))
 
     if (!attempt) {
       console.error("verifyMagicLinkToken: no attempt for token")

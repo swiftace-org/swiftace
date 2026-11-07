@@ -9,7 +9,7 @@ import { PostHog } from "posthog-node"
 import type { ReactElement } from "react"
 
 import { AUTH_COOKIE_NAME, DEFAULT_COURSE_COVER_PATH } from "@/lib/config"
-import { DEFAULT_SITE_CONFIG, JWT_SECRET_KEY } from "@/lib/config.server"
+import { DEFAULT_SITE_CONFIG } from "@/lib/config.server"
 import type { Account, JWTPayload } from "@/types/account"
 import type { AiTutorModel } from "@/types/ai-tutor"
 import type { AnalyticsEvent } from "@/types/analytics"
@@ -24,6 +24,7 @@ import type {
   SocialLink,
 } from "@/types/site-config"
 
+import { getAuthenticationKeys } from "../routes/(auth)/-lib/authentication.server"
 import { toBrandAssetUrl } from "../routes/brand/-lib/utils"
 import {
   readAccountById,
@@ -56,19 +57,20 @@ export function clearAuthCookie(): void {
 }
 
 /** The signed-in account's id straight from the cookie, without reading the account row. */
-export function getCurrentAccountId(): number | null {
+export async function getCurrentAccountId(): Promise<number | null> {
   const token = getCookie(AUTH_COOKIE_NAME)
   if (!token) return null
 
+  const { signingKey } = await getAuthenticationKeys()
   try {
-    return (jwt.verify(token, JWT_SECRET_KEY) as JWTPayload).accountId
+    return (jwt.verify(token, signingKey) as JWTPayload).accountId
   } catch {
     return null
   }
 }
 
 export async function getCurrentAccount(): Promise<Account | null> {
-  const accountId = getCurrentAccountId()
+  const accountId = await getCurrentAccountId()
   return accountId ? readAccountById(accountId) : null
 }
 
@@ -323,10 +325,14 @@ export function captureEvent(
 
 /** Attributed to the signed-in account when there is one, so it lines up with their events. */
 export function captureServerException(error: unknown, properties?: Record<string, unknown>): void {
-  // Read now: the cookie belongs to this request, which may be over by the time the config is.
+  // Capture the request's cookie before awaiting the database.
   const accountId = getCurrentAccountId()
-  withPostHogClient((client) =>
-    client.captureException(error, accountId ? String(accountId) : undefined, properties),
+  void accountId.then(
+    (id) =>
+      withPostHogClient((client) =>
+        client.captureException(error, id ? String(id) : undefined, properties),
+      ),
+    () => withPostHogClient((client) => client.captureException(error, undefined, properties)),
   )
 }
 

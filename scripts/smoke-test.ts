@@ -52,17 +52,19 @@ try {
   const dryRun = swiftace(["migrate", "--dry-run"])
   check(dryRun.code === 0 && /0000_init/.test(dryRun.output), "migrate --dry-run lists them")
   // Nothing beside the binary is read, neither a .env nor a bunfig.toml.
-  await writeFile(join(dir, ".env"), "JWT_SECRET_KEY=from-dotenv\n")
+  await writeFile(join(dir, ".env"), "DATABASE_URL=from-dotenv\n")
   await writeFile(join(dir, "bunfig.toml"), 'preload = ["./preload.ts"]\n')
   await writeFile(join(dir, "preload.ts"), 'console.log("bunfig was read")\n')
-  const ignored = swiftace(["start"], { JWT_SECRET_KEY: undefined })
+  const ignored = swiftace(["start"], { DATABASE_URL: undefined })
   check(
-    /Set JWT_SECRET_KEY/.test(ignored.output) && !/bunfig was read/.test(ignored.output),
+    /Set DATABASE_URL/.test(ignored.output) && !/bunfig was read/.test(ignored.output),
     "it reads neither .env nor bunfig.toml",
   )
   const migrated = swiftace(["migrate"])
   check(migrated.code === 0 && /Applied/.test(migrated.output), "migrate applies them")
   check(/no migrations/.test(swiftace(["migrate"]).output), "migrate again has nothing to do")
+  delete env.JWT_SECRET_KEY
+  delete env.HASH_SECRET_KEY
 
   const configPath = join(dir, "integrations.json")
   const bootstrap = {

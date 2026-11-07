@@ -9,8 +9,6 @@ const DATABASE_URL = process.env.TEST_DATABASE_URL
 if (DATABASE_URL) {
   Object.assign(process.env, {
     DATABASE_URL,
-    JWT_SECRET_KEY: "test",
-    HASH_SECRET_KEY: "test",
   })
 }
 

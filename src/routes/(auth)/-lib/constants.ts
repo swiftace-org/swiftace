@@ -21,3 +21,5 @@ export const VERIFICATION_CODE_MAX_ATTEMPTS = 5
 
 export const LOGIN_EMAIL_PATTERN =
   /^(?!\.)(?!.*\.\.)([a-z0-9_'.+-]*)[a-z0-9_+-]@([a-z0-9][a-z0-9-]*\.)+[a-z]{2,}$/i
+
+export const AUTHENTICATION_CONFIG_SECTION = "authentication"

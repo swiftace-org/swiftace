@@ -25,15 +25,15 @@ Commands:
 
 The server is configured with environment variables (it never reads a .env file):
   DATABASE_URL          Postgres, e.g. postgres://user:password@localhost:5432/swiftace
-  JWT_SECRET_KEY, HASH_SECRET_KEY
-                        Long random strings, e.g. from \`openssl rand -hex 32\`
   PORT                  The app's port (${DEFAULT_PORT})
   PREVIEW_PORT          The notebook preview's port (${DEFAULT_PREVIEW_PORT}), or 0 to turn it off
   PREVIEW_ALLOWED_PARENT_ORIGINS
                         The origins that may embed the preview, e.g. https://example.com
   HOST                  The address both listen on (all of them)
 
-Everything else is set by an admin at /manage/config.`
+JWT_SECRET_KEY and HASH_SECRET_KEY are optional imports during deploy, migrate or first start.
+Missing authentication keys are securely generated and stored in Postgres; the app reads only
+the database values. Other settings are managed at /manage/config.`
 
 type Command = {
   options?: ParseArgsConfig["options"]
