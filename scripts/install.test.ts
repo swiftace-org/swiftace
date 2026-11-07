@@ -1,4 +1,5 @@
-// Runs scripts/install.sh against a fake releases server, as `curl … | sh` would.
+// Runs scripts/install.sh against a fake releases server, as `curl … | sh` would, installing into
+// a temporary folder rather than /usr/local/bin.
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises"
@@ -48,7 +49,7 @@ beforeEach(async () => {
 function install(env: Record<string, string> = {}) {
   const child = spawn("sh", [SCRIPT], {
     cwd: dir,
-    env: { PATH: process.env.PATH, SWIFTACE_RELEASES_URL: base, ...env },
+    env: { PATH: process.env.PATH, SWIFTACE_RELEASES_URL: base, SWIFTACE_INSTALL_DIR: dir, ...env },
   })
   let stdout = ""
   let stderr = ""
@@ -60,17 +61,24 @@ function install(env: Record<string, string> = {}) {
 }
 
 describe.skipIf(!["linux", "darwin"].includes(process.platform))("install.sh", () => {
-  it("installs this machine's binary as ./swiftace, checked against the sums", async () => {
+  it("installs this machine's binary in SWIFTACE_INSTALL_DIR, checked against the sums", async () => {
     const result = await install()
-    expect(result.stderr).not.toMatch(/install\.sh:/)
+    expect(result.stderr).not.toMatch(/swiftace install:/)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("Installed SwiftAce 9.9.9 as ./swiftace")
+    expect(result.stdout).toContain(`Installed SwiftAce 9.9.9 at ${dir}/swiftace`)
+    expect(result.stdout).toContain(`${dir} isn't on your PATH`)
     expect(await readFile(join(dir, "swiftace"), "utf8")).toBe(BINARY)
     expect(await readdir(dir)).toEqual(["swiftace"])
     expect(requested).toEqual([
       `/releases/latest/download/SHA256SUMS`,
       `/releases/latest/download/${ASSET}`,
     ])
+  })
+
+  it("replaces an existing install", async () => {
+    expect((await install()).status).toBe(0)
+    expect((await install()).status).toBe(0)
+    expect(await readdir(dir)).toEqual(["swiftace"])
   })
 
   it("installs the release SWIFTACE_VERSION names", async () => {
@@ -82,7 +90,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))("install.sh", (
     files.set(`/releases/latest/download/${ASSET}`, `${BINARY}# tampered\n`)
     const result = await install()
     expect(result.status).not.toBe(0)
-    expect(result.stderr).toContain(`the downloaded ${ASSET} doesn't match SHA256SUMS`)
+    expect(result.stderr).toContain("the download doesn't match its checksum")
     expect(await readdir(dir)).toEqual([])
   })
 

@@ -1,7 +1,7 @@
 // `swiftace deploy <domain> [redirect-domains…] [--preview-domain <d>]`: sets up a Linux server,
 // as root, to run SwiftAce from this binary behind Caddy:
 //
-//   sudo ./swiftace deploy example.com www.example.com --preview-domain preview.example.com
+//   sudo swiftace deploy example.com www.example.com --preview-domain preview.example.com
 //
 // It installs the binary in /usr/local/bin, creates /etc/swiftace.env, installs swiftace.service,
 // migrates the database, restarts the service and edits the existing Caddyfile. The domains are
