@@ -10,7 +10,7 @@ import { resolve } from "node:path"
 
 import { Jimp } from "jimp"
 import pg from "pg"
-import { chromium, type Browser, type Page } from "playwright"
+import { chromium, type Browser, type Locator, type Page } from "playwright"
 
 import { FAKE_TUTOR_REPLY, fakeServiceEnv, startFakeServices } from "./fake-services.ts"
 
@@ -59,6 +59,15 @@ try {
     await Bun.sleep(100)
   }
   page = await browser.newPage()
+  // Holds back the client's scripts, so each page's server HTML shows well before React hydrates
+  // it, as on a slow machine. CI sets it, so every step has to wait for its controls to hydrate.
+  const scriptDelay = Number(process.env.TEST_SCRIPT_DELAY_MS ?? 0)
+  if (scriptDelay) {
+    await page.route(/\/assets\/.*\.js$/, async (route) => {
+      await Bun.sleep(scriptDelay)
+      await route.continue()
+    })
+  }
   const errors: string[] = []
   page.on("pageerror", (error) => errors.push(error.message))
   page.on("console", (message) => {
@@ -71,10 +80,7 @@ try {
   await page.goto(base)
   await page.waitForLoadState("networkidle")
   await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1))
-  await page
-    .getByRole("link", { name: /log in|sign in/i })
-    .first()
-    .click()
+  await (await hydrated(page.getByRole("link", { name: /log in|sign in/i }).first())).click()
   await page.waitForURL(/\/login/)
   check(
     await page.evaluate(() => (window as unknown as { marker?: number }).marker === 1),
@@ -120,7 +126,7 @@ try {
 
   // A certificate: pdf-lib draws on the template, PDFium renders the preview, Jimp encodes it.
   await page.goto(`${base}/course/${COURSE}/manage/participants`)
-  await page.getByRole("button", { name: "Generate certificate" }).first().click()
+  await (await hydrated(page.getByRole("button", { name: "Generate certificate" }).first())).click()
   await page.getByLabel("Name on the certificate").fill("Ada Lovelace")
   await page.getByLabel("Hours of coursework").fill("12")
   await page.getByRole("button", { name: "Generate", exact: true }).click()
@@ -140,9 +146,9 @@ try {
   const message = page.getByLabel("Message AI Tutor")
   const open = page.getByRole("button", { name: "Ask AI Tutor" }).first()
   // Desktop layouts open the panel by default, hiding the button that opens it.
-  await message.or(open).first().waitFor()
+  await hydrated(message.or(open).first())
   if (!(await message.isVisible())) await open.click()
-  await message.fill("What is a list in Python?")
+  await (await hydrated(message)).fill("What is a list in Python?")
   await page.getByRole("button", { name: "Send" }).click()
   await page.getByText(FAKE_TUTOR_REPLY).waitFor({ timeout: 20_000 })
   const tutorRequest = fakes.state.openaiRequests.find((body) => body.stream)
@@ -173,9 +179,25 @@ try {
 }
 console.log("All good")
 
+/**
+ * A control once React has hydrated it. Before then the page is only the server's HTML, where a
+ * click does nothing and a typed value is lost when React takes over (as on a slow CI runner).
+ */
+async function hydrated(locator: Locator): Promise<Locator> {
+  await locator.waitFor()
+  // React keeps each hydrated element's props on it, under a key like `__reactProps$…`.
+  await locator
+    .page()
+    .waitForFunction(
+      (element) => !!element && Object.keys(element).some((key) => key.startsWith("__reactProps$")),
+      await locator.elementHandle(),
+    )
+  return locator
+}
+
 async function signIn(page: Page) {
   await page.goto(`${base}/login`)
-  await page.getByLabel("Email").fill(EMAIL)
+  await (await hydrated(page.getByLabel("Email"))).fill(EMAIL)
   await page.getByRole("button", { name: "Continue with Email" }).click()
   await page.waitForURL(/\/login\/verify/)
   const email = fakes.state.emails.at(-1)

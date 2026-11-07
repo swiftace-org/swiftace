@@ -58,8 +58,11 @@ export async function readAccountById(accountId: number): Promise<Account | null
   return account ?? null
 }
 
-export async function readAccountByEmail(email: string): Promise<Account | null> {
-  const [account] = await db
+export async function readAccountByEmail(
+  email: string,
+  tx: Queryable = db,
+): Promise<Account | null> {
+  const [account] = await tx
     .select(accountColumns)
     .from(accounts)
     .where(and(eq(accounts.email, email), accountNotDeleted))
@@ -72,8 +75,11 @@ export async function readAccountByEmail(email: string): Promise<Account | null>
  * Fallback for `readAccountByEmail`: legacy rows may store a mixed-case address, and missing one
  * would duplicate an existing account. Scans, since `accounts_email_key` indexes the raw column.
  */
-export async function readAccountByEmailCaseInsensitive(email: string): Promise<Account | null> {
-  const [account] = await db
+export async function readAccountByEmailCaseInsensitive(
+  email: string,
+  tx: Queryable = db,
+): Promise<Account | null> {
+  const [account] = await tx
     .select(accountColumns)
     .from(accounts)
     .where(and(sql`lower(${accounts.email}) = ${email}`, accountNotDeleted))

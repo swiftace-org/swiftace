@@ -8,7 +8,7 @@ import {
   readAccountById,
   readActiveSubscriptionByAccountId,
 } from "@/lib/db.server"
-import { runInTransaction } from "@/lib/schema.server"
+import { runInTransaction, type Transaction } from "@/lib/schema.server"
 import { normalizeEmail } from "@/lib/utils"
 import {
   getSiteConfig,
@@ -21,6 +21,7 @@ import type { PricingPlan, SubscriptionInterval } from "@/types/subscription"
 
 import {
   createOrUpdateAccountSubscription,
+  lockStripeSubscription,
   readSubscriptionByStripeCustomerId,
   restoreLapsedCourseEnrollments,
   softDeleteLapsedCourseEnrollments,
@@ -147,27 +148,37 @@ export function isCancelScheduled(subscription: Stripe.Subscription): boolean {
 }
 
 /**
- * The one place subscription state is written, called from both the webhook and the browser
- * back from Checkout — either may arrive first, and both halves are idempotent, so the race is
- * harmless. The write and the enrollment change share a transaction.
+ * The one place subscription state is written, from the webhook and from the browser back from
+ * Checkout. Whatever prompted it, it records the subscription as Stripe has it now, never an
+ * event's snapshot: Stripe delivers events out of order and retries them, so an old one could
+ * otherwise restore a cancelled subscription's access, or revoke a recovered one's. The lock makes
+ * calls for one subscription take turns, each fetching only once the last has committed, so a slow
+ * fetch can't overwrite a newer one. Every query inside uses the transaction's connection, so
+ * waiting turns can't exhaust the pool. The write and the enrollment change commit together.
  */
 export async function syncStripeSubscription(
-  subscription: Stripe.Subscription,
-): Promise<number | null> {
-  const resolvedAccountId = await resolveSubscriptionAccountId(subscription)
-  if (!resolvedAccountId) {
-    console.error(`Stripe subscription ${subscription.id} has no account to attach to — skipping.`)
-    return null
-  }
+  subscriptionId: string,
+): Promise<{ accountId: number | null; subscription: Stripe.Subscription }> {
+  const stripe = await getStripeClient()
+  const result = await runInTransaction(async (tx) => {
+    await lockStripeSubscription(subscriptionId, tx)
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
-  // As of Stripe API 2025-03-31 the period moved off the subscription onto its items.
-  const periodEnd = subscription.items.data[0]?.current_period_end
+    const resolvedAccountId = await resolveSubscriptionAccountId(subscription, tx)
+    if (!resolvedAccountId) {
+      console.error(
+        `Stripe subscription ${subscription.id} has no account to attach to — skipping.`,
+      )
+      return { subscription, accountId: null, created: false }
+    }
 
-  const { accountId, created } = await runInTransaction(async (tx) => {
+    // As of Stripe API 2025-03-31 the period moved off the subscription onto its items.
+    const periodEnd = subscription.items.data[0]?.current_period_end
+
     // The upsert keeps the owner it was first recorded with, so it can disagree with what we
     // just resolved — and everything below has to follow the row rather than the resolution,
     // or we'd revoke one account's enrollments over another account's subscription.
-    const recorded = await createOrUpdateAccountSubscription(
+    const { accountId, created } = await createOrUpdateAccountSubscription(
       {
         accountId: resolvedAccountId,
         stripeCustomerId: toStripeId(subscription.customer),
@@ -179,7 +190,7 @@ export async function syncStripeSubscription(
       },
       tx,
     )
-    const { accountId } = recorded
+    const recorded = { subscription, accountId, created }
 
     if (accountId !== resolvedAccountId) {
       console.error(
@@ -212,10 +223,10 @@ export async function syncStripeSubscription(
   })
 
   // After the commit, so a rolled-back sync can't have announced a trial that isn't recorded.
-  if (created && subscription.status === "trialing") {
-    await sendTrialStartedEmail(accountId, subscription)
+  if (result.accountId && result.created && result.subscription.status === "trialing") {
+    await sendTrialStartedEmail(result.accountId, result.subscription)
   }
-  return accountId
+  return { accountId: result.accountId, subscription: result.subscription }
 }
 
 /** Best-effort: the trial is live either way, so a failure is logged rather than retried. */
@@ -300,16 +311,17 @@ async function readFirstCharge(
  */
 async function resolveSubscriptionAccountId(
   subscription: Stripe.Subscription,
+  tx: Transaction,
 ): Promise<number | null> {
   const fromMetadata = Number(subscription.metadata?.accountId)
   if (Number.isInteger(fromMetadata) && fromMetadata > 0) return fromMetadata
 
   const customerId = toStripeId(subscription.customer)
 
-  const existing = await readSubscriptionByStripeCustomerId(customerId)
+  const existing = await readSubscriptionByStripeCustomerId(customerId, tx)
   if (existing) return existing.accountId
 
-  return readAccountIdByStripeCustomerEmail(customerId)
+  return readAccountIdByStripeCustomerEmail(customerId, tx)
 }
 
 /**
@@ -317,7 +329,10 @@ async function resolveSubscriptionAccountId(
  * no metadata and no customer of ours, so it can't attach a Checkout subscription to the wrong
  * account — but note a Stripe customer's email is editable in the dashboard.
  */
-async function readAccountIdByStripeCustomerEmail(customerId: string): Promise<number | null> {
+async function readAccountIdByStripeCustomerEmail(
+  customerId: string,
+  tx: Transaction,
+): Promise<number | null> {
   let customer: Stripe.Customer | Stripe.DeletedCustomer
   try {
     customer = await (await getStripeClient()).customers.retrieve(customerId)
@@ -332,7 +347,7 @@ async function readAccountIdByStripeCustomerEmail(customerId: string): Promise<n
   // table has mixed-case emails that a normalized exact match misses.
   const email = normalizeEmail(customer.email)
   const account =
-    (await readAccountByEmail(email)) ?? (await readAccountByEmailCaseInsensitive(email))
+    (await readAccountByEmail(email, tx)) ?? (await readAccountByEmailCaseInsensitive(email, tx))
 
   return account?.id ?? null
 }

@@ -24,14 +24,25 @@ export async function readLatestSubscriptionByAccountId(
 }
 
 /**
+ * Makes work on one Stripe subscription wait for any other transaction already at it, until this
+ * transaction ends. A transaction-level advisory lock, so it can't outlive the transaction.
+ */
+export async function lockStripeSubscription(subscriptionId: string, tx: Queryable): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`stripe-subscription:${subscriptionId}`}, 0))`,
+  )
+}
+
+/**
  * Any subscription we hold for a Stripe customer, which is how one created outside our Checkout —
  * carrying no metadata — is traced back to an account. All of a customer's rows share an account,
  * so which comes back doesn't matter; only its `accountId` is read.
  */
 export async function readSubscriptionByStripeCustomerId(
   stripeCustomerId: string,
+  tx: Queryable = db,
 ): Promise<AccountSubscription | null> {
-  const [subscription] = await db
+  const [subscription] = await tx
     .select(subscriptionColumns)
     .from(accountSubscriptions)
     .where(eq(accountSubscriptions.stripeCustomerId, stripeCustomerId))

@@ -8,18 +8,8 @@
 // saved, so later runs can leave them out.
 
 import { existsSync } from "node:fs"
-import {
-  chmod,
-  copyFile,
-  mkdtemp,
-  readFile,
-  realpath,
-  rename,
-  rm,
-  writeFile,
-} from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { chmod, copyFile, readFile, realpath, rename, rm, writeFile } from "node:fs/promises"
+import { basename, dirname, join } from "node:path"
 
 import { configureSites } from "./caddyfile.ts"
 import { ensureEnvFile } from "./env-file.ts"
@@ -63,6 +53,14 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
   if (missing.length) {
     fail(`Fill in ${missing.join(", ")} in ${ENV_FILE}, then run swiftace deploy again`)
   }
+  // Worked out and validated before anything restarts, so a config Caddy rejects stops here.
+  const caddyfile = await planCaddyfile({
+    domain: domains.domains[0]!,
+    redirectDomains: domains.domains.slice(1),
+    previewDomain: domains.previewDomain,
+    port: ports.port,
+    previewPort: ports.previewPort,
+  })
 
   console.log(`Installing swiftace.service, which runs ${binary}...`)
   await writeFile(SERVICE_FILE, service({ binary, ...ports, domain: domains.domains[0]! }))
@@ -78,13 +76,7 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
   await run("systemctl", "restart", "swiftace")
   await healthCheck(ports.port, ports.previewPort)
 
-  await updateCaddyfile({
-    domain: domains.domains[0]!,
-    redirectDomains: domains.domains.slice(1),
-    previewDomain: domains.previewDomain,
-    port: ports.port,
-    previewPort: ports.previewPort,
-  })
+  if (caddyfile) await applyCaddyfile(caddyfile)
   await writeFile(DOMAINS_FILE, `${JSON.stringify(domains)}\n`)
   console.log(`Done: SwiftAce ${VERSION} is at https://${domains.domains[0]}`)
 }
@@ -250,31 +242,48 @@ async function healthCheck(port: number, previewPort: number) {
   console.log(`The app is up on 127.0.0.1:${port}, and the notebook preview on ${previewPort}`)
 }
 
-/**
- * Checks the edited Caddyfile before it replaces the live one, and puts the old one back if Caddy
- * rejects it on reload.
- */
-async function updateCaddyfile(sites: Parameters<typeof configureSites>[1]) {
-  console.log(`Updating ${CADDYFILE}...`)
+/** The edited Caddyfile, checked by Caddy, or null when it needs no change. */
+async function planCaddyfile(
+  sites: Parameters<typeof configureSites>[1],
+): Promise<{ existing: string; edited: string } | null> {
+  console.log(`Checking ${CADDYFILE}...`)
   const existing = await readFile(CADDYFILE, "utf8")
   const result = configureSites(existing, sites)
   if (!result.ok) fail(`${CADDYFILE}: ${result.error}`)
   for (const change of result.changes) console.log(`  ${change}`)
   for (const warning of result.warnings) console.warn(`  Warning: ${warning}`)
-  if (result.caddyfile === existing) return console.log("It was up to date")
+  if (result.caddyfile === existing) {
+    console.log("It's up to date")
+    return null
+  }
+  await validateCaddyfile(CADDYFILE, result.caddyfile)
+  return { existing, edited: result.caddyfile }
+}
 
-  const dir = await mkdtemp(join(tmpdir(), "swiftace-caddy-"))
+/**
+ * Runs `caddy validate` on a candidate beside the live file rather than in a temporary folder:
+ * Caddy resolves `import` relative to the file it's in, so elsewhere a relative import would fail
+ * or a glob would match different files, checking a config other than the one reloaded.
+ */
+export async function validateCaddyfile(caddyfile: string, contents: string): Promise<void> {
+  const candidate = join(dirname(caddyfile), `.${basename(caddyfile)}.swiftace-${process.pid}`)
   try {
-    const candidate = join(dir, "Caddyfile")
-    await writeFile(candidate, result.caddyfile)
+    await writeFile(candidate, contents, { mode: 0o644 })
     await run("caddy", "validate", "--config", candidate, "--adapter", "caddyfile")
   } finally {
-    await rm(dir, { recursive: true, force: true })
+    await rm(candidate, { force: true })
   }
+}
 
+/** Replaces the live Caddyfile and reloads Caddy, putting the old one back if it won't take it. */
+async function applyCaddyfile({ existing, edited }: { existing: string; edited: string }) {
+  if ((await readFile(CADDYFILE, "utf8")) !== existing) {
+    fail(`${CADDYFILE} changed while deploy ran, so it's left alone: run swiftace deploy again`)
+  }
+  console.log(`Updating ${CADDYFILE}...`)
   const backup = `${CADDYFILE}.bak`
   await writeFile(backup, existing)
-  await writeFile(CADDYFILE, result.caddyfile)
+  await writeFile(CADDYFILE, edited)
   try {
     await run("systemctl", "reload", "caddy")
   } catch (error) {

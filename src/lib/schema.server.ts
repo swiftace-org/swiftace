@@ -147,7 +147,7 @@ export const emailAccountAttempts = pgTable(
      * caller in — `state` travels in browser history and referrers. Nullable: older rows predate it.
      */
     stateToken: text("state_token"),
-    // Wrong verification codes, so a 6-digit code can't be ground down. Unlike `consumed`
+    // Codes guessed, each counted before it's compared, so a 6-digit code can't be ground down. Unlike `consumed`
     // this has a real `DEFAULT 0` in Postgres, applied to the existing rows too.
     failedAttempts: integer("failed_attempts").notNull().default(0),
   },

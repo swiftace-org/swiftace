@@ -59,6 +59,18 @@ jobs:
     needs: version
     if: github.event_name == 'pull_request' || needs.version.outputs.release == 'true'
     runs-on: ubuntu-24.04
+    # For the tests whose guarantees are the database's, like concurrent sign-ins and webhooks.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: swiftace_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/swiftace_test
     steps:
       - uses: actions/checkout@v7
       # Installs the dependencies too, from the lockfile.
@@ -66,6 +78,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: true
+      # `deploy`'s tests run `caddy validate` on real configs.
+      - run: sudo apt-get install -y --no-install-recommends caddy
       - run: vp check
       - run: vp test run
 
@@ -113,6 +127,8 @@ jobs:
         run: |
           createdb -h localhost -U postgres swiftace_integration
           vp exec playwright install --with-deps --only-shell chromium
+          # Holds the client's scripts back, so every step has to wait for hydration.
+          TEST_SCRIPT_DELAY_MS=1000 \
           DATABASE_URL=postgres://postgres:postgres@localhost:5432/swiftace_integration \
             bun test/integration.ts dist/swiftace
       - if: failure() && matrix.target == 'linux-x64'

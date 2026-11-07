@@ -52,9 +52,10 @@ export const loadCheckoutCompletion = createServerFn({ method: "GET" })
       // completed without one — an abandoned or still-open checkout.
       if (!subscription || typeof subscription === "string") return pending
 
-      await syncStripeSubscription(subscription)
+      // Recorded as Stripe has it now, which may have moved on since the session was read.
+      const synced = await syncStripeSubscription(subscription.id)
 
-      const isSubscribed = isActiveSubscriptionStatus(subscription.status)
+      const isSubscribed = isActiveSubscriptionStatus(synced.subscription.status)
       const courseSlug = session.metadata?.courseSlug ?? null
       if (!isSubscribed || !courseSlug) return { isSubscribed, courseSlug, enrolled: false }
 

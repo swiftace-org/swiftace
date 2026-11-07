@@ -1,10 +1,18 @@
-import { mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises"
+import { spawnSync } from "node:child_process"
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test"
 
-import { chooseDomains, domainsProblem, preflightProblem, service, servicePorts } from "./deploy"
+import {
+  chooseDomains,
+  domainsProblem,
+  preflightProblem,
+  service,
+  servicePorts,
+  validateCaddyfile,
+} from "./deploy"
 import { ensureEnvFile, parseEnvFile } from "./env-file"
 import { REQUIRED_VARIABLES } from "./environment"
 
@@ -141,5 +149,52 @@ describe("ensureEnvFile", () => {
   it("reads values as systemd does", () => {
     const variables = parseEnvFile("A=1\n# B=2\nA=\"3\"\n  C = x\nD='q z'\n")
     expect(Object.fromEntries(variables)).toEqual({ A: "3", D: "q z" })
+  })
+})
+
+const HAS_CADDY = spawnSync("caddy", ["version"]).status === 0
+
+// With Caddy itself, which CI installs. A config with relative imports, as a real one can have.
+describe.skipIf(!HAS_CADDY && !process.env.CI)("validateCaddyfile", () => {
+  let dir: string
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "swiftace-caddy-"))
+    // Caddy's storage, so validating touches nothing of the machine's own.
+    process.env.XDG_DATA_HOME = join(dir, "data")
+    process.env.XDG_CONFIG_HOME = join(dir, "config")
+    await mkdir(join(dir, "etc/snippets"), { recursive: true })
+    await mkdir(join(dir, "etc/sites"), { recursive: true })
+    await writeFile(join(dir, "etc/snippets/common.caddy"), "(common) {\n\tencode gzip\n}\n")
+    await writeFile(join(dir, "etc/sites/other.caddy"), 'other.example.org {\n\trespond "hi"\n}\n')
+  })
+  afterEach(() => rm(dir, { recursive: true, force: true }))
+
+  const CANDIDATE = `import snippets/common.caddy
+import sites/*
+
+example.com {
+\timport common
+\treverse_proxy 127.0.0.1:4000
+}
+`
+
+  it("resolves imports beside the live Caddyfile, and leaves nothing behind", async () => {
+    const live = join(dir, "etc/Caddyfile")
+    await writeFile(live, "")
+    await validateCaddyfile(live, CANDIDATE)
+    expect((await readdir(join(dir, "etc"))).sort()).toEqual(["Caddyfile", "sites", "snippets"])
+  })
+
+  it("would reject the same config checked from anywhere else", async () => {
+    await mkdir(join(dir, "elsewhere"))
+    await expect(validateCaddyfile(join(dir, "elsewhere/Caddyfile"), CANDIDATE)).rejects.toThrow(
+      /caddy validate/,
+    )
+  })
+
+  it("rejects a config Caddy can't load", async () => {
+    await expect(
+      validateCaddyfile(join(dir, "etc/Caddyfile"), "example.com {\n\tnot_a_directive\n}\n"),
+    ).rejects.toThrow(/not_a_directive/)
   })
 })

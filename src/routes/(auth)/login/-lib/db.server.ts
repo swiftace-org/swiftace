@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm"
+import { and, eq, lt, not, sql } from "drizzle-orm"
 
 import { db, emailAccountAttempts } from "@/lib/schema.server"
 import type { EmailAccountAttempt } from "@/types/account"
@@ -34,23 +34,37 @@ export async function readEmailAccountAttemptByTokenHash(
   return attempt ?? null
 }
 
-export async function updateEmailAccountAttemptConsumed(
-  id: number,
-  consumed: boolean,
-): Promise<void> {
-  await db.update(emailAccountAttempts).set({ consumed }).where(eq(emailAccountAttempts.id, id))
-}
-
 /**
- * Counts one wrong verification code and returns the new total. Incremented in the database, so
- * codes guessed in parallel each cost a try — a read-modify-write would let them overwrite.
+ * Spends one of an attempt's guesses before its code is compared, returning how many it has used,
+ * or null once it's consumed or out of them. One conditional UPDATE, so however many guesses
+ * arrive together, only `maxGuesses` are ever compared: a read first would admit them all.
  */
-export async function updateEmailAccountAttemptFailedAttempts(id: number): Promise<number> {
+export async function admitEmailAccountAttemptGuess(
+  id: number,
+  maxGuesses: number,
+): Promise<number | null> {
   const [attempt] = await db
     .update(emailAccountAttempts)
     .set({ failedAttempts: sql`${emailAccountAttempts.failedAttempts} + 1` })
-    .where(eq(emailAccountAttempts.id, id))
+    .where(
+      and(
+        eq(emailAccountAttempts.id, id),
+        not(sql`${emailAccountAttempts.consumed} is true`),
+        lt(emailAccountAttempts.failedAttempts, maxGuesses),
+      ),
+    )
     .returning({ failedAttempts: emailAccountAttempts.failedAttempts })
 
-  return attempt?.failedAttempts ?? 0
+  return attempt?.failedAttempts ?? null
+}
+
+/** Uses an attempt up, returning whether this call did: only one of several at once can. */
+export async function consumeEmailAccountAttempt(id: number): Promise<boolean> {
+  const consumed = await db
+    .update(emailAccountAttempts)
+    .set({ consumed: true })
+    .where(and(eq(emailAccountAttempts.id, id), not(sql`${emailAccountAttempts.consumed} is true`)))
+    .returning({ id: emailAccountAttempts.id })
+
+  return consumed.length > 0
 }

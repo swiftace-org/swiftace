@@ -5,7 +5,6 @@ import { captureEvent, getSiteConfig } from "@/lib/utils.server"
 
 import {
   constructStripeEvent,
-  getStripeClient,
   isCancelScheduled,
   syncStripeSubscription,
 } from "../../-lib/utils.server"
@@ -55,9 +54,9 @@ export const Route = createFileRoute("/(billing)/api/stripe/webhook")({
 })
 
 /**
- * Every event we act on ends in the same place: resolve the Stripe subscription, then let
- * `syncStripeSubscription` decide what it means. Unrecognized events are acknowledged
- * rather than rejected, so enabling extra ones in the dashboard can't wedge the endpoint.
+ * Every event we act on only names a subscription for `syncStripeSubscription` to reconcile, as
+ * Stripe has it now: events arrive out of order, so their snapshots aren't to be trusted.
+ * Unrecognized events are acknowledged, so enabling extra ones can't wedge the endpoint.
  */
 async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   switch (event.type) {
@@ -65,21 +64,17 @@ async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       const session = event.data.object
       if (session.mode !== "subscription" || !session.subscription) return
 
-      // Sessions arrive with the subscription unexpanded, so it has to be fetched.
-      const subscriptionId =
-        typeof session.subscription === "string" ? session.subscription : session.subscription.id
-      const stripe = await getStripeClient()
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-      await syncStripeSubscription(subscription)
+      await syncStripeSubscription(
+        typeof session.subscription === "string" ? session.subscription : session.subscription.id,
+      )
       return
     }
 
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
-      // `deleted` still carries the full object, with `status: "canceled"` — which is
-      // precisely what revokes the enrollments.
-      const accountId = await syncStripeSubscription(event.data.object)
+      const { accountId } = await syncStripeSubscription(event.data.object.id)
+      // Analytics describe the event itself, so they read its snapshot.
       if (accountId) captureSubscriptionEvent(accountId, event)
       return
     }

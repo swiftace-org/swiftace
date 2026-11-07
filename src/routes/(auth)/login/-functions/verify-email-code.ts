@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start"
 
 import {
+  admitEmailAccountAttemptGuess,
+  consumeEmailAccountAttempt,
   readEmailAccountAttemptByStateToken,
-  updateEmailAccountAttemptConsumed,
-  updateEmailAccountAttemptFailedAttempts,
 } from "../-lib/db.server"
 import {
   VERIFICATION_CODE_EXPIRY_SECONDS,
@@ -19,8 +19,8 @@ import {
 
 /**
  * Trades a verification code for a session. Addressed by `state_token` rather than the
- * sequential id, which would let anyone point this at somebody else's login. Wrong codes are
- * counted and burn the attempt at `VERIFICATION_CODE_MAX_ATTEMPTS`.
+ * sequential id, which would let anyone point this at somebody else's login. Each guess spends
+ * one of `VERIFICATION_CODE_MAX_ATTEMPTS` before it's compared, and a right one is used up once.
  */
 export const submitVerifyEmailForm = createServerFn({ method: "POST" })
   .validator(
@@ -57,21 +57,26 @@ export const submitVerifyEmailForm = createServerFn({ method: "POST" })
       return { error: "Verification code expired. Please try logging in again." }
     }
 
-    if (hashString(data.otp) !== attempt.codeHash) {
-      const failedAttempts = await updateEmailAccountAttemptFailedAttempts(attempt.id)
-      console.error("submitVerifyEmailForm: otp mismatch", {
-        attemptId: attempt.id,
-        failedAttempts,
-      })
+    // The checks above read the row before other guesses landed; these two decide atomically.
+    const guesses = await admitEmailAccountAttemptGuess(attempt.id, VERIFICATION_CODE_MAX_ATTEMPTS)
+    if (guesses === null) {
+      console.error("submitVerifyEmailForm: no guesses left", { attemptId: attempt.id })
+      return { error: "Too many incorrect codes. Please try logging in again." }
+    }
 
-      if (failedAttempts >= VERIFICATION_CODE_MAX_ATTEMPTS) {
-        await updateEmailAccountAttemptConsumed(attempt.id, true)
+    if (hashString(data.otp) !== attempt.codeHash) {
+      console.error("submitVerifyEmailForm: otp mismatch", { attemptId: attempt.id, guesses })
+      if (guesses >= VERIFICATION_CODE_MAX_ATTEMPTS) {
+        await consumeEmailAccountAttempt(attempt.id)
         return { error: "Too many incorrect codes. Please try logging in again." }
       }
       return { error: "Invalid verification code. Please try again." }
     }
 
-    await updateEmailAccountAttemptConsumed(attempt.id, true)
+    if (!(await consumeEmailAccountAttempt(attempt.id))) {
+      console.error("submitVerifyEmailForm: attempt consumed meanwhile", { attemptId: attempt.id })
+      return { error: "This verification code is invalid/expired." }
+    }
 
     const result = await findOrCreateAccountByEmail({ email: attempt.email, name: data.name })
     if ("error" in result) {

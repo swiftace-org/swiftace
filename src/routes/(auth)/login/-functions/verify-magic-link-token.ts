@@ -1,9 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 
-import {
-  readEmailAccountAttemptByTokenHash,
-  updateEmailAccountAttemptConsumed,
-} from "../-lib/db.server"
+import { consumeEmailAccountAttempt, readEmailAccountAttemptByTokenHash } from "../-lib/db.server"
 import { VERIFICATION_CODE_EXPIRY_SECONDS } from "../../-lib/constants"
 import {
   captureLogin,
@@ -30,7 +27,11 @@ export const verifyMagicLinkToken = createServerFn({ method: "POST" })
       return { error: "Verification link expired. Please request a new one." }
     }
 
-    await updateEmailAccountAttemptConsumed(attempt.id, true)
+    // Conditional, so a link opened twice at once still signs in only once.
+    if (!(await consumeEmailAccountAttempt(attempt.id))) {
+      console.error("verifyMagicLinkToken: attempt consumed meanwhile", { attemptId: attempt.id })
+      return { error: "This verification link has already been used." }
+    }
 
     const result = await findOrCreateAccountByEmail({
       email: attempt.email,
