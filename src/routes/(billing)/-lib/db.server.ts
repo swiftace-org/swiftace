@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, ne, notExists, or, sql } from "drizzle-orm"
+import { and, desc, eq, isNull, ne, notExists, or, sql } from "drizzle-orm"
 
 import { ENROLLMENT_GRANTED_BY_SUBSCRIPTION, ENROLLMENT_REVOKED_BY_LAPSE } from "@/lib/config"
 import { subscriptionColumns } from "@/lib/db.server"
@@ -7,18 +7,11 @@ import {
   accountSubscriptions,
   courseCertificates,
   courseEnrollments,
-  courseSectionProgress,
-  courseSections,
-  courses,
   db,
 } from "@/lib/schema.server"
 import type { AccountSubscription } from "@/types/subscription"
 
 import { COURSE_CERTIFICATION_STATUS_REVOKED } from "../../course/$courseSlug_.manage/participants/-lib/constants"
-import {
-  COURSE_SECTION_VISIBILITY_DRAFT,
-  SECTION_COMPLETE_PROGRESS,
-} from "../../course/-lib/constants"
 
 /**
  * The account's most recent subscription whatever its status, which is how a returning
@@ -132,8 +125,8 @@ export async function restoreLapsedCourseEnrollments(
 }
 
 /**
- * Revokes only unfinished enrollments the subscription granted. A valid certificate or completion
- * of every required, listed section preserves access; progress and submissions are untouched.
+ * An issued, valid certificate preserves access when a subscription lapses. Section progress
+ * alone does not count as course completion for access; progress and submissions are untouched.
  *
  * Scoped to `ENROLLMENT_GRANTED_BY_SUBSCRIPTION`, which is the whole safety property: admin
  * grants and outright purchases carry a NULL `payment_status` and must never be stripped.
@@ -158,39 +151,6 @@ export async function softDeleteLapsedCourseEnrollments(
       ),
     )
 
-  // Match the course page's required sections, but require actual completion, not a rounded 100%.
-  // The inner join also keeps an empty course from counting as completed.
-  const completedCourse = tx
-    .select({ id: courses.id })
-    .from(courses)
-    .innerJoin(courseSections, eq(courseSections.courseId, courses.id))
-    .leftJoin(
-      courseSectionProgress,
-      and(
-        eq(courseSectionProgress.sectionId, courseSections.id),
-        eq(courseSectionProgress.enrolleeId, courseEnrollments.enrolleeId),
-        eq(courseSectionProgress.deleted, false),
-      ),
-    )
-    .where(
-      and(
-        eq(courses.id, courseEnrollments.courseId),
-        sql`json_typeof(${courses.sections}) = 'array'`,
-        sql`${courses.sections}::jsonb ? ${courseSections.slug}`,
-        eq(courseSections.deleted, false),
-        eq(courseSections.isOptional, false),
-        or(
-          isNull(courseSections.visibility),
-          ne(courseSections.visibility, COURSE_SECTION_VISIBILITY_DRAFT),
-        ),
-        inArray(courseSections.sectionType, ["LESSON", "ASSIGNMENT"]),
-      ),
-    )
-    .groupBy(courses.id)
-    .having(
-      sql`bool_and(coalesce(${courseSectionProgress.progress} >= ${SECTION_COMPLETE_PROGRESS}, false))`,
-    )
-
   const revoked = await tx
     .update(courseEnrollments)
     .set({ deleted: true, paymentStatus: ENROLLMENT_REVOKED_BY_LAPSE })
@@ -200,7 +160,6 @@ export async function softDeleteLapsedCourseEnrollments(
         eq(courseEnrollments.deleted, false),
         eq(courseEnrollments.paymentStatus, ENROLLMENT_GRANTED_BY_SUBSCRIPTION),
         notExists(certificate),
-        notExists(completedCourse),
       ),
     )
     .returning({ courseId: courseEnrollments.courseId })

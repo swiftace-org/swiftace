@@ -49,52 +49,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL && !process.env.CI)(
       return row!.id
     }
 
-    type Section = {
-      progress?: number
-      progressDeleted?: boolean
-      isOptional?: boolean
-      deleted?: boolean
-      visibility?: string | null
-      sectionType?: string
-      listed?: boolean
-      enrolleeId?: number
-    }
-
-    async function sections(courseId: number, items: Section[]) {
-      const slugs: string[] = []
-      for (const item of items) {
-        const slug = randomUUID()
-        const { progress, progressDeleted, listed, enrolleeId, ...fields } = item
-        const [section] = await schema.db
-          .insert(schema.courseSections)
-          .values({
-            courseId,
-            slug,
-            title: "Section",
-            sectionType: "LESSON",
-            visibility: "VISIBLE",
-            ...fields,
-          })
-          .returning({ id: schema.courseSections.id })
-        if (listed !== false) slugs.push(slug)
-        if (progress !== undefined) {
-          await schema.db.insert(schema.courseSectionProgress).values({
-            sectionId: section!.id,
-            enrolleeId: enrolleeId ?? learnerId,
-            progress,
-            deleted: progressDeleted ?? false,
-          })
-        }
-      }
-      await schema.db
-        .update(schema.courses)
-        .set({ sections: slugs })
-        .where(eq(schema.courses.id, courseId))
-    }
-
     async function certificate(
       courseId: number,
-      options: { deleted?: boolean; ownerId?: number } = {},
+      options: { deleted?: boolean; ownerId?: number; issuedAt?: Date | null } = {},
     ) {
       await schema.db.insert(schema.courseCertificates).values({
         courseId,
@@ -121,22 +78,13 @@ describe.skipIf(!process.env.TEST_DATABASE_URL && !process.env.CI)(
       return row!
     }
 
-    it("keeps completed courses while revoking unfinished courses for the same learner", async () => {
-      const completed = await course()
-      await sections(completed, [
-        { progress: 100 },
-        { sectionType: "ASSIGNMENT", progress: 100 },
-        { isOptional: true },
-        { visibility: "DRAFT" },
-        { deleted: true },
-        { listed: false },
-        { sectionType: "HEADER" },
-      ])
+    it("keeps certified courses while revoking courses without a certificate", async () => {
+      const certified = await course()
+      await certificate(certified)
       const unfinished = await course()
-      await sections(unfinished, [{ progress: 100 }, { sectionType: "ASSIGNMENT" }])
 
       expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
-      expect(await enrollment(completed)).toEqual({
+      expect(await enrollment(certified)).toEqual({
         deleted: false,
         paymentStatus: ENROLLMENT_GRANTED_BY_SUBSCRIPTION,
       })
@@ -147,15 +95,44 @@ describe.skipIf(!process.env.TEST_DATABASE_URL && !process.env.CI)(
 
       expect(await billing.restoreLapsedCourseEnrollments(learnerId)).toBe(1)
       expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
-      expect((await enrollment(completed)).deleted).toBe(false)
+      expect((await enrollment(certified)).deleted).toBe(false)
     })
 
-    it("keeps a course with a valid certificate even if its sections are unfinished", async () => {
+    it("revokes access after all required sections are complete if no certificate was issued", async () => {
+      const courseId = await course()
+      const sections = await schema.db
+        .insert(schema.courseSections)
+        .values(
+          ["LESSON", "ASSIGNMENT"].map((sectionType) => ({
+            courseId,
+            slug: randomUUID(),
+            title: sectionType,
+            sectionType,
+            visibility: "VISIBLE",
+          })),
+        )
+        .returning({ id: schema.courseSections.id, slug: schema.courseSections.slug })
+      await schema.db
+        .update(schema.courses)
+        .set({ sections: sections.map((section) => section.slug) })
+        .where(eq(schema.courses.id, courseId))
+      await schema.db.insert(schema.courseSectionProgress).values(
+        sections.map((section) => ({
+          sectionId: section.id,
+          enrolleeId: learnerId,
+          progress: 100,
+          completedAt: new Date(),
+        })),
+      )
+
+      expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
+      expect((await enrollment(courseId)).deleted).toBe(true)
+    })
+
+    it("does not count a certificate reserved before issuance succeeds", async () => {
       const id = await course()
-      await sections(id, [{}])
-      await certificate(id)
-      expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(0)
-      expect((await enrollment(id)).deleted).toBe(false)
+      await certificate(id, { deleted: true, issuedAt: null })
+      expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
     })
 
     it.each(["deleted", "revoked"])(
@@ -173,56 +150,25 @@ describe.skipIf(!process.env.TEST_DATABASE_URL && !process.env.CI)(
       },
     )
 
-    it.each<Section>([
-      {},
-      { progress: 99 },
-      { progress: 100, progressDeleted: true },
-      { visibility: "HIDDEN" },
-      { visibility: null },
-    ])("requires completed progress for every required listed section: %j", async (incomplete) => {
+    it("does not use another learner's certificate", async () => {
       const id = await course()
-      await sections(id, [{ progress: 100 }, incomplete])
+      await certificate(id, { ownerId: await account() })
       expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
     })
 
-    it("does not use another learner's certificate or progress", async () => {
+    it("requires a certificate even when the enrollment's certification status is PASS", async () => {
       const id = await course()
-      const otherId = await account()
-      await sections(id, [{ progress: 100, enrolleeId: otherId }])
-      await certificate(id, { ownerId: otherId })
+      await schema.db
+        .update(schema.courseEnrollments)
+        .set({ certificationStatus: "PASS" })
+        .where(eq(schema.courseEnrollments.courseId, id))
       expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
     })
-
-    it.each([
-      { items: [] },
-      { items: [{ isOptional: true, progress: 100 }] },
-      { items: [{ visibility: "DRAFT", progress: 100 }] },
-    ])(
-      "does not count a course with no required sections as completed: $items",
-      async ({ items }) => {
-        const id = await course()
-        await sections(id, items)
-        expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
-      },
-    )
-
-    it.each([null, { lesson: true }])(
-      "does not count a missing or malformed section list: %j",
-      async (list) => {
-        const id = await course()
-        await sections(id, [{ progress: 100 }])
-        await schema.db
-          .update(schema.courses)
-          .set({ sections: list })
-          .where(eq(schema.courses.id, id))
-        expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(1)
-      },
-    )
 
     it("leaves outright grants and admin removals unchanged", async () => {
       const granted = await course({ paymentStatus: null })
       const removed = await course({ deleted: true })
-      await sections(removed, [{ progress: 100 }])
+      await certificate(removed)
       expect(await billing.softDeleteLapsedCourseEnrollments(learnerId)).toBe(0)
       expect(await billing.restoreLapsedCourseEnrollments(learnerId)).toBe(0)
       expect(await enrollment(granted)).toEqual({ deleted: false, paymentStatus: null })
