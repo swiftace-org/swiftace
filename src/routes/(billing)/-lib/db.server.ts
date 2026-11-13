@@ -1,9 +1,17 @@
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, isNull, ne, notExists, or, sql } from "drizzle-orm"
 
 import { ENROLLMENT_GRANTED_BY_SUBSCRIPTION, ENROLLMENT_REVOKED_BY_LAPSE } from "@/lib/config"
 import { subscriptionColumns } from "@/lib/db.server"
-import { type Queryable, accountSubscriptions, courseEnrollments, db } from "@/lib/schema.server"
+import {
+  type Queryable,
+  accountSubscriptions,
+  courseCertificates,
+  courseEnrollments,
+  db,
+} from "@/lib/schema.server"
 import type { AccountSubscription } from "@/types/subscription"
+
+import { COURSE_CERTIFICATION_STATUS_REVOKED } from "../../course/$courseSlug_.manage/participants/-lib/constants"
 
 /**
  * The account's most recent subscription whatever its status, which is how a returning
@@ -117,8 +125,8 @@ export async function restoreLapsedCourseEnrollments(
 }
 
 /**
- * Revokes only the enrollments the subscription itself granted, now that it has lapsed;
- * progress, submissions and certificates are untouched.
+ * An issued, valid certificate preserves access when a subscription lapses. Section progress
+ * alone does not count as course completion for access; progress and submissions are untouched.
  *
  * Scoped to `ENROLLMENT_GRANTED_BY_SUBSCRIPTION`, which is the whole safety property: admin
  * grants and outright purchases carry a NULL `payment_status` and must never be stripped.
@@ -128,6 +136,21 @@ export async function softDeleteLapsedCourseEnrollments(
   enrolleeId: number,
   tx: Queryable = db,
 ): Promise<number> {
+  const certificate = tx
+    .select({ id: courseCertificates.id })
+    .from(courseCertificates)
+    .where(
+      and(
+        eq(courseCertificates.courseId, courseEnrollments.courseId),
+        eq(courseCertificates.ownerId, courseEnrollments.enrolleeId),
+        eq(courseCertificates.deleted, false),
+        or(
+          isNull(courseEnrollments.certificationStatus),
+          ne(courseEnrollments.certificationStatus, COURSE_CERTIFICATION_STATUS_REVOKED),
+        ),
+      ),
+    )
+
   const revoked = await tx
     .update(courseEnrollments)
     .set({ deleted: true, paymentStatus: ENROLLMENT_REVOKED_BY_LAPSE })
@@ -136,6 +159,7 @@ export async function softDeleteLapsedCourseEnrollments(
         eq(courseEnrollments.enrolleeId, enrolleeId),
         eq(courseEnrollments.deleted, false),
         eq(courseEnrollments.paymentStatus, ENROLLMENT_GRANTED_BY_SUBSCRIPTION),
+        notExists(certificate),
       ),
     )
     .returning({ courseId: courseEnrollments.courseId })
