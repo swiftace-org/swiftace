@@ -112,30 +112,28 @@ describe("ensureEnvFile", () => {
   })
   afterEach(() => rm(dir, { recursive: true, force: true }))
 
-  it("creates a root-only file with every variable and new secrets", async () => {
-    const { created, variables } = await ensureEnvFile(file, "preview.example.com")
+  it("creates a root-only file with the database URL and no authentication keys", async () => {
+    const { created, variables } = await ensureEnvFile(file)
     expect(created).toBe(true)
     expect((await stat(file)).mode & 0o777).toBe(0o600)
     expect([...variables.keys()]).toEqual([...REQUIRED_VARIABLES])
-    expect(variables.get("JWT_SECRET_KEY")).toMatch(/^[0-9a-f]{64}$/)
-    expect(variables.get("HASH_SECRET_KEY")).toMatch(/^[0-9a-f]{64}$/)
-    expect(variables.get("JWT_SECRET_KEY")).not.toBe(variables.get("HASH_SECRET_KEY"))
-    expect(variables.get("NOTEBOOK_PREVIEW_URL")).toBe("https://preview.example.com")
+    expect(variables.has("JWT_SECRET_KEY")).toBe(false)
+    expect(variables.has("HASH_SECRET_KEY")).toBe(false)
     expect(variables.get("DATABASE_URL")).toBe("")
   })
 
-  it("never overwrites a value, and only adds the variables it's missing", async () => {
+  it("preserves existing values and legacy keys without adding new secrets", async () => {
     const existing = "# mine\nDATABASE_URL=postgres://x\nJWT_SECRET_KEY=keep\nPORT=4005"
     await writeFile(file, existing, { mode: 0o644 })
-    await ensureEnvFile(file, "preview.example.com")
+    await ensureEnvFile(file)
     const text = await readFile(file, "utf8")
-    expect(text.startsWith(`${existing}\n`)).toBe(true)
+    expect(text).toBe(existing)
     const variables = parseEnvFile(text)
     expect(variables.get("JWT_SECRET_KEY")).toBe("keep")
     expect(variables.get("PORT")).toBe("4005")
-    expect(variables.get("HASH_SECRET_KEY")).toMatch(/^[0-9a-f]{64}$/)
+    expect(variables.has("HASH_SECRET_KEY")).toBe(false)
 
-    const again = await ensureEnvFile(file, "other.example.com")
+    const again = await ensureEnvFile(file)
     expect(again.created).toBe(false)
     expect(await readFile(file, "utf8")).toBe(text)
   })

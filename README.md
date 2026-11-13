@@ -37,23 +37,26 @@ sudo swiftace deploy example.com www.example.com --preview-domain preview.exampl
 The first domain is the site; any others redirect to it. `deploy`:
 
 1. installs the binary as `/usr/local/bin/swiftace`, if it was run from elsewhere
-2. creates `/etc/swiftace.env`, readable only by root, with every variable the server needs and
-   new `JWT_SECRET_KEY` and `HASH_SECRET_KEY`. It stops there until you fill in the rest, then
-   you run it again. It never overwrites a value that's already set
-3. installs `swiftace.service`, a locked-down systemd service listening on `127.0.0.1`
-4. applies any database migrations, stopping before anything restarts if they fail
-5. restarts the service and checks it answers
-6. edits `/etc/caddy/Caddyfile`, which it never creates. A domain that already has a site block
+2. creates `/etc/swiftace.env`, readable only by root, for the database URL. It stops until you
+   fill in `DATABASE_URL`, then you run it again. Existing entries are preserved
+3. validates the proposed Caddy configuration before changing it
+4. applies database migrations and stores the authentication keys in Postgres: existing
+   `JWT_SECRET_KEY` and `HASH_SECRET_KEY` environment values are imported, otherwise independent
+   32-byte keys are securely generated. Stored keys are preserved on every subsequent deploy
+5. asks for an admin email if no active admin exists, and for any missing SES settings: AWS region,
+   access key ID, secret access key and a verified sender email address. Credentials are hidden
+   while typing. It creates (or promotes) the admin and saves SES in Postgres before restarting
+6. installs `swiftace.service`, a locked-down systemd service listening on `127.0.0.1`,
+   restarts it and checks it answers
+7. edits `/etc/caddy/Caddyfile`, which it never creates. A domain that already has a site block
    keeps it, with only its `reverse_proxy` upstreams pointed at SwiftAce, so custom rules
    survive; a domain without one gets a new block. The result is checked with `caddy validate`
    before it replaces the live file, and the old one is put back if Caddy won't reload it
 
-The domains are saved, so later runs can leave them out. Then sign up on the site and make
-yourself an admin:
-
-```sh
-sudo swiftace make-admin you@example.com
-```
+The domains are saved, so later runs can leave them out. Configured admins and SES settings are
+kept, so subsequent deploys skip those questions. After the first deploy, sign in at `/login`
+using the code sent to your admin email; no separate signup or `make-admin` step is needed.
+Use `swiftace make-admin <email>` when promoting additional accounts later.
 
 To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and restart.
 
@@ -72,24 +75,52 @@ To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and 
 
 ## Configuration
 
-The binary is configured by its environment alone; it never reads a `.env` file.
+The binary reads its bootstrap settings from the environment; it never reads a `.env` file.
 
-| Variable                                                                   | What it's for                                                                 |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                             | Postgres, e.g. `postgres://user:password@localhost:5432/swiftace`             |
-| `JWT_SECRET_KEY`, `HASH_SECRET_KEY`                                        | Long random strings. Changing the first signs everyone out                    |
-| `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY_SECRET`, `AWS_REGION`                 | Amazon SES, which sends every email                                           |
-| `EMAIL_DOMAIN`                                                             | The domain email is sent from, as `notify@EMAIL_DOMAIN`; verify it in SES     |
-| `R2_ENDPOINT_URL`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Cloudflare R2 or any S3-compatible store; the bucket needn't be public        |
-| `NOTEBOOK_PREVIEW_URL`                                                     | The notebook preview's public URL, e.g. `https://preview.example.com`         |
-| `PORT`                                                                     | The site's port (4000)                                                        |
-| `PREVIEW_PORT`                                                             | The notebook preview's port (4100), or 0 to turn it off                       |
-| `PREVIEW_ALLOWED_PARENT_ORIGINS`                                           | The origins that may embed the preview, e.g. `https://example.com` (required) |
-| `HOST`                                                                     | The address both listen on (every address)                                    |
+| Variable                            | What it's for                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `DATABASE_URL`                      | Postgres, e.g. `postgres://user:password@localhost:5432/swiftace`               |
+| `JWT_SECRET_KEY`, `HASH_SECRET_KEY` | Optional first-setup imports into Postgres; omitted keys are securely generated |
+| `PORT`                              | The site's port (4000)                                                          |
+| `PREVIEW_PORT`                      | The notebook preview's port (4100), or 0 to turn it off                         |
+| `PREVIEW_ALLOWED_PARENT_ORIGINS`    | The origins that may embed the preview, e.g. `https://example.com` (required)   |
+| `HOST`                              | The address both listen on (every address)                                      |
 
-The rest (login providers, Stripe, Turnstile, PostHog, OpenAI for the AI tutor, branding, pricing
+The rest (SES email, S3-compatible object storage, rich Jupyter output previews, login providers,
+Stripe, Turnstile, PostHog, OpenAI for the AI tutor, branding, pricing
 copy, legal pages) is set at `/manage/config` and kept in the `site_config` table, so changing it
 needs no restart. Secrets are write-only there and never sent to the browser.
+
+`swiftace deploy` collects missing admin and SES settings interactively. If you manage the
+server another way, configure SES before signing in. Save this JSON to a local file with mode
+`0600`, fill in the SES credentials and verified sender, then run
+`swiftace configure-integrations /path/to/integrations.json` (after `swiftace migrate`):
+
+```json
+{
+  "email": {
+    "enabled": true,
+    "region": "us-east-1",
+    "accessKeyId": "YOUR_ACCESS_KEY_ID",
+    "secretAccessKey": "YOUR_SECRET_ACCESS_KEY",
+    "fromEmail": "notify@example.com"
+  }
+}
+```
+
+Without `deploy`, sign up at `/login`, run `swiftace make-admin you@example.com`, then configure
+storage and other settings at `/manage/config`. The CLI accepts any integration sections, preserves omitted ones,
+and keeps saved secrets when their submitted values are blank. Remove the local JSON file once
+setup is complete. Existing SES, R2 and preview environment variables are no longer used. After
+upgrading, save those settings using the CLI or `/manage/config`. Authentication keys are stored in a private
+`site_config` row and excluded from public settings and `/manage/config`.
+
+Authentication keys are initialized by `deploy`, `migrate`, or the first `start`. The running
+app reads only the stored values, so environment imports can be removed after initialization.
+The signing key authenticates session tokens; the hash key protects stored email verification
+codes and magic-link tokens. Separate keys isolate those uses and allow independent rotation.
+Deliberate database rotation requires restarting the app: changing the signing key signs users
+out, while changing the hash key invalidates pending sign-in codes and links.
 
 Behind a reverse proxy, the site's address must be a concrete hostname, like `example.com {
 reverse_proxy 127.0.0.1:4000 }` in Caddy. Sign-in links are built from the request's `Host`
@@ -99,8 +130,10 @@ header, so a proxy that forwards any host would let a forged one put a live link
 
 Notebook outputs whose scripts have to run, like Plotly charts, render in a page on a domain of
 its own (e.g. `preview.example.com`), which `swiftace start` serves on `PREVIEW_PORT` and the site
-embeds in an iframe from `NOTEBOOK_PREVIEW_URL`. The page runs arbitrary notebook script, and it
-may live on a subdomain of the site, so it never gets a real origin:
+embeds in an iframe using the URL in `/manage/config` → Jupyter output preview.
+Rich previews default to off. Enable them and enter a separate preview origin to render interactive
+outputs; static HTML and text alternatives remain available while off. The page runs arbitrary
+notebook script, and it may live on a subdomain of the site, so it never gets a real origin:
 
 - the site embeds it with `sandbox="allow-scripts"` and no `allow-same-origin`
 - its `Content-Security-Policy: sandbox …` header forces the same opaque origin even if something

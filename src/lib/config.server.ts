@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs"
 
-import { DEFAULT_AI_TUTOR_SYSTEM_PROMPT } from "@/lib/config"
+import { DEFAULT_AI_TUTOR_SYSTEM_PROMPT, DEFAULT_INTEGRATION_SETTINGS } from "@/lib/config"
 import type { SiteConfig } from "@/types/site-config"
 
 // For development only, and never overrides a variable that's already set. The production build
-// drops it: the binary is configured by its environment alone, wherever it's run from.
+// drops it: the binary reads its bootstrap environment wherever it's run from.
 if (!import.meta.env?.PROD && existsSync(".env")) process.loadEnvFile(".env")
 
 function ensureServerEnv(key: string) {
@@ -17,22 +17,6 @@ export const NODE_ENV = process.env.NODE_ENV
 
 export const DATABASE_URL = ensureServerEnv("DATABASE_URL")
 
-export const JWT_SECRET_KEY = ensureServerEnv("JWT_SECRET_KEY")
-export const HASH_SECRET_KEY = ensureServerEnv("HASH_SECRET_KEY")
-export const AWS_ACCESS_KEY_ID = ensureServerEnv("AWS_ACCESS_KEY_ID")
-export const AWS_ACCESS_KEY_SECRET = ensureServerEnv("AWS_ACCESS_KEY_SECRET")
-export const AWS_REGION = ensureServerEnv("AWS_REGION")
-export const EMAIL_DOMAIN = ensureServerEnv("EMAIL_DOMAIN")
-export const NOTIFICATION_EMAIL_ADDRESS = `notify@${EMAIL_DOMAIN}`
-
-export const R2_ENDPOINT_URL = ensureServerEnv("R2_ENDPOINT_URL")
-export const R2_ACCESS_KEY_ID = ensureServerEnv("R2_ACCESS_KEY_ID")
-export const R2_SECRET_ACCESS_KEY = ensureServerEnv("R2_SECRET_ACCESS_KEY")
-export const R2_BUCKET = ensureServerEnv("R2_BUCKET")
-
-/** The notebook preview's public URL, on an origin of its own; `swiftace start` serves it. */
-export const NOTEBOOK_PREVIEW_URL = ensureServerEnv("NOTEBOOK_PREVIEW_URL").replace(/\/+$/, "")
-
 /** What a fresh deployment shows until an admin saves `/manage/config`. */
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   general: {
@@ -41,7 +25,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     tagline: "Practical Online Courses",
     description:
       "Learn practical skills and build real-world projects with hands-on online courses.",
-    supportEmail: `support@${EMAIL_DOMAIN}`,
+    supportEmail: "",
     socialLinks: [],
   },
   branding: {
@@ -108,20 +92,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     privacyPolicy:
       "# Privacy Policy\n\nThe privacy policy for {{SITE_NAME}} hasn't been published yet. Please write to {{SUPPORT_EMAIL}} with any questions about your data.\n",
   },
-  integrations: {
-    googleLogin: { enabled: false, clientId: "", clientSecret: "" },
-    githubLogin: { enabled: false, clientId: "", clientSecret: "" },
-    billing: {
-      enabled: false,
-      stripeSecretKey: "",
-      stripeWebhookSecret: "",
-      monthlyPriceId: "",
-      annualPriceId: "",
-    },
-    turnstile: { enabled: false, siteKey: "", secretKey: "" },
-    posthog: { enabled: false, projectToken: "", host: "https://us.i.posthog.com" },
-    openai: { enabled: false, apiKey: "" },
-  },
+  integrations: DEFAULT_INTEGRATION_SETTINGS,
   aiTutor: {
     enabled: false,
     name: "AI Tutor",

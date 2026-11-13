@@ -11,7 +11,7 @@ import {
   ACCOUNT_USERNAME_MAX_LENGTH,
   AUTH_COOKIE_NAME,
 } from "@/lib/config"
-import { HASH_SECRET_KEY, JWT_SECRET_KEY, NODE_ENV } from "@/lib/config.server"
+import { NODE_ENV } from "@/lib/config.server"
 import { readAccountByEmail, readAccountByEmailCaseInsensitive } from "@/lib/db.server"
 import { normalizeEmail, slugify } from "@/lib/utils"
 import {
@@ -32,6 +32,7 @@ import type {
 } from "@/types/account"
 import type { LoginMethod } from "@/types/analytics"
 
+import { getAuthenticationKeys } from "./authentication.server"
 import {
   AUTH_TOKEN_EXPIRY_DAYS,
   OAUTH_STATE_COOKIE_NAME,
@@ -49,8 +50,9 @@ import {
 } from "./db.server"
 import { sanitizeNextUrl } from "./utils"
 
-export function hashString(input: string): string {
-  return crypto.createHmac("sha256", HASH_SECRET_KEY).update(input).digest("hex")
+export async function hashString(input: string): Promise<string> {
+  const { hashKey } = await getAuthenticationKeys()
+  return crypto.createHmac("sha256", hashKey).update(input).digest("hex")
 }
 
 export function generateVerificationCode(): string {
@@ -58,7 +60,8 @@ export function generateVerificationCode(): string {
 }
 
 export async function setAuthCookie(accountId: number): Promise<void> {
-  const token = jwt.sign({ accountId }, JWT_SECRET_KEY, {
+  const { signingKey } = await getAuthenticationKeys()
+  const token = jwt.sign({ accountId }, signingKey, {
     expiresIn: `${AUTH_TOKEN_EXPIRY_DAYS}d`,
   })
   setCookie(AUTH_COOKIE_NAME, token, {
@@ -409,8 +412,8 @@ export async function issueEmailVerificationAttempt(
   const attempt = await createEmailAccountAttempt({
     email,
     ipAddress: getClientIpAddress(),
-    codeHash: hashString(verificationCode),
-    tokenHash: hashString(token),
+    codeHash: await hashString(verificationCode),
+    tokenHash: await hashString(token),
     stateToken,
   })
   await updateEmailAccountAttemptsConsumedExcept(email, attempt.id)

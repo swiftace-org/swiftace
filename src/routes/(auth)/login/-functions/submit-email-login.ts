@@ -1,20 +1,18 @@
 import { createServerFn } from "@tanstack/react-start"
 
+import { LOGIN_EMAIL_PATTERN } from "../../-lib/constants"
 import {
   checkVerificationAttemptRateLimit,
   issueEmailVerificationAttempt,
   validateTurnstileToken,
 } from "../../-lib/utils.server"
 
-const EMAIL_PATTERN =
-  /^(?!\.)(?!.*\.\.)([a-z0-9_'.+-]*)[a-z0-9_+-]@([a-z0-9][a-z0-9-]*\.)+[a-z]{2,}$/i
-
 export const submitEmailLoginForm = createServerFn({ method: "POST" })
   .validator((data: { email: string; turnstileToken: string; next?: string }) => data)
   .handler(async ({ data }) => {
     const { email, turnstileToken } = data
 
-    if (!EMAIL_PATTERN.test(email)) {
+    if (!LOGIN_EMAIL_PATTERN.test(email)) {
       console.error("submitEmailLoginForm: email failed validation", { email })
       return { error: "Please enter a valid email address." }
     }

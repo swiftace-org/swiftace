@@ -64,7 +64,7 @@ export const submitVerifyEmailForm = createServerFn({ method: "POST" })
       return { error: "Too many incorrect codes. Please try logging in again." }
     }
 
-    if (hashString(data.otp) !== attempt.codeHash) {
+    if ((await hashString(data.otp)) !== attempt.codeHash) {
       console.error("submitVerifyEmailForm: otp mismatch", { attemptId: attempt.id, guesses })
       if (guesses >= VERIFICATION_CODE_MAX_ATTEMPTS) {
         await consumeEmailAccountAttempt(attempt.id)

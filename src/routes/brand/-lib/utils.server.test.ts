@@ -3,11 +3,10 @@ import { readFile } from "node:fs/promises"
 import { Jimp } from "jimp"
 import { beforeAll, describe, expect, it, vi } from "vite-plus/test"
 
-vi.mock("@/lib/config.server", () => ({ R2_BUCKET: "test" }))
 vi.mock("@/lib/utils.server", () => ({
   getSiteConfig: async () => ({ branding: { icon: "" } }),
   getSiteUrl: () => "https://academy.example",
-  r2Client: { send: vi.fn() },
+  getObjectStorage: async () => ({ client: { send: vi.fn() }, bucket: "test" }),
 }))
 
 const { readFaviconIco, readIconPng } = await import("./utils.server")

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vite-plus/test"
 
+import { DEFAULT_INTEGRATION_SETTINGS } from "@/lib/config"
 import type { IntegrationSettings } from "@/types/site-config"
 
 import { toAdminIntegrationSettings, toIntegrationSettings } from "./utils.server"
 
 const stored: IntegrationSettings = {
+  ...DEFAULT_INTEGRATION_SETTINGS,
   googleLogin: { enabled: true, clientId: "google-id", clientSecret: "google-secret" },
   githubLogin: { enabled: false, clientId: "", clientSecret: "" },
   billing: {
@@ -83,5 +85,106 @@ describe("integration secrets", () => {
     expect(toIntegrationSettings(values, stored)).toEqual({
       error: "Billing's Monthly price ID should start with price_.",
     })
+  })
+})
+
+describe("service configuration", () => {
+  const email = {
+    enabled: true,
+    region: "us-east-1",
+    accessKeyId: "ses-id",
+    secretAccessKey: "ses-secret",
+    fromEmail: "notify@example.com",
+  }
+  const objectStorage = {
+    enabled: true,
+    endpoint: "https://s3.example.com",
+    region: "us-east-1",
+    accessKeyId: "s3-id",
+    secretAccessKey: "s3-secret",
+    bucket: "assets",
+  }
+
+  it("masks SES and storage credentials and preserves them on a blank submission", () => {
+    const configured = { ...stored, email, objectStorage }
+    const admin = toAdminIntegrationSettings(configured)
+    expect(admin.integrations.email.accessKeyId).toBe("")
+    expect(admin.integrations.email.secretAccessKey).toBe("")
+    expect(admin.integrations.objectStorage.accessKeyId).toBe("")
+    expect(admin.integrations.objectStorage.secretAccessKey).toBe("")
+    expect(admin.savedSecrets).toEqual(
+      expect.arrayContaining([
+        "email.accessKeyId",
+        "email.secretAccessKey",
+        "objectStorage.accessKeyId",
+        "objectStorage.secretAccessKey",
+      ]),
+    )
+    const result = toIntegrationSettings({ email: admin.integrations.email }, configured)
+    if ("error" in result) throw new Error(result.error)
+    expect(result.settings.email).toEqual(email)
+    expect(result.settings.objectStorage).toEqual(objectStorage)
+    expect(result.settings.billing).toEqual(stored.billing)
+  })
+
+  it("requires SES credentials and a valid sender when enabled", () => {
+    expect(
+      toIntegrationSettings({ email: { ...email, secretAccessKey: "" } }, stored),
+    ).toHaveProperty("error")
+    expect(
+      toIntegrationSettings({ email: { ...email, fromEmail: "invalid" } }, stored),
+    ).toHaveProperty("error")
+    expect(
+      toIntegrationSettings({ objectStorage: { ...objectStorage, bucket: "" } }, stored),
+    ).toHaveProperty("error")
+  })
+
+  it("requires a separate preview URL only while enabled", () => {
+    expect(
+      toIntegrationSettings({ notebookPreview: { enabled: true, url: "" } }, stored),
+    ).toHaveProperty("error")
+    expect(
+      toIntegrationSettings({ notebookPreview: { enabled: false, url: "" } }, stored),
+    ).toHaveProperty("settings")
+    expect(
+      toIntegrationSettings(
+        { notebookPreview: { enabled: true, url: "https://academy.example/preview" } },
+        stored,
+        "https://academy.example",
+      ),
+    ).toHaveProperty("error")
+    expect(
+      toIntegrationSettings(
+        { notebookPreview: { enabled: true, url: "https://preview.example/" } },
+        stored,
+        "https://academy.example",
+      ),
+    ).toMatchObject({
+      settings: { notebookPreview: { enabled: true, url: "https://preview.example" } },
+    })
+  })
+
+  it("allows loopback HTTP for development and rejects insecure remote and credential-bearing URLs", () => {
+    expect(
+      toIntegrationSettings(
+        { objectStorage: { ...objectStorage, endpoint: "http://127.0.0.1:4100" } },
+        stored,
+      ),
+    ).toHaveProperty("settings")
+    expect(
+      toIntegrationSettings(
+        { notebookPreview: { enabled: true, url: "http://localhost:4100" } },
+        stored,
+      ),
+    ).toHaveProperty("settings")
+    for (const endpoint of [
+      "http://s3.example.com",
+      "https://user:pass@s3.example.com",
+      "javascript:alert(1)",
+    ]) {
+      expect(
+        toIntegrationSettings({ objectStorage: { ...objectStorage, endpoint } }, stored),
+      ).toHaveProperty("error")
+    }
   })
 })

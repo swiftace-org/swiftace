@@ -2,8 +2,7 @@ import crypto from "node:crypto"
 
 import { GetObjectCommand, NoSuchKey, PutObjectCommand } from "@aws-sdk/client-s3"
 
-import { R2_BUCKET } from "@/lib/config.server"
-import { r2Client } from "@/lib/utils.server"
+import { getObjectStorage } from "@/lib/utils.server"
 
 import { BRAND_IMAGE_CONTENT_TYPES } from "../../../../brand/-lib/constants"
 import { REVIEW_AVATAR_KEY_PATTERN, REVIEW_AVATAR_TYPES } from "./constants"
@@ -20,9 +19,10 @@ export async function uploadReviewAvatar(
 ): Promise<string> {
   const hash = crypto.createHash("sha256").update(body).digest("hex").slice(0, 12)
   const key = `reviews/${hash}.${type}`
-  await r2Client.send(
+  const { client, bucket } = await getObjectStorage()
+  await client.send(
     new PutObjectCommand({
-      Bucket: R2_BUCKET,
+      Bucket: bucket,
       Key: key,
       Body: body,
       ContentType: BRAND_IMAGE_CONTENT_TYPES[type],
@@ -34,7 +34,8 @@ export async function uploadReviewAvatar(
 export async function readReviewAvatar(key: string) {
   if (!REVIEW_AVATAR_KEY_PATTERN.test(key)) return null
   try {
-    return await r2Client.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }))
+    const { client, bucket } = await getObjectStorage()
+    return await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
   } catch (error) {
     if (error instanceof NoSuchKey) return null
     throw error

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm"
 
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@/lib/config"
 import {
@@ -20,6 +20,7 @@ import type { AdminCourseDetails, CourseDisplay, CourseSectionType } from "@/typ
 import type { QuizQuestionRow } from "@/types/quiz"
 import type { AccountSubscription } from "@/types/subscription"
 
+import { AUTHENTICATION_CONFIG_SECTION } from "../routes/(auth)/-lib/constants"
 import { COURSE_SECTION_VISIBILITY_DRAFT } from "../routes/course/-lib/constants"
 
 export const DEFAULT_RESULTS_LIMIT = 100
@@ -391,5 +392,8 @@ export async function createOrRestoreCourseEnrollment(values: {
 
 /** Every saved `/manage/config` section; one never saved has no row and keeps its defaults. */
 export async function readSiteConfigRows(): Promise<{ section: string; data: unknown }[]> {
-  return db.select({ section: siteConfig.section, data: siteConfig.data }).from(siteConfig)
+  return db
+    .select({ section: siteConfig.section, data: siteConfig.data })
+    .from(siteConfig)
+    .where(ne(siteConfig.section, AUTHENTICATION_CONFIG_SECTION))
 }

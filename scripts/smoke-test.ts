@@ -24,15 +24,6 @@ const env: Record<string, string | undefined> = {
   DATABASE_URL,
   JWT_SECRET_KEY: "smoke-jwt-secret",
   HASH_SECRET_KEY: "smoke-hash-secret",
-  AWS_ACCESS_KEY_ID: "smoke",
-  AWS_ACCESS_KEY_SECRET: "smoke",
-  AWS_REGION: "us-east-1",
-  EMAIL_DOMAIN: "example.com",
-  R2_ENDPOINT_URL: "http://127.0.0.1:9",
-  R2_ACCESS_KEY_ID: "smoke",
-  R2_SECRET_ACCESS_KEY: "smoke",
-  R2_BUCKET: "smoke",
-  NOTEBOOK_PREVIEW_URL: `http://127.0.0.1:${PREVIEW_PORT}`,
   HOST: "127.0.0.1",
   PORT: String(PORT),
   PREVIEW_PORT: String(PREVIEW_PORT),
@@ -61,17 +52,45 @@ try {
   const dryRun = swiftace(["migrate", "--dry-run"])
   check(dryRun.code === 0 && /0000_init/.test(dryRun.output), "migrate --dry-run lists them")
   // Nothing beside the binary is read, neither a .env nor a bunfig.toml.
-  await writeFile(join(dir, ".env"), "JWT_SECRET_KEY=from-dotenv\n")
+  await writeFile(join(dir, ".env"), "DATABASE_URL=from-dotenv\n")
   await writeFile(join(dir, "bunfig.toml"), 'preload = ["./preload.ts"]\n')
   await writeFile(join(dir, "preload.ts"), 'console.log("bunfig was read")\n')
-  const ignored = swiftace(["start"], { JWT_SECRET_KEY: undefined })
+  const ignored = swiftace(["start"], { DATABASE_URL: undefined })
   check(
-    /Set JWT_SECRET_KEY/.test(ignored.output) && !/bunfig was read/.test(ignored.output),
+    /Set DATABASE_URL/.test(ignored.output) && !/bunfig was read/.test(ignored.output),
     "it reads neither .env nor bunfig.toml",
   )
   const migrated = swiftace(["migrate"])
   check(migrated.code === 0 && /Applied/.test(migrated.output), "migrate applies them")
   check(/no migrations/.test(swiftace(["migrate"]).output), "migrate again has nothing to do")
+  delete env.JWT_SECRET_KEY
+  delete env.HASH_SECRET_KEY
+
+  const configPath = join(dir, "integrations.json")
+  const bootstrap = {
+    email: {
+      enabled: true,
+      region: "us-east-1",
+      accessKeyId: "smoke-access-id",
+      secretAccessKey: "smoke-secret-value",
+      fromEmail: "notify@example.com",
+    },
+  }
+  await writeFile(configPath, JSON.stringify(bootstrap), { mode: 0o600 })
+  const configured = swiftace(["configure-integrations", configPath])
+  check(
+    configured.code === 0 && /Integration settings saved/.test(configured.output),
+    "configure-integrations bootstraps SES without logging credentials",
+  )
+  check(
+    !/smoke-access-id|smoke-secret-value/.test(configured.output),
+    "the configure command never prints credentials",
+  )
+  await writeFile(configPath, "not JSON", { mode: 0o600 })
+  check(
+    swiftace(["configure-integrations", configPath]).code === 1,
+    "configure-integrations refuses invalid JSON",
+  )
 
   const notRoot = swiftace(["deploy", "example.com"])
   check(
