@@ -2,7 +2,7 @@
 //
 //   vp run dev:preview   serves it on PREVIEW_PORT (4100) for http://localhost:3000
 //
-// Point NOTEBOOK_PREVIEW_URL at it (http://localhost:4100), as .env.example does.
+// Enable Jupyter output preview in /manage/config and set its URL to http://localhost:4100.
 import { readPreviewPage } from "../src/cli/embed.ts"
 import { DEFAULT_PREVIEW_PORT, readPort } from "../src/cli/environment.ts"
 import { parseParentOrigins, previewHandler } from "../src/cli/preview.ts"

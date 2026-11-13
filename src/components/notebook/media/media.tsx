@@ -1,3 +1,5 @@
+import { useSiteConfig } from "@/lib/hooks"
+
 import * as m from "../mime-types"
 import { stringify } from "../stringify"
 import { Html } from "./html"
@@ -24,14 +26,20 @@ export function Media({
   /** Pre-rendered HTML for this output, when `type` is text/markdown. */
   markdownHtml?: string
 }) {
+  const { enabled, url } = useSiteConfig().notebookPreview
+  const richPreviews = enabled && !!url
   switch (type) {
     case m.TEXT:
       return <PlainText data={data as string | string[]} className={className} />
     case m.PLOTLY_JSON:
-      return <HtmlIframe html={plotlyFigureToHtml(data)} />
+      return richPreviews ? (
+        <HtmlIframe html={plotlyFigureToHtml(data)} />
+      ) : (
+        <PlainText data="Interactive output preview is disabled." />
+      )
     case m.HTML: {
       const html = stringify(data as string | string[])
-      if (!isPlotlyHtml(html)) return <Html data={html} />
+      if (!richPreviews || !isPlotlyHtml(html)) return <Html data={html} />
       return isScriptOnlyHtml(html) ? null : <HtmlIframe html={html} />
     }
     case m.IMAGE_SVG:

@@ -13,31 +13,27 @@ Usage: swiftace [command]
 Commands:
   start                 Start the server (the default)
   migrate [--dry-run]   Apply the database migrations that haven't run yet, or list them
+  configure-integrations <file.json>
+                        Save integration settings from a local JSON file, including initial SES setup
   make-admin <email>    Make an existing account an admin
   upgrade [version] [-y]
                         Replace this binary with the latest release, or the given one
   deploy <domain> [redirect-domains...] [--preview-domain <domain>]
-                        Install SwiftAce on this server as a service behind Caddy (as root)
+                        Install SwiftAce behind Caddy; asks for missing admin email and SES settings (as root)
   version               Print the version
   help                  Print this
 
 The server is configured with environment variables (it never reads a .env file):
   DATABASE_URL          Postgres, e.g. postgres://user:password@localhost:5432/swiftace
-  JWT_SECRET_KEY, HASH_SECRET_KEY
-                        Long random strings, e.g. from \`openssl rand -hex 32\`
-  AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_SECRET, AWS_REGION
-                        Amazon SES, which sends email from notify@EMAIL_DOMAIN
-  EMAIL_DOMAIN          The domain email is sent from
-  R2_ENDPOINT_URL, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
-                        Cloudflare R2 or any S3-compatible store, for uploads and certificates
-  NOTEBOOK_PREVIEW_URL  The notebook preview's public URL, e.g. https://preview.example.com
   PORT                  The app's port (${DEFAULT_PORT})
   PREVIEW_PORT          The notebook preview's port (${DEFAULT_PREVIEW_PORT}), or 0 to turn it off
   PREVIEW_ALLOWED_PARENT_ORIGINS
                         The origins that may embed the preview, e.g. https://example.com
   HOST                  The address both listen on (all of them)
 
-Everything else is set by an admin at /manage/config.`
+JWT_SECRET_KEY and HASH_SECRET_KEY are optional imports during deploy, migrate or first start.
+Missing authentication keys are securely generated and stored in Postgres; the app reads only
+the database values. Other settings are managed at /manage/config.`
 
 type Command = {
   options?: ParseArgsConfig["options"]
@@ -52,6 +48,10 @@ const COMMANDS: Record<string, Command> = {
   },
   "make-admin": {
     run: async ([email]) => (await import("./make-admin.ts")).makeAdmin(email),
+  },
+  "configure-integrations": {
+    run: async ([path]) =>
+      (await import("./configure-integrations.ts")).configureIntegrations(path),
   },
   upgrade: {
     options: { yes: { type: "boolean", short: "y" } },

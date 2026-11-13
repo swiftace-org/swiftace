@@ -1,3 +1,5 @@
+import type { IntegrationSettings } from "@/types/site-config"
+
 /** Search snippets cut off around here, so longer descriptions are truncated to fit. */
 export const META_DESCRIPTION_MAX_LENGTH = 155
 
@@ -81,3 +83,34 @@ Assignments and quizzes:
 Formatting:
 - Use Markdown. Put code in fenced blocks with a language, e.g. \`\`\`python.
 - Write math with $...$ for inline and $$...$$ for display equations.`
+
+export const DEFAULT_INTEGRATION_SETTINGS: IntegrationSettings = {
+  email: {
+    enabled: false,
+    region: "us-east-1",
+    accessKeyId: "",
+    secretAccessKey: "",
+    fromEmail: "",
+  },
+  objectStorage: {
+    enabled: false,
+    endpoint: "",
+    region: "auto",
+    accessKeyId: "",
+    secretAccessKey: "",
+    bucket: "",
+  },
+  notebookPreview: { enabled: false, url: "" },
+  googleLogin: { enabled: false, clientId: "", clientSecret: "" },
+  githubLogin: { enabled: false, clientId: "", clientSecret: "" },
+  billing: {
+    enabled: false,
+    stripeSecretKey: "",
+    stripeWebhookSecret: "",
+    monthlyPriceId: "",
+    annualPriceId: "",
+  },
+  turnstile: { enabled: false, siteKey: "", secretKey: "" },
+  posthog: { enabled: false, projectToken: "", host: "https://us.i.posthog.com" },
+  openai: { enabled: false, apiKey: "" },
+}

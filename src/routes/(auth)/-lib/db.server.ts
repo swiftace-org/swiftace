@@ -1,7 +1,9 @@
 import { and, desc, eq, gte, ne } from "drizzle-orm"
 
-import { accounts, db, emailAccountAttempts } from "@/lib/schema.server"
+import { accounts, db, emailAccountAttempts, siteConfig } from "@/lib/schema.server"
 import type { Account, EmailAccountAttempt } from "@/types/account"
+
+import { AUTHENTICATION_CONFIG_SECTION } from "./constants"
 
 export const emailAccountAttemptColumns = {
   id: emailAccountAttempts.id,
@@ -82,4 +84,12 @@ export async function updateEmailAccountAttemptsConsumedExcept(
         eq(emailAccountAttempts.consumed, false),
       ),
     )
+}
+
+export async function readAuthenticationKeys(): Promise<unknown> {
+  const [row] = await db
+    .select({ data: siteConfig.data })
+    .from(siteConfig)
+    .where(eq(siteConfig.section, AUTHENTICATION_CONFIG_SECTION))
+  return row?.data
 }

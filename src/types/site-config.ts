@@ -23,16 +23,13 @@ export type PublicSiteConfig = {
   pricing: PricingSettings
   integrations: PublicIntegrationSettings
   aiTutor: PublicAiTutorSettings
-  deployment: DeploymentSettings
-}
-
-/** From env rather than `/manage/config`, since they're set up alongside the servers themselves. */
-export type DeploymentSettings = {
-  notebookPreviewUrl: string
+  notebookPreview: IntegrationSettings["notebookPreview"]
 }
 
 /** Each section is a row of its own, so saving one can't write back a stale copy of another. */
 export type SiteConfigSection = keyof SiteConfig
+
+export type ManageConfigTab = SiteConfigSection | "notebookPreview"
 
 export type GeneralSettings = {
   siteName: string
@@ -118,6 +115,22 @@ export type LegalSettings = { termsOfService: string; privacyPolicy: string }
 
 /** Each switch is explicit, and can only be turned on once the fields it needs are filled in. */
 export type IntegrationSettings = {
+  email: {
+    enabled: boolean
+    region: string
+    accessKeyId: string
+    secretAccessKey: string
+    fromEmail: string
+  }
+  objectStorage: {
+    enabled: boolean
+    endpoint: string
+    region: string
+    accessKeyId: string
+    secretAccessKey: string
+    bucket: string
+  }
+  notebookPreview: { enabled: boolean; url: string }
   googleLogin: { enabled: boolean; clientId: string; clientSecret: string }
   githubLogin: { enabled: boolean; clientId: string; clientSecret: string }
   billing: {

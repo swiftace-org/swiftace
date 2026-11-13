@@ -3,17 +3,19 @@ import type {
   Integration,
   IntegrationSettings,
   SiteConfigSection,
+  ManageConfigTab,
 } from "@/types/site-config"
 
 import type { BrandImageType } from "../../../../brand/-lib/constants"
 
-export const MANAGE_CONFIG_TABS: { value: SiteConfigSection; label: string }[] = [
+export const MANAGE_CONFIG_TABS: { value: ManageConfigTab; label: string }[] = [
   { value: "general", label: "General" },
   { value: "branding", label: "Branding" },
   { value: "home", label: "Home Page" },
   { value: "pricing", label: "Pricing" },
   { value: "legal", label: "Legal" },
   { value: "integrations", label: "Integrations" },
+  { value: "notebookPreview", label: "Jupyter output preview" },
 ]
 
 export const DEFAULT_MANAGE_CONFIG_TAB: SiteConfigSection = "general"
@@ -57,6 +59,8 @@ export type IntegrationFieldDetail = {
   /** Write-only: the page shows whether it's saved, never what it is. */
   secret?: boolean
   url?: boolean
+  email?: boolean
+  allowLocalHttp?: boolean
   placeholder?: string
   /** What the value must start with, which catches a key pasted into the wrong box. */
   prefixes?: string[]
@@ -71,6 +75,47 @@ type IntegrationDetail<I extends Integration> = {
 }
 
 export const INTEGRATION_DETAILS: { [I in Integration]: IntegrationDetail<I> } = {
+  email: {
+    title: "Email (AWS SES)",
+    describe: () =>
+      "Sends sign-in codes and notifications using Amazon SES. Verify the sender address or its domain in SES. Turning this off disables email sign-in and outgoing notifications.",
+    fields: {
+      region: { label: "AWS region", placeholder: "us-east-1" },
+      accessKeyId: { label: "Access key ID", secret: true },
+      secretAccessKey: { label: "Secret access key", secret: true },
+      fromEmail: { label: "Sender email address", email: true, placeholder: "notify@example.com" },
+    },
+  },
+  objectStorage: {
+    title: "Object storage (S3 compatible)",
+    describe: () =>
+      "Stores branding, course images, review photos and certificates in an S3-compatible bucket. Use auto as the region for Cloudflare R2, or your provider's region. Existing files must be copied if you change the bucket or provider.",
+    fields: {
+      endpoint: {
+        label: "Endpoint URL",
+        url: true,
+        allowLocalHttp: true,
+        placeholder: "https://s3.us-east-1.amazonaws.com",
+      },
+      region: { label: "Region", placeholder: "auto" },
+      accessKeyId: { label: "Access key ID", secret: true },
+      secretAccessKey: { label: "Secret access key", secret: true },
+      bucket: { label: "Bucket" },
+    },
+  },
+  notebookPreview: {
+    title: "Jupyter output preview",
+    describe: () =>
+      "Enables rich iframe previews for interactive notebook outputs such as Plotly charts. Use a separate preview origin with SwiftAce's sandboxed preview server and configure its allowed parent origins. While off, outputs use static or text alternatives.",
+    fields: {
+      url: {
+        label: "Preview URL",
+        url: true,
+        allowLocalHttp: true,
+        placeholder: "https://preview.example.com",
+      },
+    },
+  },
   turnstile: {
     title: "Cloudflare Turnstile",
     describe: () =>
@@ -129,12 +174,15 @@ export const INTEGRATION_DETAILS: { [I in Integration]: IntegrationDetail<I> } =
 
 /** The order the Integrations tab lists them in. */
 export const INTEGRATION_ORDER: Integration[] = [
+  "email",
+  "objectStorage",
   "turnstile",
   "googleLogin",
   "githubLogin",
   "billing",
   "posthog",
   "openai",
+  "notebookPreview",
 ]
 
 const MB = 1024 * 1024

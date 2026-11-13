@@ -1,8 +1,7 @@
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-import { R2_BUCKET } from "@/lib/config.server"
-import { deleteR2Objects, r2Client } from "@/lib/utils.server"
+import { deleteStorageObjects, getObjectStorage } from "@/lib/utils.server"
 
 import {
   CERTIFICATE_IMAGE_FILENAME,
@@ -16,10 +15,11 @@ import {
  */
 
 async function getPresignedCertificateUrl(slug: string, filename: string, downloadAs?: string) {
+  const { client, bucket } = await getObjectStorage()
   return getSignedUrl(
-    r2Client,
+    client,
     new GetObjectCommand({
-      Bucket: R2_BUCKET,
+      Bucket: bucket,
       Key: `certificates/${slug}/${filename}`,
       ResponseContentDisposition: downloadAs && `attachment; filename="${downloadAs}"`,
     }),
@@ -43,18 +43,19 @@ export async function uploadCertificateAssets(
   slug: string,
   assets: { pdf: Uint8Array; image: Uint8Array },
 ): Promise<void> {
+  const { client, bucket } = await getObjectStorage()
   await Promise.all([
-    r2Client.send(
+    client.send(
       new PutObjectCommand({
-        Bucket: R2_BUCKET,
+        Bucket: bucket,
         Key: `certificates/${slug}/${CERTIFICATE_PDF_FILENAME}`,
         Body: assets.pdf,
         ContentType: "application/pdf",
       }),
     ),
-    r2Client.send(
+    client.send(
       new PutObjectCommand({
-        Bucket: R2_BUCKET,
+        Bucket: bucket,
         Key: `certificates/${slug}/${CERTIFICATE_IMAGE_FILENAME}`,
         Body: assets.image,
         ContentType: "image/jpeg",
@@ -75,5 +76,5 @@ export async function deleteCertificateAssets(slugs: string[]): Promise<void> {
       (filename) => `certificates/${slug}/${filename}`,
     ),
   )
-  await deleteR2Objects(keys)
+  await deleteStorageObjects(keys)
 }

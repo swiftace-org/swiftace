@@ -11,7 +11,9 @@ import { existsSync } from "node:fs"
 import { chmod, copyFile, readFile, realpath, rename, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, join } from "node:path"
 
+import { ensureAuthenticationKeys } from "./authentication-keys.ts"
 import { configureSites } from "./caddyfile.ts"
+import { setupDeployment } from "./deploy-setup.ts"
 import { ensureEnvFile } from "./env-file.ts"
 import { DEFAULT_PORT, DEFAULT_PREVIEW_PORT, missingVariables } from "./environment.ts"
 import { applyMigrations, withDatabase } from "./migrations.ts"
@@ -44,9 +46,9 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
 
   const binary = await installBinary()
 
-  const env = await ensureEnvFile(ENV_FILE, domains.previewDomain)
+  const env = await ensureEnvFile(ENV_FILE)
   await chmod(ENV_FILE, 0o600)
-  if (env.created) console.log(`Created ${ENV_FILE}, with new JWT_SECRET_KEY and HASH_SECRET_KEY`)
+  if (env.created) console.log(`Created ${ENV_FILE}`)
   const ports = servicePorts(env.variables)
   if (!ports.ok) fail(ports.error)
   const missing = missingVariables(Object.fromEntries(env.variables))
@@ -62,16 +64,20 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
     previewPort: ports.previewPort,
   })
 
+  // Setup must finish before the service restarts, so the first admin can sign in immediately.
+  console.log("Migrating the database...")
+  await withDatabase(env.variables.get("DATABASE_URL")!, async (db) => {
+    const applied = await applyMigrations(db)
+    console.log(applied.length ? `Applied ${applied.join(", ")}` : "Nothing to apply")
+    await ensureAuthenticationKeys(db, { ...Object.fromEntries(env.variables), ...process.env })
+    await setupDeployment(db)
+  })
+
   console.log(`Installing swiftace.service, which runs ${binary}...`)
   await writeFile(SERVICE_FILE, service({ binary, ...ports, domain: domains.domains[0]! }))
   await chmod(SERVICE_FILE, 0o644)
   await run("systemctl", "daemon-reload")
   await run("systemctl", "enable", "--quiet", "swiftace")
-
-  // Before the restart, so a failed migration leaves the running server as it was.
-  console.log("Migrating the database...")
-  const applied = await withDatabase(env.variables.get("DATABASE_URL")!, applyMigrations)
-  console.log(applied.length ? `Applied ${applied.join(", ")}` : "Nothing to apply")
 
   await run("systemctl", "restart", "swiftace")
   await healthCheck(ports.port, ports.previewPort)
@@ -79,6 +85,9 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
   if (caddyfile) await applyCaddyfile(caddyfile)
   await writeFile(DOMAINS_FILE, `${JSON.stringify(domains)}\n`)
   console.log(`Done: SwiftAce ${VERSION} is at https://${domains.domains[0]}`)
+  console.log(
+    `Sign in at https://${domains.domains[0]}/login using the code emailed to your admin address.`,
+  )
 }
 
 /** The domains given, falling back to the last deploy's for those left out. */

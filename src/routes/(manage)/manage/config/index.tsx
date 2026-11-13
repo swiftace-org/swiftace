@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { SiteConfigSection } from "@/types/site-config"
+import type { ManageConfigTab } from "@/types/site-config"
 
 import { BrandingSettings } from "./-components/branding-settings"
 import { GeneralSettingsForm } from "./-components/general-settings-form"
@@ -14,7 +14,7 @@ import { loadManageConfigPageData } from "./-functions/load-manage-config-page-d
 import { DEFAULT_MANAGE_CONFIG_TAB, MANAGE_CONFIG_TABS } from "./-lib/constants"
 
 export const Route = createFileRoute("/(manage)/manage/config/")({
-  validateSearch: (search: { tab?: string }): { tab?: SiteConfigSection } => ({
+  validateSearch: (search: { tab?: string }): { tab?: ManageConfigTab } => ({
     tab: MANAGE_CONFIG_TABS.find((option) => option.value === search.tab)?.value,
   }),
   loader: () => loadManageConfigPageData(),
@@ -36,15 +36,18 @@ function ManageConfigPage() {
         // In the URL, so a link can open straight onto the integrations.
         onValueChange={(value) =>
           void navigate({
-            search: { tab: value as SiteConfigSection },
+            search: { tab: value as ManageConfigTab },
             replace: true,
             resetScroll: false,
           })
         }
       >
-        <TabsList variant="line">
+        <TabsList
+          variant="line"
+          className="flex-wrap justify-start group-data-horizontal/tabs:h-auto"
+        >
           {MANAGE_CONFIG_TABS.map((option) => (
-            <TabsTrigger key={option.value} value={option.value}>
+            <TabsTrigger key={option.value} value={option.value} className="h-8 flex-none">
               {option.label}
             </TabsTrigger>
           ))}
@@ -67,6 +70,13 @@ function ManageConfigPage() {
         <TabsContent value="integrations" className="pt-4">
           <IntegrationSettingsForm settings={integrations} savedSecrets={savedSecrets} />
         </TabsContent>
+        <TabsContent value="notebookPreview" className="pt-4">
+          <IntegrationSettingsForm
+            settings={integrations}
+            savedSecrets={savedSecrets}
+            integration="notebookPreview"
+          />
+        </TabsContent>
       </Tabs>
     </main>
   )
@@ -87,7 +97,7 @@ function ManageConfigPagePending() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8">
       <ManageConfigHeader />
-      <div className="flex gap-4 border-b pb-2">
+      <div className="flex flex-wrap gap-4 border-b pb-2">
         {MANAGE_CONFIG_TABS.map((option) => (
           <Skeleton key={option.value} className="h-5 w-20" />
         ))}

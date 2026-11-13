@@ -1,3 +1,5 @@
+export type AuthenticationKeys = { signingKey: string; hashKey: string }
+
 import type { PublicSiteConfig } from "@/types/site-config"
 
 export type Account = {

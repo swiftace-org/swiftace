@@ -1,6 +1,7 @@
 // `swiftace start`, the default command: runs the app server on PORT and, in the same process,
 // the notebook preview server on PREVIEW_PORT, both on HOST, once the database is up to date.
 
+import { ensureAuthenticationKeys } from "./authentication-keys.ts"
 import { readPreviewPage } from "./embed.ts" with { type: "macro" }
 import { DEFAULT_PORT, DEFAULT_PREVIEW_PORT, missingVariables, readPort } from "./environment.ts"
 import { pendingMigrations, withDatabase } from "./migrations.ts"
@@ -19,13 +20,15 @@ export async function start() {
   const origins = previewPort ? parseParentOrigins(env.PREVIEW_ALLOWED_PARENT_ORIGINS) : []
   const host = env.HOST?.trim() || undefined
 
-  const pending = await withDatabase(env.DATABASE_URL!, pendingMigrations)
-  if (pending.length) {
-    fail(
-      `The database has migrations to apply first: ${pending.join(", ")}. ` +
-        "Back it up, then run `swiftace migrate`.",
-    )
-  }
+  await withDatabase(env.DATABASE_URL!, async (db) => {
+    const pending = await pendingMigrations(db)
+    if (pending.length) {
+      fail(
+        `The database has migrations to apply first: ${pending.join(", ")}. Back it up, then run swiftace migrate.`,
+      )
+    }
+    await ensureAuthenticationKeys(db, env)
+  })
 
   // Nitro's server closes on a signal but leaves the process running, as the database pool and
   // the preview keep it alive, so both servers are stopped here and then the process exits.

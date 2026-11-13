@@ -1,6 +1,5 @@
 // The service's env file, /etc/swiftace.env, which `swiftace deploy` creates: the variables in
 // REQUIRED_VARIABLES, readable only by root and loaded by systemd.
-import { randomBytes } from "node:crypto"
 import { lstat, readFile, rename, rm, writeFile } from "node:fs/promises"
 
 import { REQUIRED_VARIABLES } from "./environment.ts"
@@ -18,19 +17,10 @@ export function parseEnvFile(text: string): Map<string, string> {
   return variables
 }
 
-/**
- * The file with a line added for each required variable it doesn't mention, leaving every line it
- * has alone. The secrets are generated; the rest are left for the admin, except the preview URL.
- */
-export function withRequiredVariables(text: string, previewDomain?: string): string {
+/** Add missing bootstrap variables while preserving existing lines, including legacy keys. */
+export function withRequiredVariables(text: string): string {
   const present = parseEnvFile(text)
-  const added = REQUIRED_VARIABLES.filter((name) => !present.has(name)).map((name) => {
-    if (name === "JWT_SECRET_KEY" || name === "HASH_SECRET_KEY") {
-      return `${name}=${randomBytes(32).toString("hex")}`
-    }
-    if (name === "NOTEBOOK_PREVIEW_URL" && previewDomain) return `${name}=https://${previewDomain}`
-    return `${name}=`
-  })
+  const added = REQUIRED_VARIABLES.filter((name) => !present.has(name)).map((name) => `${name}=`)
   if (!added.length) return text
   const header = text
     ? ""
@@ -40,11 +30,11 @@ export function withRequiredVariables(text: string, previewDomain?: string): str
 }
 
 /** Creates the file, or adds the variables it's missing, keeping it root-only throughout. */
-export async function ensureEnvFile(path: string, previewDomain?: string) {
+export async function ensureEnvFile(path: string) {
   const stats = await lstat(path).catch(() => null)
   if (stats && !stats.isFile()) fail(`${path} should be a file, not a link or a folder`)
   const text = stats ? await readFile(path, "utf8") : ""
-  const updated = withRequiredVariables(text, previewDomain)
+  const updated = withRequiredVariables(text)
   if (stats && updated === text) return { created: false, variables: parseEnvFile(text) }
 
   const tmp = `${path}.${process.pid}.tmp`

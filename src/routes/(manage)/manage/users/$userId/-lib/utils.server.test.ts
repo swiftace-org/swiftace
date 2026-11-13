@@ -18,7 +18,7 @@ vi.mock("@/lib/utils", () => ({ slugify: (value: string) => value }))
 vi.mock("@/lib/schema.server", () => ({ runInTransaction: mocks.transaction }))
 vi.mock("@/lib/utils.server", () => ({
   captureServerException: vi.fn(),
-  deleteR2Objects: mocks.files,
+  deleteStorageObjects: mocks.files,
   getSiteConfig: async () => ({
     general: { siteName: "Academy", supportEmail: "support@example.com" },
   }),

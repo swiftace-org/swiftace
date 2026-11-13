@@ -2,8 +2,9 @@ import { Jimp } from "jimp"
 import { describe, expect, it, vi } from "vite-plus/test"
 
 const send = vi.hoisted(() => vi.fn())
-vi.mock("@/lib/config.server", () => ({ R2_BUCKET: "test" }))
-vi.mock("@/lib/utils.server", () => ({ r2Client: { send } }))
+vi.mock("@/lib/utils.server", () => ({
+  getObjectStorage: async () => ({ client: { send }, bucket: "test" }),
+}))
 vi.mock("@/lib/utils", () => ({
   toAbsoluteUrl: (path: string) => `https://academy.example${path}`,
 }))

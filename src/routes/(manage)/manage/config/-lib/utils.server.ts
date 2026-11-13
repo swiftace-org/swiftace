@@ -43,8 +43,9 @@ export function toAdminIntegrationSettings(settings: IntegrationSettings): {
  * page never had it. Every field is required while its switch is on; turning one off always works.
  */
 export function toIntegrationSettings(
-  values: IntegrationSettings,
+  values: Partial<IntegrationSettings>,
   stored: IntegrationSettings,
+  siteOrigin?: string,
 ): { settings: IntegrationSettings } | { error: string } {
   const submitted = values as unknown as Partial<SettingsRecord>
   const saved = stored as unknown as SettingsRecord
@@ -52,7 +53,7 @@ export function toIntegrationSettings(
 
   for (const integration of INTEGRATION_ORDER) {
     const { title } = INTEGRATION_DETAILS[integration]
-    const input = submitted[integration] ?? {}
+    const input = submitted[integration] ?? saved[integration]
     const enabled = input.enabled === true
     settings[integration] = { enabled }
 
@@ -70,8 +71,31 @@ export function toIntegrationSettings(
       if (value.length > (field.url ? CONFIG_URL_MAX_LENGTH : INTEGRATION_KEY_MAX_LENGTH)) {
         return { error: `${name} is too long.` }
       }
-      if (field.url && !isWebUrl(value)) {
+      const localHttp =
+        field.url &&
+        field.allowLocalHttp &&
+        (() => {
+          try {
+            const url = new URL(value)
+            return (
+              url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+            )
+          } catch {
+            return false
+          }
+        })()
+      if (field.url && !isWebUrl(value) && !localHttp) {
         return { error: `${name} must be a URL starting with https://.` }
+      }
+      if (field.url) {
+        const url = new URL(value)
+        if (url.username || url.password) return { error: `${name} must not contain credentials.` }
+        if (enabled && integration === "notebookPreview" && url.origin === siteOrigin) {
+          return { error: "The preview URL must use a separate origin from the site." }
+        }
+      }
+      if (field.email && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value)) {
+        return { error: `${name} must be a valid email address.` }
       }
       if (field.prefixes && !field.prefixes.some((prefix) => value.startsWith(prefix))) {
         return { error: `${name} should start with ${field.prefixes.join(" or ")}.` }
