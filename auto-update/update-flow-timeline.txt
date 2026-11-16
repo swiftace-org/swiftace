@@ -1,0 +1,22 @@
+[1.0s] page loaded http://127.0.0.1:3000/manage/config
+[6.5s] page loaded http://127.0.0.1:3000/manage/config
+[8.1s] shown: Updates The release of SwiftAce this site runs. SwiftAce 0.2.2 SwiftAce 0.2.3 is available. Update now Update automatically Checks for a new release once a day and installs it. The site restarts while it updates, and is unreachable for a few seconds.
+[9.5s] asked for the update
+[15.9s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[16.4s] page says it's restarting
+[19.0s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[21.9s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[24.9s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[27.9s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[30.9s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[33.9s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[37.0s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[40.0s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[43.0s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[46.0s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[49.0s] request failed (server restarting): net::ERR_CONNECTION_REFUSED
+[194.8s] console: %c[Server]%c color: #9333ea; font-weight: bold; color: inherit; {name: HTTPError, message: Invalid server function ID: <old id>}
+[215.7s] page loaded http://127.0.0.1:3000/manage/config
+[245.7s] after reload: Updates The release of SwiftAce this site runs. SwiftAce 0.2.3 You're on the latest version. Updated from 0.2.2 just now. Update automatically Checks for a new release once a day and installs it. The site restarts while it updates, and is unreachable for a few seconds.
+[250.4s] automatic updates turned on
+[284.8s] done
