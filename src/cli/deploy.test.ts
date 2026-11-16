@@ -11,6 +11,7 @@ import {
   preflightProblem,
   service,
   servicePorts,
+  updateUnits,
   validateCaddyfile,
 } from "./deploy"
 import { ensureEnvFile, parseEnvFile } from "./env-file"
@@ -95,6 +96,7 @@ describe("service", () => {
       "Environment=PREVIEW_PORT=4100",
       "Environment=PREVIEW_ALLOWED_PARENT_ORIGINS=https://example.com",
       "EnvironmentFile=/etc/swiftace.env",
+      "StateDirectory=swiftace",
     ]) {
       expect(lines).toContain(directive)
     }
@@ -194,5 +196,31 @@ example.com {
     await expect(
       validateCaddyfile(join(dir, "etc/Caddyfile"), "example.com {\n\tnot_a_directive\n}\n"),
     ).rejects.toThrow(/not_a_directive/)
+  })
+})
+
+describe("updateUnits", () => {
+  it("runs swiftace update as root, daily and when the app's request file appears", () => {
+    const units = updateUnits("/usr/local/bin/swiftace")
+    const lines = (file: string) => units[`/etc/systemd/system/${file}`]!.split("\n")
+    expect(Object.keys(units)).toHaveLength(3)
+
+    const service = lines("swiftace-update.service")
+    expect(service).toContain("Type=oneshot")
+    expect(service).toContain("ExecStart=/usr/local/bin/swiftace update --service")
+    expect(service).toContain("EnvironmentFile=-/etc/swiftace.env")
+    // Root, so it can replace the binary and restart swiftace.service.
+    expect(service.some((line) => /^(User|DynamicUser)=/.test(line))).toBe(false)
+
+    // Where the app's StateDirectory is from outside its DynamicUser namespace.
+    expect(lines("swiftace-update.path")).toContain(
+      "PathExists=/var/lib/private/swiftace/update-requested",
+    )
+    const timer = lines("swiftace-update.timer")
+    expect(timer).toContain("OnCalendar=daily")
+    expect(timer).toContain("Persistent=true")
+    for (const file of ["swiftace-update.path", "swiftace-update.timer"]) {
+      expect(lines(file)).toContain("Unit=swiftace-update.service")
+    }
   })
 })

@@ -20,6 +20,7 @@ Commands:
                         Replace this binary with the latest release, or the given one
   deploy <domain> [redirect-domains...] [--preview-domain <domain>]
                         Install SwiftAce behind Caddy; asks for missing admin email and SES settings (as root)
+  update                Upgrade a deployed server to the latest release and deploy it (as root)
   version               Print the version
   help                  Print this
 
@@ -57,6 +58,11 @@ const COMMANDS: Record<string, Command> = {
     options: { yes: { type: "boolean", short: "y" } },
     run: async ([version], values) =>
       (await import("./upgrade.ts")).upgrade(version, Boolean(values.yes)),
+  },
+  update: {
+    // Only swiftace-update.service passes it: update if asked to, or if automatic updates are on.
+    options: { service: { type: "boolean" } },
+    run: async (_, values) => (await import("./update.ts")).update(Boolean(values.service)),
   },
   deploy: {
     options: { "preview-domain": { type: "string" } },

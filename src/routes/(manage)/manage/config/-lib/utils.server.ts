@@ -1,5 +1,11 @@
-import type { BrandAsset, Integration, IntegrationSettings } from "@/types/site-config"
+import { readFile, writeFile } from "node:fs/promises"
+import { join } from "node:path"
 
+import { UPDATE_REQUEST_FILE, UPDATE_STATUS_FILE } from "@/lib/config"
+import type { BrandAsset, Integration, IntegrationSettings } from "@/types/site-config"
+import type { UpdateStatus } from "@/types/updates"
+
+import { latestVersion, releasesUrl } from "../../../../../cli/upgrade"
 import type { BrandImageType } from "../../../../brand/-lib/constants"
 import {
   BRAND_ASSET_DETAILS,
@@ -183,4 +189,43 @@ function formatTypes(types: BrandImageType[]): string {
   return names.length === 1
     ? `${names[0] === ".ico" ? "an" : "a"} ${names[0]}`
     : `${names.slice(0, -1).join(", ")} or ${names.at(-1)}`
+}
+
+/** The release running here, which the page compares with the latest. */
+export { VERSION } from "../../../../../cli/shell"
+
+/** Spares the releases a request for every look at the page; a failed check isn't kept. */
+const LATEST_VERSION_TTL_MS = 10 * 60 * 1000
+
+let latestVersionCache: { promise: Promise<string>; expiresAt: number } | undefined
+
+export function readLatestVersion(): Promise<string> {
+  if (latestVersionCache && latestVersionCache.expiresAt > Date.now()) {
+    return latestVersionCache.promise
+  }
+  const promise = latestVersion(releasesUrl())
+  latestVersionCache = { promise, expiresAt: Date.now() + LATEST_VERSION_TTL_MS }
+  promise.catch(() => {
+    if (latestVersionCache?.promise === promise) latestVersionCache = undefined
+  })
+  return promise
+}
+
+/** What `swiftace update` last wrote, or null before it has run or if the file isn't its. */
+export async function readUpdateStatus(stateDirectory: string): Promise<UpdateStatus | null> {
+  const text = await readFile(join(stateDirectory, UPDATE_STATUS_FILE), "utf8").catch(() => null)
+  if (!text) return null
+  try {
+    const status = JSON.parse(text) as UpdateStatus
+    const states: UpdateStatus["state"][] = ["running", "upToDate", "updated", "failed"]
+    if (states.includes(status.state) && typeof status.startedAt === "string") return status
+  } catch {}
+  return null
+}
+
+/** Its contents are only for a person looking; the updater acts on the file being there. */
+export async function writeUpdateRequest(stateDirectory: string): Promise<string> {
+  const requestedAt = new Date().toISOString()
+  await writeFile(join(stateDirectory, UPDATE_REQUEST_FILE), `${requestedAt}\n`)
+  return requestedAt
 }

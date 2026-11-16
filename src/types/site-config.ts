@@ -1,4 +1,5 @@
 import type { AiTutorSettings, PublicAiTutorSettings } from "@/types/ai-tutor"
+import type { UpdateSettings } from "@/types/updates"
 
 /**
  * Everything a deployment sets from `/manage/config`, secrets included — so this one never leaves
@@ -13,6 +14,8 @@ export type SiteConfig = {
   integrations: IntegrationSettings
   /** Edited on `/manage/ai-tutor` rather than `/manage/config`. */
   aiTutor: AiTutorSettings
+  /** On the General tab, beside the version, and read by `swiftace update` too. */
+  updates: UpdateSettings
 }
 
 /** What rides along with the session to every page: the settings minus every key and secret. */

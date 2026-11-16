@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vite-plus/test"
 
 import type { PricingSettings } from "@/types/site-config"
+import type { UpdateOverview, UpdateStatus } from "@/types/updates"
 
-import { toHomeSettings, toLegalSettings, toPricingSettings } from "./utils"
+import { toHomeSettings, toLegalSettings, toPricingSettings, toUpdateProgress } from "./utils"
 
 const pricing: PricingSettings = {
   planName: "",
@@ -99,5 +100,51 @@ describe("legal pages", () => {
     expect(toLegalSettings({ termsOfService: " # Terms ", privacyPolicy: "# Privacy" })).toEqual({
       settings: { termsOfService: "# Terms", privacyPolicy: "# Privacy" },
     })
+  })
+})
+
+describe("toUpdateProgress", () => {
+  const requestedAt = "2026-11-16T10:00:00.000Z"
+  const request = { requestedAt, fromVersion: "0.2.1" }
+  const at = (seconds: number) => Date.parse(requestedAt) + seconds * 1000
+  const overview = (status: Partial<UpdateStatus> | null, currentVersion = "0.2.1") =>
+    ({
+      currentVersion,
+      latestVersion: "0.3.0",
+      canUpdate: true,
+      autoUpdate: false,
+      status: status && {
+        state: "running",
+        startedAt: "2026-11-16T10:00:01.000Z",
+        fromVersion: "0.2.1",
+        ...status,
+      },
+    }) satisfies UpdateOverview
+
+  it("waits for the updater, then follows it through the restart", () => {
+    expect(toUpdateProgress(request, overview(null), at(5)).phase).toBe("waiting")
+    // A run from before the request, like the daily timer's, isn't this one.
+    const earlier = { state: "upToDate" as const, startedAt: "2026-11-16T09:00:00.000Z" }
+    expect(toUpdateProgress(request, overview(earlier), at(5)).phase).toBe("waiting")
+    expect(toUpdateProgress(request, overview({}), at(10)).phase).toBe("installing")
+    expect(toUpdateProgress(request, undefined, at(30)).phase).toBe("restarting")
+  })
+
+  it("is done once the new version answers, whatever the status file says", () => {
+    expect(toUpdateProgress(request, overview({}, "0.3.0"), at(40))).toEqual({
+      phase: "updated",
+      version: "0.3.0",
+    })
+  })
+
+  it("reports failures, a release that's already installed, and an updater that never starts", () => {
+    expect(
+      toUpdateProgress(request, overview({ state: "failed", error: "No space" }), at(20)),
+    ).toEqual({ phase: "failed", error: "No space" })
+    expect(toUpdateProgress(request, overview({ state: "upToDate" }), at(20)).phase).toBe(
+      "upToDate",
+    )
+    expect(toUpdateProgress(request, overview(null), at(61)).phase).toBe("stalled")
+    expect(toUpdateProgress(request, undefined, at(21 * 60)).phase).toBe("timedOut")
   })
 })
