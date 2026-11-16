@@ -3,13 +3,15 @@
 //
 //   sudo swiftace deploy example.com www.example.com --preview-domain preview.example.com
 //
-// It installs the binary in /usr/local/bin, creates /etc/swiftace.env, installs swiftace.service,
-// migrates the database, restarts the service and edits the existing Caddyfile. The domains are
-// saved, so later runs can leave them out.
+// It installs the binary in /usr/local/bin, creates /etc/swiftace.env, installs swiftace.service
+// and the swiftace-update units, migrates the database, restarts the service and edits the
+// existing Caddyfile. The domains are saved, so later runs can leave them out.
 
 import { existsSync } from "node:fs"
 import { chmod, copyFile, readFile, realpath, rename, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, join } from "node:path"
+
+import { UPDATE_REQUEST_FILE } from "@/lib/config"
 
 import { ensureAuthenticationKeys } from "./authentication-keys.ts"
 import { configureSites } from "./caddyfile.ts"
@@ -17,7 +19,17 @@ import { setupDeployment } from "./deploy-setup.ts"
 import { ensureEnvFile } from "./env-file.ts"
 import { DEFAULT_PORT, DEFAULT_PREVIEW_PORT, missingVariables } from "./environment.ts"
 import { applyMigrations, withDatabase } from "./migrations.ts"
-import { BINARY_PATH, CADDYFILE, DOMAINS_FILE, ENV_FILE, SERVICE_FILE } from "./paths.ts"
+import {
+  BINARY_PATH,
+  CADDYFILE,
+  DOMAINS_FILE,
+  ENV_FILE,
+  SERVICE_FILE,
+  STATE_DIR,
+  UPDATE_PATH_FILE,
+  UPDATE_SERVICE_FILE,
+  UPDATE_TIMER_FILE,
+} from "./paths.ts"
 import { CommandError, fail, IS_BINARY, run, VERSION } from "./shell.ts"
 
 export type Domains = { domains: string[]; previewDomain?: string }
@@ -74,13 +86,28 @@ export async function deploy(args: string[], previewDomain: string | undefined) 
   })
 
   console.log(`Installing swiftace.service, which runs ${binary}...`)
-  await writeFile(SERVICE_FILE, service({ binary, ...ports, domain: domains.domains[0]! }))
-  await chmod(SERVICE_FILE, 0o644)
+  const units = {
+    [SERVICE_FILE]: service({ binary, ...ports, domain: domains.domains[0]! }),
+    ...updateUnits(binary),
+  }
+  for (const [file, contents] of Object.entries(units)) {
+    await writeFile(file, contents)
+    await chmod(file, 0o644)
+  }
   await run("systemctl", "daemon-reload")
   await run("systemctl", "enable", "--quiet", "swiftace")
 
   await run("systemctl", "restart", "swiftace")
   await healthCheck(ports.port, ports.previewPort)
+  // When deploy runs from swiftace-update.service, starting these again does nothing.
+  await run(
+    "systemctl",
+    "enable",
+    "--now",
+    "--quiet",
+    "swiftace-update.path",
+    "swiftace-update.timer",
+  )
 
   if (caddyfile) await applyCaddyfile(caddyfile)
   await writeFile(DOMAINS_FILE, `${JSON.stringify(domains)}\n`)
@@ -173,6 +200,8 @@ Type=exec
 ExecStart=${options.binary} start
 DynamicUser=yes
 UMask=0077
+# Where /manage/config asks swiftace-update.service, which runs as root, for an update.
+StateDirectory=swiftace
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
@@ -205,6 +234,50 @@ RestartSec=2
 [Install]
 WantedBy=multi-user.target
 `
+}
+
+/**
+ * Runs `swiftace update` as root, daily (when /manage/config turns automatic updates on) and
+ * whenever the app, which can't replace its own binary, creates the file the path unit watches.
+ */
+export function updateUnits(binary: string): Record<string, string> {
+  return {
+    [UPDATE_SERVICE_FILE]: `[Unit]
+Description=SwiftAce update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Installed by swiftace deploy. It installs the latest release, then deploys it.
+ExecStart=${binary} update --service
+# For DATABASE_URL and SWIFTACE_RELEASES_URL, so it reads the settings the app does.
+EnvironmentFile=-${ENV_FILE}
+TimeoutStartSec=30min
+`,
+    [UPDATE_PATH_FILE]: `[Unit]
+Description=SwiftAce update, when /manage/config asks for one
+
+[Path]
+PathExists=${join(STATE_DIR, UPDATE_REQUEST_FILE)}
+Unit=swiftace-update.service
+
+[Install]
+WantedBy=multi-user.target
+`,
+    [UPDATE_TIMER_FILE]: `[Unit]
+Description=SwiftAce update, daily if /manage/config turns automatic updates on
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+Unit=swiftace-update.service
+
+[Install]
+WantedBy=timers.target
+`,
+  }
 }
 
 async function savedDomains(): Promise<Domains | undefined> {

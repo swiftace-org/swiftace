@@ -17,6 +17,12 @@ export const NODE_ENV = process.env.NODE_ENV
 
 export const DATABASE_URL = ensureServerEnv("DATABASE_URL")
 
+/**
+ * Set by systemd for the service `swiftace deploy` installs, alongside the updater that watches
+ * it, so `/manage/config` can only offer updates where that's there.
+ */
+export const STATE_DIRECTORY = process.env.STATE_DIRECTORY
+
 /** What a fresh deployment shows until an admin saves `/manage/config`. */
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   general: {
@@ -126,4 +132,5 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       { id: "gpt-6-astra", inputPerMillion: 10, cachedInputPerMillion: 1, outputPerMillion: 50 },
     ],
   },
+  updates: { autoUpdate: false },
 }

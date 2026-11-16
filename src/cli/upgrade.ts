@@ -1,6 +1,6 @@
 // `swiftace upgrade [version] [-y]`: replaces this binary with the latest release, or the given
 // one, from GitHub, checked against the release's SHA256SUMS. Migrating the database and
-// restarting the server are left to `swiftace deploy` (or whatever runs it).
+// restarting the server are left to `swiftace deploy` (or `swiftace update`, which runs both).
 import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
 import { access, chmod, constants, rm, writeFile, rename } from "node:fs/promises"
@@ -16,14 +16,8 @@ export const TARGETS = ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"
 
 export async function upgrade(requested: string | undefined, yes: boolean) {
   if (!IS_BINARY) fail("upgrade replaces the built binary. In a checkout, pull and build instead.")
-  const target = `${process.platform}-${process.arch}`
-  if (!TARGETS.includes(target)) fail(`There are no releases for ${target}`)
-  const releases = (process.env.SWIFTACE_RELEASES_URL?.trim() || DEFAULT_RELEASES_URL).replace(
-    /\/+$/,
-    "",
-  )
-
-  const version = (requested ?? (await latestTag(releases))).replace(/^v/, "")
+  const releases = releasesUrl()
+  const version = requested?.replace(/^v/, "") ?? (await latestVersion(releases))
   if (!parseVersion(version)) fail(`Not a release: ${version}`)
   const order = compareVersions(version, VERSION)
   if (order === 0 || (order < 0 && requested === undefined)) {
@@ -40,7 +34,24 @@ export async function upgrade(requested: string | undefined, yes: boolean) {
   if (!yes && !(await confirm(`Replace SwiftAce ${VERSION} at ${binary} with ${version}?`))) {
     fail("Cancelled")
   }
+  await installRelease(releases, version, binary)
+  console.log(`Upgraded SwiftAce ${VERSION} to ${version}`)
+  console.log(
+    existsSync(DOMAINS_FILE)
+      ? "Run sudo swiftace deploy to migrate the database and restart the service with it"
+      : "Run swiftace migrate, then restart SwiftAce to run it",
+  )
+}
 
+/** Where releases are published: this repository's, or SWIFTACE_RELEASES_URL's. */
+export function releasesUrl(): string {
+  return (process.env.SWIFTACE_RELEASES_URL?.trim() || DEFAULT_RELEASES_URL).replace(/\/+$/, "")
+}
+
+/** Downloads a release's binary for this platform, checks it and moves it over `binary`. */
+export async function installRelease(releases: string, version: string, binary: string) {
+  const target = `${process.platform}-${process.arch}`
+  if (!TARGETS.includes(target)) fail(`There are no releases for ${target}`)
   const asset = `swiftace-${target}`
   const releaseUrl = `${releases}/download/v${version}`
   console.log(`Downloading ${releaseUrl}/${asset}...`)
@@ -61,12 +72,6 @@ export async function upgrade(requested: string | undefined, yes: boolean) {
   } finally {
     await rm(tmp, { force: true })
   }
-  console.log(`Upgraded SwiftAce ${VERSION} to ${version}`)
-  console.log(
-    existsSync(DOMAINS_FILE)
-      ? "Run sudo swiftace deploy to migrate the database and restart the service with it"
-      : "Run swiftace migrate, then restart SwiftAce to run it",
-  )
 }
 
 /** sha256sum writes "<hash>  <name>", or "<hash> *<name>" for a file it read as binary. */
@@ -77,15 +82,18 @@ export function findChecksum(sums: string, asset: string): string | undefined {
     .find(([, name]) => name === asset)?.[0]
 }
 
-/** The latest release's tag, from where GitHub sends /releases/latest (/releases/tag/<tag>). */
-async function latestTag(releases: string): Promise<string> {
+/** The latest release, from where GitHub sends /releases/latest (/releases/tag/v<version>). */
+export async function latestVersion(releases: string): Promise<string> {
   const url = `${releases}/latest`
-  const response = await fetch(url, { redirect: "manual" }).catch((error: Error) =>
-    fail(`Couldn't reach ${url}: ${error.message}`),
-  )
+  const response = await fetch(url, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(15_000),
+  }).catch((error: Error) => fail(`Couldn't reach ${url}: ${error.message}`))
   const tag = /\/releases\/tag\/([^/?#]+)$/.exec(response.headers.get("location") ?? "")?.[1]
   if (!tag) fail(`Couldn't find the latest release at ${url}`)
-  return decodeURIComponent(tag)
+  const version = decodeURIComponent(tag).replace(/^v/, "")
+  if (!parseVersion(version)) fail(`Not a release: ${version}`)
+  return version
 }
 
 async function download(url: string): Promise<Uint8Array> {

@@ -7,6 +7,7 @@ import type {
   PricingSettings,
   SocialLink,
 } from "@/types/site-config"
+import type { UpdateOverview, UpdateProgress, UpdateRequest } from "@/types/updates"
 
 import {
   COMPANY_NAME_MAX_LENGTH,
@@ -34,6 +35,8 @@ import {
   SUPPORT_EMAIL_MAX_LENGTH,
   TAGLINE_MAX_LENGTH,
   TRIAL_DAYS_MAX,
+  UPDATE_PICKUP_TIMEOUT_MS,
+  UPDATE_TIMEOUT_MS,
 } from "./constants"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -225,4 +228,30 @@ export function toLegalSettings(
 function toTextError(value: string, name: string, maxLength: number): string | null {
   if (!value) return `${name} cannot be empty.`
   return value.length > maxLength ? `${name} must be at most ${maxLength} characters.` : null
+}
+
+/**
+ * `overview` is undefined while the server can't be reached, which mid-update means it's
+ * restarting. A different version answering is the surest sign it's done, status file or not.
+ */
+export function toUpdateProgress(
+  request: UpdateRequest,
+  overview: UpdateOverview | undefined,
+  now: number,
+): UpdateProgress {
+  const elapsed = now - Date.parse(request.requestedAt)
+  if (overview && overview.currentVersion !== request.fromVersion) {
+    return { phase: "updated", version: overview.currentVersion }
+  }
+  const status = overview?.status
+  const started = status && status.startedAt >= request.requestedAt ? status : undefined
+  if (started?.state === "failed") return { phase: "failed", error: started.error ?? "" }
+  if (started?.state === "upToDate") return { phase: "upToDate" }
+  if (started?.state === "updated") {
+    return { phase: "updated", version: started.version ?? overview!.currentVersion }
+  }
+  if (elapsed > UPDATE_TIMEOUT_MS) return { phase: "timedOut" }
+  if (!overview) return { phase: "restarting" }
+  if (started) return { phase: "installing" }
+  return elapsed > UPDATE_PICKUP_TIMEOUT_MS ? { phase: "stalled" } : { phase: "waiting" }
 }

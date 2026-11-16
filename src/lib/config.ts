@@ -34,6 +34,13 @@ export const ENROLLMENT_REVOKED_BY_LAPSE = "SUBSCRIPTION_LAPSED"
 
 export const AUTH_COOKIE_NAME = "AUTH_TOKEN"
 
+/**
+ * In the service's state directory: the app asks swiftace-update.service for an update by
+ * creating the first, and `swiftace update` reports how it went in the second.
+ */
+export const UPDATE_REQUEST_FILE = "update-requested"
+export const UPDATE_STATUS_FILE = "update-status.json"
+
 /** These mirror the `varchar` lengths declared on `accounts` in `src/lib/schema.server.ts`. */
 export const ACCOUNT_NAME_MAX_LENGTH = 64
 export const ACCOUNT_EMAIL_MAX_LENGTH = 128

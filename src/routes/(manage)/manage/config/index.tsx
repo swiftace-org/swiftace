@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { ManageConfigTab } from "@/types/site-config"
@@ -10,6 +11,7 @@ import { HomeSettingsForm } from "./-components/home-settings-form"
 import { IntegrationSettingsForm } from "./-components/integration-settings-form"
 import { LegalSettingsForm } from "./-components/legal-settings-form"
 import { PricingSettingsForm } from "./-components/pricing-settings-form"
+import { UpdateSettings } from "./-components/update-settings"
 import { loadManageConfigPageData } from "./-functions/load-manage-config-page-data"
 import { DEFAULT_MANAGE_CONFIG_TAB, MANAGE_CONFIG_TABS } from "./-lib/constants"
 
@@ -52,8 +54,10 @@ function ManageConfigPage() {
             </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value="general" className="pt-4">
+        <TabsContent value="general" className="space-y-8 pt-4">
           <GeneralSettingsForm settings={general} />
+          <Separator />
+          <UpdateSettings />
         </TabsContent>
         <TabsContent value="branding" className="pt-4">
           <BrandingSettings settings={branding} />
@@ -87,7 +91,7 @@ function ManageConfigHeader() {
     <div className="space-y-1">
       <h1 className="text-xl font-semibold">Manage Config</h1>
       <p className="text-sm text-muted-foreground">
-        This site&apos;s name, contact details, images, page copy and integrations.
+        This site&apos;s name, contact details, images, page copy, integrations and updates.
       </p>
     </div>
   )
