@@ -147,3 +147,5 @@ middlewares), `utils.server.ts`, `db.server.ts`, `schema.server.ts`, `config.ts`
 - `test/fake-services.ts` fakes SES, R2, OpenAI and a certificate template on one local port;
   `test/integration.ts` drives a built binary in Chromium against it and a throwaway database, and
   `scripts/smoke-test.ts` is the lighter check CI runs on every Linux binary
+- `test/demo.ts` seeds `test/demo-data.ts` and runs a demo site against the fake services, for
+  manual testing and screenshots

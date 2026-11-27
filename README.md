@@ -178,6 +178,9 @@ Other commands:
   fakes of SES, R2 and OpenAI (`test/fake-services.ts`, which `bun test/fake-services.ts` also
   runs on its own)
 - `vp run check-version origin/main` - Check `package.json`'s version for a PR
+- `bun test/demo.ts dist/swiftace` - Run a demo site with realistic courses, learners, a notebook
+  and an AI tutor conversation, against the fake services and a database of your own
+  (`DATABASE_URL`). Sign-in codes are printed to the console
 
 ### Database
 
