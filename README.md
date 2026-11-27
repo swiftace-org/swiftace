@@ -179,9 +179,9 @@ Other commands:
   runs on its own)
 - `vp run check-version origin/main` - Check `package.json`'s version for a PR
 - `bun test/demo.ts dist/swiftace` - Run a demo site with realistic courses, learners, a notebook
-  and an AI tutor conversation, against the fake services and a database of your own
-  (`DATABASE_URL`). Sign-in codes are printed to the console. With `--screenshots <dir>`, it
-  saves light and dark screenshots of it there instead
+  and an AI tutor conversation, against the fake services and an empty database of your own
+  (`DATABASE_URL`). Later runs reuse that demo database. Sign-in codes are printed to the
+  console. With `--screenshots <dir>`, it saves light and dark screenshots there and exits.
 
 ### Database
 

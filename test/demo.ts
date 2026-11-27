@@ -1,21 +1,22 @@
 // Runs a demo site with realistic content against the fake services, for trying SwiftAce out,
-// testing by hand and taking screenshots. It needs a database it may fill: an empty one is seeded
-// with test/demo-data.ts, and a seeded one is reused. Images live in the fakes, so they're
-// uploaded again on every run.
+// testing by hand and taking screenshots. An empty database is seeded with test/demo-data.ts in
+// one transaction, which also marks it as the demo's. A marked one is reused, and any other is
+// refused, so the demo never overwrites a real site's settings. Images live in the fakes, so
+// they're uploaded again on every run, and the settings and covers are pointed at them.
 //
 //   DATABASE_URL=postgres://… bun test/demo.ts [dist/swiftace] [--screenshots <dir>]
 //
 // With a binary, it migrates and runs it on PORT (4000), or with `--screenshots` saves
-// test/demo-screenshots.ts's light and dark screenshots of it to <dir> and stops. Without one, it seeds the database
-// `vp run dev` uses and prints the environment to run it with. Sign in as admin@example.com or
-// any learner: the emailed codes are printed here. Chromium renders the images, as in
-// test/integration.ts.
+// light and dark screenshots to <dir> and stops. Without a binary, it seeds the database for
+// `vp run dev` and prints the environment to use. Sign in as admin@example.com or any learner.
+// The emailed codes are printed here.
 import { createHash } from "node:crypto"
 import { resolve } from "node:path"
 
 import pg from "pg"
 import { chromium } from "playwright"
 
+import { AUTHENTICATION_CONFIG_SECTION } from "../src/routes/(auth)/-lib/constants.ts"
 import {
   ADMIN,
   ADMIN_PROGRESS,
@@ -43,6 +44,8 @@ if (screenshotsDir && !binary) throw new Error("Taking screenshots needs a binar
 const PORT = Number(process.env.PORT ?? 4000)
 const HOST = process.env.HOST ?? "127.0.0.1"
 const BUCKET = "swiftace-demo"
+/** The `site_config` section that marks a database as seeded by the demo. The app ignores it. */
+const DEMO_SECTION = "demo"
 
 const fakes = await startFakeServices()
 const notebooks = Bun.serve({
@@ -60,30 +63,6 @@ const env: Record<string, string | undefined> = {
   PREVIEW_PORT: "0",
   PREVIEW_ALLOWED_PARENT_ORIGINS: `http://${HOST}:${PORT}`,
 }
-if (binary) {
-  const migrated = Bun.spawnSync([binary, "migrate"], { env })
-  if (migrated.exitCode !== 0)
-    throw new Error(`swiftace migrate failed: ${migrated.stderr.toString()}`)
-}
-
-const db = new pg.Client({ connectionString: DATABASE_URL })
-await db.connect()
-const images = await renderImages()
-await saveSettings()
-const { rows } = await db.query("select count(*)::int as count from courses")
-if (rows[0].count === 0) {
-  await seed()
-  console.log("Seeded the demo content")
-} else {
-  console.log("Courses exist already, so the demo content wasn't seeded")
-  // The notebook's server has a new port each run.
-  await db.query(`update course_sections set resources = $1 where slug = $2`, [
-    notebookUrl,
-    COURSES[0]!.sections.find((section) => section.notebook)!.slug,
-  ])
-}
-await db.end()
-
 let printed = 0
 const printer = setInterval(() => {
   for (const email of fakes.state.emails.slice(printed)) {
@@ -91,47 +70,121 @@ const printer = setInterval(() => {
   }
   printed = fakes.state.emails.length
 }, 500)
-
 let server: Bun.Subprocess | null = null
-if (binary) {
-  server = Bun.spawn([binary, "start"], {
-    env,
-    stdout: screenshotsDir ? "ignore" : "inherit",
-    stderr: "inherit",
-  })
-  console.log(`\nDemo site: http://${HOST}:${PORT}`)
-  if (screenshotsDir) {
-    const base = `http://${HOST}:${PORT}`
-    await waitForServer(base)
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => void cleanUp().then(() => process.exit(0)))
+}
+
+const db = new pg.Client({ connectionString: DATABASE_URL })
+try {
+  await db.connect()
+  try {
+    // Serialize demo startup through migration, the ownership check, and seeding.
+    await db.query("select pg_advisory_lock(hashtext('swiftace-demo-seed'))")
+    const reuse = await canReuseDemo()
+    if (binary) {
+      const migrated = Bun.spawnSync([binary, "migrate"], { env })
+      if (migrated.exitCode !== 0)
+        throw new Error(`swiftace migrate failed: ${migrated.stderr.toString()}`)
+    }
+    const images = await renderImages()
+    await db.query("begin")
     try {
+      await saveSettings(images)
+      if (reuse) await refresh(images)
+      else await seed(images)
+      await db.query("commit")
+    } catch (error) {
+      await db.query("rollback")
+      throw error
+    }
+    console.log(reuse ? "Reusing the demo content seeded before" : "Seeded the demo content")
+  } finally {
+    await db.end()
+  }
+
+  if (binary) {
+    server = Bun.spawn([binary, "start"], {
+      env,
+      stdout: screenshotsDir ? "ignore" : "inherit",
+      stderr: "inherit",
+    })
+    const base = `http://${HOST}:${PORT}`
+    console.log(`\nDemo site: ${base}`)
+    if (screenshotsDir) {
+      await waitForServer(base)
       await takeScreenshots({
         base,
         dir: resolve(screenshotsDir),
         email: ADMIN.email,
         emails: () => fakes.state.emails,
       })
-    } finally {
-      await stop()
     }
+  } else {
+    console.log(
+      `\nRun the dev server with these added to .env:\n${Object.entries(fakeServiceEnv(fakes.url))
+        .map(([key, value]) => `${key}=${value}`)
+        .join("\n")}`,
+    )
   }
-} else {
-  console.log(
-    `\nRun the dev server with these added to .env:\n${Object.entries(fakeServiceEnv(fakes.url))
-      .map(([key, value]) => `${key}=${value}`)
-      .join("\n")}`,
-  )
+  if (!screenshotsDir) {
+    console.log(
+      `Sign in as ${ADMIN.email} (admin) or ${LEARNERS[0]!.email}; codes are printed below\n`,
+    )
+  }
+} catch (error) {
+  await cleanUp()
+  throw error
 }
-console.log(`Sign in as ${ADMIN.email} (admin) or ${LEARNERS[0]!.email}; codes are printed below\n`)
+if (screenshotsDir) await cleanUp()
 
-for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => void stop())
-
-async function stop() {
+async function cleanUp() {
   clearInterval(printer)
   server?.kill()
   await server?.exited
   await notebooks.stop(true)
   await fakes.stop()
-  process.exit(0)
+}
+
+/** An empty migrated database can already contain the authentication keys created by migrate. */
+async function canReuseDemo() {
+  const { rows: tables } = await db.query<{ name: string; identifier: string }>(
+    `select tablename as name, format('%I.%I', schemaname, tablename) as identifier
+     from pg_tables where schemaname = any(current_schemas(false))`,
+  )
+  if (tables.some((table) => table.name === "site_config")) {
+    const marker = await db.query(
+      "select 1 from site_config where section = $1 and data ? 'seededAt'",
+      [DEMO_SECTION],
+    )
+    if (marker.rowCount) return true
+  }
+  for (const table of tables) {
+    const config = table.name === "site_config"
+    const result = await db.query(
+      `select 1 from ${table.identifier} ${config ? "where section <> $1" : ""} limit 1`,
+      config ? [AUTHENTICATION_CONFIG_SECTION] : [],
+    )
+    if (result.rowCount)
+      throw new Error("DATABASE_URL contains data the demo didn't seed. Give it an empty database.")
+  }
+  return false
+}
+
+type DemoImages = Awaited<ReturnType<typeof renderImages>>
+
+/** Renders can change across Chromium or font versions, so refresh the stored cover URLs too. */
+async function refresh(images: DemoImages) {
+  for (const course of COURSES) {
+    await db.query(`update courses set cover = $1 where name = $2`, [
+      `/assets/${images.covers.get(course.slug)}`,
+      course.slug,
+    ])
+  }
+  await db.query(
+    `update course_sections set resources = $1 where slug = $2 and course_id = (select id from courses where name = $3)`,
+    [notebookUrl, COURSES[0]!.sections.find((section) => section.notebook)!.slug, COURSES[0]!.slug],
+  )
 }
 
 async function waitForServer(base: string) {
@@ -176,8 +229,8 @@ function store(prefix: string, png: Buffer): string {
   return key
 }
 
-/** Points the integrations at this run's fakes, so they're refreshed even on a seeded database. */
-async function saveSettings() {
+/** The demo's settings, with its integrations pointed at this run's fakes. */
+async function saveSettings(images: DemoImages) {
   const integrations = {
     email: {
       enabled: true,
@@ -207,7 +260,11 @@ async function saveSettings() {
   }
 }
 
-async function seed() {
+async function seed(images: DemoImages) {
+  await db.query(`insert into site_config (section, data) values ($1, $2)`, [
+    DEMO_SECTION,
+    JSON.stringify({ seededAt: new Date().toISOString() }),
+  ])
   const accountIds = new Map<string, number>()
   for (const [i, person] of [ADMIN, ...LEARNERS].entries()) {
     const { rows } = await db.query<{ id: number }>(
