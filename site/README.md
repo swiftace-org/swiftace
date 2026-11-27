@@ -25,14 +25,17 @@ from the rule in `public/_redirects`.
 ## Deploy
 
 On a Linux server with [Caddy](https://caddyserver.com/docs/install) and Bun on `PATH` as
-`/usr/local/bin/bun`:
+`/usr/local/bin/bun`. Install from a directory you can write to, then copy the result:
+`/opt/swiftace.org` is root-owned and only readable by the service, so `bun install` there
+fails with `EACCES`.
 
 ```sh
+bun install --production
 sudo mkdir -p /opt/swiftace.org
 sudo cp -a . /opt/swiftace.org/
 sudo chmod -R a+rX /opt/swiftace.org
-cd /opt/swiftace.org && bun install --production
 sudo cp swiftace.org.service /etc/systemd/system/
+sudo systemctl daemon-reload
 sudo systemctl enable --now swiftace.org
 ```
 
@@ -47,3 +50,16 @@ sudo systemctl reload caddy
 
 The service listens on `127.0.0.1:2001`, which the Caddyfile proxies. Change both together.
 DNS for `swiftace.org` points at the server; Caddy gets the certificate.
+
+To update, install again in the checkout, copy it over, and restart. Bun keeps the pages it
+loaded at startup, so a copy alone keeps serving the old HTML. If the unit file changed,
+reload systemd before the restart:
+
+```sh
+bun install --production
+sudo cp -a . /opt/swiftace.org/
+sudo chmod -R a+rX /opt/swiftace.org
+sudo cp swiftace.org.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart swiftace.org
+```
