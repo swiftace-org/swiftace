@@ -194,6 +194,40 @@
   content: none;
 }
 
+/* It wraps inline code in backticks too, which reads as markdown that didn't render. */
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+
+/* HTML a notebook cell outputs, like a pandas DataFrame, in Jupyter's style. Output in the preview
+   iframe gets its own copy, in src/cli/preview/index.html. */
+.rendered_html {
+  @apply w-full overflow-x-auto text-sm;
+}
+.rendered_html table {
+  @apply border-collapse text-xs tabular-nums;
+}
+.rendered_html * + table {
+  @apply mt-4;
+}
+.rendered_html thead {
+  @apply border-b border-foreground/40 align-bottom;
+}
+.rendered_html th,
+.rendered_html td {
+  @apply px-2 py-1.5 text-right align-middle;
+}
+.rendered_html th {
+  @apply font-semibold;
+}
+.rendered_html tbody tr:nth-child(odd) {
+  @apply bg-muted;
+}
+.rendered_html tbody tr:hover {
+  @apply bg-primary/10;
+}
+
 /* The AI tutor's code blocks: one bordered box with a header, not Streamdown's box in a box. */
 .ai-tutor-markdown [data-streamdown="code-block"] {
   @apply my-3 gap-0 overflow-hidden rounded-lg bg-muted/40 p-0;
