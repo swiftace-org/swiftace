@@ -1,0 +1,61 @@
+# The Past, Present, and Future of Jovian
+
+In late 2023, I decided to revamp [Jovian](https://jovian.com), a learning platform for Data Science that I (and a small team) had been building and operating since 2019. My goal was to refresh the design, modernize the tech stack, reduce cloud computing costs, and improve the user experience.
+
+![jovian-next](/img/jovian-next.jpg)
+
+I also wanted to remove some features. For instance, as part of our data science courses, users could create, store, and run Jupyter notebooks within Jovian itself. I felt this was no longer necessary, as [Google Colab](https://colab.research.google.com) is a free alternative that works equally well, if not better.
+
+## Pruning the Codebase
+
+As a first step, I [deleted](/posts/delete) over 50,000 lines of code in 3 days from our frontend codebase, and continued to remove unused features for a couple of months. It led to a radical simplification of the codebase and the app's user experience, while reducing the codebase size by 75%.
+
+Next, I started cleaning up API routes and database tables from our backend codebase, built with Python, Flask, and SQLAlchemy. While it took much more time and effort, the reduction here was even more drastic, as I removed over 90% of the API routes and 85% of the code:
+
+| Metric          | Before | After | Reduction |
+| --------------- | ------ | ----- | --------- |
+| API Routes      | 578    | 58    | 90%       |
+| Database Tables | 146    | 22    | 85%       |
+| Functions       | 2628   | 448   | 83%       |
+| Lines of Code   | 42014  | 6464  | 85%       |
+| Files           | 403    | 75    | 81%       |
+
+I also removed most automated emails, turned off cron jobs, shut down our self-hosted [BinderHub](https://mybinder.org) cluster, removed/optimized many database queries, and removed our [landing page](https://web.archive.org/web/20230701104406/https://jovian.com/). Two years in, I can confidently claim nearly nothing of essence has been lost.
+
+## Optimizing Cloud Costs
+
+Our Next.js frontend was hosted on [Vercel](https://vercel.com) ($20/mo), and our Flask backend was hosted on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine) (~$450/mo). After some investigation into [self-hosting](/posts/deploy-web-app-to-cloud-vm) web applications, I migrated both of them to a single cloud virtual machine on [Hetzner](https://www.hetzner.com/cloud/) ($5/mo).
+
+Our database was hosted on Supabase (~$250/mo) and had over 75 GB of data. After deleting unused tables, rows, and columns, I was able to reduce the database size to under 3 GB. I then migrated it over to the Hetzner VM hosting the frontend & backend servers.
+
+We also had \~3 TB of user-uploaded Jupyter notebooks stored in [Google Cloud Storage](https://cloud.google.com/storage) (\~$160/mo). I removed the version control system we had in place and migrated the latest version of every Jupyter notebook to [Cloudflare R2](https://www.cloudflare.com/developer-platform/products/r2/), costing $7.50/mo for 300 GB in storage.
+
+I applied to Cloudflare's [startup program](https://www.cloudflare.com/en-gb/forstartups/) and obtained credits to cover the R2 bill for a year. Overall, I've been able to cut Jovian's cloud bill from over $1000 per month to **under $5 per month**, while the site's traffic and our monthly revenue have remained largely stable.
+
+## Tech and Design Revamp
+
+I'm currently working on a ground-up rewrite of Jovian using [React 19](https://react.dev/blog/2024/12/05/react-19), [Next.js 16](https://nextjs.org/blog/next-16), [Tailwind v4](https://tailwindcss.com/blog/tailwindcss-v4), [Drizzle ORM](https://orm.drizzle.team/), and [Shadcn UI](https://ui.shadcn.com/). Aside from revamping the tech stack, I'm also aiming to improve the user interface with clean, minimal, and modern design aesthetics.
+
+Having all parts of the tech stack on a [single cloud VM](/posts/ditching-serverless) and reducing the number of database queries has improved the application's performance dramatically. I want to take this even further by removing the Python backend and replacing the Postges database with SQLite.
+
+![stack-transfer](/img/stack-transfer.jpg)
+
+## The Way Forward
+
+[Video lessons](https://jovian.com/learn/data-analysis-with-python-zero-to-pandas/lesson/lesson-1-introduction-to-programming-with-python) in our courses have associated Jupyter notebooks. Currently, these notebooks are hosted on Jovian itself, but I intend to move all lesson notebooks to [GitHub](https://github.com/jovianhq/notebooks). This will reduce our dependence on Cloudflare R2 and enable direct [execution](https://github.com/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb) on Google Colab.
+
+I'm working with a former student to gradually update our course videos and Jupyter notebooks. Instructions on how to run notebooks or submit assignments/projects are no longer valid and are being revised. Outdated code and broken links are also being fixed.
+
+I have also [disabled](https://blog.jovian.com/notebook-creation-is-disabled-2e27a9e3550f) uploading/creation of new Jupyter notebooks on Jovian, encouraging learners to use Google Colab instead. I plan to [delete](https://blog.jovian.com/notebook-creation-is-disabled-2e27a9e3550f#fa70) all user-uploaded notebooks and completely remove Cloudflare R2 from the stack, achieving a true single-machine setup.
+
+## From Jovian to SwiftAce
+
+What does the revamp of Jovian mean for [SwiftAce](/) (the customizable open-source platform I'm building to help educators self-host online courses)? Here's how I see it playing out:
+
+1. The revamped version of Jovian will serve as a reference for the functionality, design, and user experience I want to achieve with SwiftAce, both for learners and educators.
+
+2. We can strip out the Jovian-specific pieces of the app and make them configurable, while retaining all the other generic parts, to create an [initial version](/posts/what-why-and-how) of SwiftAce.
+
+3. Using the initial version as a reference implementation, we can rebuild SwiftAce based on the [design principles](/posts/design-principles) outlined earlier and try to achieve [extreme extensibility](/posts/ship-of-theseus).
+
+This is going to take a while. I'd love to be able to do this sustainably over the long term, so there might be some detours along the way as I figure out how to make this happen.

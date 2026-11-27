@@ -1,0 +1,160 @@
+# How to Write a Function
+
+Functions are the building blocks of software. They encapsulate reusable pieces of logic that can be applied to various inputs and allow programmers to reason at progressively higher levels of abstraction. Software is essentially a large tree of functions calling other functions.
+
+<!-- Most software is too large and complex for one person to comprehend or reason about. However, most functions can be small, simple, and easy to reason about. Writing robust and bug-free functions is the key to building high quality, robust, and bug-free software. -->
+
+Let's walk through the process of writing a function in JavaScript [[1]](#note-1). Our function will [escape](https://www.quora.com/What-is-HTML-escape-and-why-is-it-important) the special characters `&`, `<`, `>`, `'`, and `"` in a string, so that it can be inserted safely into an HTML page without interfering with the markup or causing [XSS attacks](https://chatgpt.com/share/670ccd43-8120-800a-8087-668313db4612).  
+
+## Function Declaration
+
+<!-- When declaring a function, think carefully about name of the function, and the names of its arguments. Together, they should attempt to convey precisely what the function does and what inputs it expects. If you can't achieve this, your function probably does too much. --> 
+
+Let's call our function `escapeForHtml`, and let's call its sole argument `unsafeText`: 
+
+```javascript
+function escapeForHtml(unsafeText) {
+  // function body goes here 
+}
+```
+
+Names are important! For instance, `escapeHtml` would be a misleading name as it suggests the function expects HTML as input. Similarly, argument names like `input` or `content` convey far less information than `unsafeText` regarding the type and nature of the input. 
+
+Most functions should have just one or two arguments. If a function requires more than two arguments e.g. a set of options, you can pass an object with several keys as the sole (or second) argument to the function e.g. `escapeForHtml(unsafeText, options = {})`.
+
+## Function Body
+
+Let's implement our function by searching for special characters in `unsafeText` using a [regular expression](https://chatgpt.com/share/670d2b65-7d48-800a-a2b4-abd7407bd342), and replacing them with the corresponding HTML entities:
+
+```javascript
+function escapeForHtml(unsafeText) {
+  return unsafeText.replace(/[&<>"']/g, (match) => {
+    switch (match) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default: return match;
+    }
+  });
+}
+```
+
+A function should do just one thing i.e. it should implement one idea or thought. As a result, most functions you write should be fairly short and easy to understand. If the body of a function exceeds 25-30 lines of code, consider splitting it into multiple functions.
+
+## Input and Output Assertions
+
+Let's ensure that our function accepts and returns a string with a couple of assertions [[2]](#note-2):
+
+```javascript
+import { assert } from "jsr:@std/assert";
+
+function escapeForHtml(unsafeText) {
+  // Assert argument(s)
+  assert(typeof unsafeText === "string", "`unsafeText` must be a string");
+  
+  const safeText = unsafeText.replace(/[&<>"']/g, (match) => {
+    // same as above
+  });
+  
+  // Assert return value
+  assert(typeof safeText === "string", "`safeText` must be a string");
+  return safeText;
+}
+```
+
+Assertions are a powerful but rarely used tool for catching programmer errors early and detecting subtle bugs. Input assertions prevent a function from being used incorrectly, and output assertions prevent a function from returning an invalid result (perhaps due to a bug).
+
+Assertions can be used to perform various kinds of validation. For instance, we could assert that `unsafeText` is not an empty string, or that `safeText` does not contain any disallowed characters. Use assertions for type validation, documentation, and runtime checks [[3]](#note-3). 
+
+## Documentation
+
+Let's add some documentation and types for our function using [JSDoc](https://jsdoc.app/about-getting-started) comments [[4]](#note-4):
+
+```javascript
+/**
+ * Escapes special characters in a string for safe usage in HTML.
+ * Converts &, <, >, ", and ' to their respective HTML entities.
+ * Helps prevent XSS (Cross-Site Scripting) attacks when inserting text.
+ *
+ * @param {string} unsafeText - The string to be escaped
+ * @returns {string} The escaped string safe for use in HTML
+ */
+function escapeForHtml(unsafeText) {
+  // same as above
+}
+```
+
+Good documentation explains the *what*, *how*, and *why* of the function. It also briefly describes the inputs and output. Editors like [VS Code](https://chatgpt.com/share/670e03d4-150c-800a-98e4-5710e7aee952) parse JSDoc comments to provide inline documentation, type checking, and automatic code completion at call sites.
+
+Sometimes a single line of documentation is sufficient, especially for small utility functions that are only used locally i.e. within the same file or module. Here's an example:
+
+```javascript
+/** Escape special characters for safe usage in HTML. */
+function escapeForHtml(unsafeText) {
+  // same as above
+}
+```
+
+## Unit Tests
+
+Finally, let's add some unit tests to verify that our function works as expected [[5]](#note-5):
+
+```javascript
+import { assertEquals, assertThrows } from "jsr:@std/assert";
+import { escapeForHtml } from "./utils.js";
+
+Deno.test("escapeForHtml() escapes &, <, >, \", and '", () => {
+  const input = 'Tom & Jerry\'s <"quotes">';
+  const escapedOutput = "Tom &amp; Jerry&#39;s &lt;&quot;quotes&quot;&gt;";
+  assertEquals(escapeForHtml(input), escapedOutput);
+});
+
+Deno.test("escapeForHtml() escapes XSS attack vectors", () => {
+  const xssInput = `<script>alert('XSS')</script>`;
+  const escapedOutput = `&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;`;
+  assertEquals(escapeForHtml(xssInput), escapedOutput);
+});
+
+Deno.test("escapeForHtml() throws error for non-string input", () => {
+  const message = "`unsafeString` must be a string";
+  assertThrows(() => escapeForHtml(123), Error, message);
+  assertThrows(() => escapeForHtml(null), Error, message);
+  assertThrows(() => escapeForHtml(undefined), Error, message);
+  assertThrows(() => escapeForHtml({}), Error, message);
+});
+```
+
+Give each test a meaningful title, make sure to test every branch, try to model real-world usage, and include tests for errors and failures. Apart from testing functionality, unit tests serve as documentation and provide guardrails for modifying or refactoring the function. 
+
+## Summary 
+
+Keep the following principles in mind while writing a function:
+
+1. Pick good names for the function and its arguments to indicate what it does.
+
+2. Keep the implementation short (under 25-30 lines) and easy to understand.
+
+3. Add input and output assertions to detect illegal usage and programmer errors.
+
+4. Document the *what*, *how* & *why* of the function and surface it via the code editor.
+
+5. Write comprehensive unit tests to ensure the function works as expected.
+
+
+Most software is too large and complex for one person to comprehend or reason about. However, most functions can be small, simple, and easy to hold in one's head. Writing good functions is the key to building high-quality, robust, and bug-free software. 
+
+I intend to put these principles into practice as I develop [SwiftAce](https://swiftace.org), as these small details often add up to make a big difference in final product. I hope you found this post helpful.
+
+### Footnotes
+
+1. <a id="note-1"></a> The code in this post is written to be executed with the [Deno](https://deno.com) JavaScript runtime.
+
+2. <a id="note-2"></a> Deno automatically download modules from [JSR](https://jsr.io/@std/assert) for imports with a `jsr:` specifier. 
+
+3. <a id="note-3"></a> Check out [Tiger Style](https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md#safety) to learn more about the effective use of assertions.
+
+4. <a id="note-4"></a> I [prefer](https://swiftace.org/posts/typescript) JSDoc over TypeScript as it's opt-in and doesn't block code execution.
+
+5. <a id="note-5"></a> You can also use [Mocha](https://mochajs.org) or [Jest](https://jestjs.io) for testing instead of Deno's [built-in test runner](https://docs.deno.com/runtime/fundamentals/testing/). 

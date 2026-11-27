@@ -1,0 +1,87 @@
+# How to Stack Pull Requests
+
+Stacking is a workflow for splitting large features into multiple pull requests (PRs) that keeps each PR small & easily reviewable (~250-300 lines), ensures development isn't blocked on code review, and avoids breaking dependent PRs on merge. Here's how it works:
+
+### Step 1 - Create the First Small Feature Branch
+
+Branch off `main` when you start working on a feature:
+
+```bash
+git checkout main                   # switch to main
+git pull origin main                # get latest changes
+git checkout -b feature-xyz-part-1  # create first small branch
+```
+
+Name the branch whatever you want, but ensure that related branches have the same prefix.
+
+### Step 2 - Make Your Changes & Create a PR
+
+Commit your changes & create a PR once you've made significant changes (e.g. ~250 lines):
+
+```bash
+git commit -am "Implemented Part 1 of Feature XYZ"  # create a commit (or multiple)
+git push origin feature-xyz-part-1                  # push branch to GitHub
+```
+
+Head over to GitHub and create a PR for `feature-xyz-part-1` targeting the `main` branch.
+
+### Step 3 - Create a Dependent Small Feature Branch
+
+Branch off `feature-xyz-part-1` to continue the work on a second dependent branch:
+
+```bash
+git checkout feature-xyz-part-1     # go the first branch
+git checkout -b feature-xyz-part-2  # create a dependent branch
+```
+
+Similarly, `feature-xyz-part-3` should be branched out of `feature-xyz-part-2`. Avoid creating more than three related branches.
+
+### Step 4 - Make Changes & Create a Dependent PR
+
+Commit your changes and create a new PR once you've made significant changes:
+
+```bash
+git commit -am "Feature XYZ Part 2 implementation"  # create a commit (or multiple)
+git push origin feature-xyz-part-2                  # push branch to GitHub
+```
+
+Create a GitHub PR for `feature-xyz-part-2` targeting `feature-xyz-part-1` (**NOT** `main`) as the base branch. Each dependent PR should target the previous branch.
+
+![stacked-pr-diagram](/img/stackedpr.jpg)
+
+### Step 5 - Merge Base Branch Updates to Dependent Branch
+
+Whenever `feature-xyz-part-1` is updated, merge the updates to the dependent branch:
+
+```bash
+git checkout feature-xyz-part-2     # go to the dependent branch
+git merge feature-xyz-part-1        # incorporate the latest changes
+git push origin feature-xyz-part-2  # push the updated branch (use --force if necessary)
+```
+
+Each dependent branch then needs to merge changes from its previous branch, e.g., `*-part-3` must merge in `*-part-2` to update its PR (hence long chains should be avoided).
+
+### Step 6 - Update Dependent PR when Base PR is Marged
+
+When the PR for `feature-xyz-part-1` is finally merged to `main` and deleted from GitHub, merge the latest changes from `main` into its dependent branch `feature-xyz-part-2`:
+
+```bash
+git checkout main                   # switch to main
+git pull origin main                # get the lastest changes
+git checkout feature-xyz-part-2     # switch to dependent feature branch
+git merge main                      # incorporate latest changes
+git push origin feature-xyz-part-2  # push the upated branch (use --force if necessary)
+```
+
+Head over to the PR for `feature-xyz-part-2` and change the base branch to `main` (GitHub generally does this automatically). Further dependent branches need to merge in changes from previous branches, as in step 5.
+
+Once `feature-xyz-part-1` is merged to `main` and deleted, `feature-xyz-part-2` essentially becomes the new base branch for the chain of branches/PRs, and the process repeats till the entire chain is merged.
+
+Some more tips:
+
+- Merge updates from `main` into `feature-xyz-part-1` regularly, then update all dependent branches in order.
+- Replace `merge` with `rebase` in the above commands for a cleaner commit history. Fixing rebase conflicts, however, is sometimes messy.
+- Create pull requests early in the development process, and mark them as "Draft" until they're ready for review.
+- Don't create dependent branches/PRs for unrelated features. Use the above flow only when necessary.
+- As far as possible, try not to modify the same file (or the same line/section in a file) in multiple dependent branches, to avoid merge conflicts.
+- Don't create cyclic dependencies. `xyz-part-1` shouldn't require `xyz-part-3` to be merged to work properly. The `main` branch must always be in a deployable state.

@@ -1,0 +1,346 @@
+# Remote Development Environment Setup
+
+A cloud-based development environment gives you the freedom to code from anywhere while maintaining a consistent setup that's always ready to go. Let's walk through the process of setting up a Linux-based cloud virtual machine (VM) for remote development.
+
+![remote-dev-preview](https://i.imgur.com/N6uMOUG.png)
+
+Here are the steps we'll follow:
+
+1. Set up a Nerd Font for displaying icons within your terminal
+2. Create an SSH key pair to access and operate a cloud VM
+3. Rent a Linux-based VM online and assign a public IP address
+4. Log in and execute commands on the VM remotely using SSH
+5. Install essential command line tools and utilities for development
+6. Switch to Zsh (Z shell) and improve the terminal user experience
+7. Install Zellij to support long-running multi-pane terminal sessions
+8. Install Neovim (with LazyVim) for a full-fledged IDE experience
+9. Authenticate with GitHub to clone, develop, and push source code
+10. Set up network firewall rules and SSH port forwarding for security
+
+As you execute the commands shown below, take a moment to understand exactly what each command does, and use an AI tool like [ChatGPT](https://chatgpt.com) or [Claude](https://claude.ai) to troubleshoot issues.
+
+## 1. Set up a Nerd Font
+
+![nerd-fonts-icons](https://i.imgur.com/BOJpz7C.png)
+
+[Nerd Fonts](https://www.nerdfonts.com/) are modified versions of popular programming fonts that include icons useful for displaying file types, git status, and other symbols in terminal-based tools like Neovim and Zellij. I use Meslo Nerd Font with the [Ghostty](https://ghostty.org) terminal on macOS. To set up a nerd font:
+
+1. Download and install a nerd font for your operating system: [Linux](https://medium.com/@almatins/install-nerdfont-or-any-fonts-using-the-command-line-in-debian-or-other-linux-f3067918a88c), [macOS](https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#option-2-homebrew-fonts), or [Windows](https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#option-3-unofficial-chocolatey-or-scoop-repositories). Example: `brew install font-meslo-lg-nerd-font` installs Meslo Nerd Font on macOS.
+
+2. Configure your terminal to use the installed font: [Linux Terminal](https://askubuntu.com/questions/157873/is-it-possible-to-change-the-terminal-font), [Windows Terminal](https://learn.microsoft.com/en-us/windows/terminal/customize-settings/profile-appearance), [iTerm2 (macOS)](https://iterm2.com/documentation-fonts.html), [Alacritty](https://alacritty.org/config-alacritty.html#font), [Ghostty](https://ghostty.org/docs/config/reference#font-family). Example: On macOS, head to "Ghostty" > "Settings" and add the line `font-family = MesloLGS Nerd Font Mono` to use Meslo Nerd Font.
+
+Try a few different nerd fonts and experiment with terminal settings like font size, theme, background color, opacity, etc. to arrive at a setup that looks good and works well for you.
+
+## 2. Create a SSH Key Pair
+
+We'll use a command-line tool called [SSH (Secure Shell)](https://www.digitalocean.com/community/tutorials/ssh-essentials-working-with-ssh-servers-clients-and-keys) to access and operate a cloud VM remotely from a local machine (e.g., your laptop). While we can log in to a cloud VM via SSH with just a username and password, using an [SSH key pair](https://www.sectigo.com/resource-library/what-is-an-ssh-key) is a much more secure method.
+
+Let's generate a new SSH key pair on our local machine. Open up a new terminal on Linux, macOS, or [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/setup/environment) and run the following command:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/devbox -C "devbox"
+```
+
+_**TIP**: You can replace the name `devbox` above and hereafter with any name of your choice._
+
+You'll be prompted to enter an optional [passphrase](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/working-with-ssh-key-passphrases) to encrypt the private key, adding yet another layer of security. If you set one, you'll be asked to enter it every time you use the key. Let's verify that the key pair was created in the directory `~/.ssh` using the `ls` command:
+
+```bash
+ls ~/.ssh
+```
+
+You should see two key files: a private key `devbox` and a public key `devbox.pub`.
+
+## 3. Rent a Cloud VM
+
+Rent a cloud VM with at least 2 GB RAM on a platform like [Hetzner Cloud](https://www.hetzner.com/cloud/) or [DigitalOcean](https://www.digitalocean.com/pricing/droplets). The cheapest VM on Hetzner ($5 per month for 2 CPU cores, 4 GB RAM, and 40 GB disk space) can comfortably support the development workflow for a typical web application.
+
+While configuring the VM, make sure to enable the assignment of a [public IPv4 address](https://www.geeksforgeeks.org/what-is-ipv4/) and select "SSH Key" as the authentication method (instead of a "root" user password). To add your public SSH key to the VM, first run the following command on your local machine:
+
+```bash
+cat ~/.ssh/devbox.pub
+```
+
+Then, copy the result displayed and paste it into the "Add SSH Key" dialog on Hetzner<sup>[[3]](#note-3)</sup>:
+
+![ssh-key](https://i.imgur.com/AooKwgU.png)
+
+Select the Ubuntu OS, pick a name (e.g. `devbox`), create the VM, and note its IPv4 address:
+
+![ipv4](https://i.imgur.com/i32tb2I.png)
+
+_**TIP**: Connect a [domain name](/posts/deploy-web-app-to-cloud-vm#connect-a-domain) to your VM to avoid having to remember the IP address._
+
+## 4. SSH into the VM
+
+We've successfully created a cloud VM, added an SSH public key to it, and configured a domain to point to its IP address. We can now log in to the VM via SSH using the private key created earlier. Just run the following command in a terminal on your local machine:
+
+```bash
+ssh -i ~/.ssh/devbox root@5.78.129.4
+```
+
+You'll be presented with the warning: `Are you sure you want to continue connecting?`. Type `yes` and press Enter/Return to continue. You're now remotely logged in to the cloud VM as the `root` user (the `$` prompt changes to `#`). Run the following command:
+
+```bash
+hostnamectl
+```
+
+The command's output shows the machine name (e.g. `devbox`) and other hardware details.
+
+_**TIP**: Run `hostnamectl set-hostname devbox` to rename the machine if it has a different name._
+
+## 5. Install Command Line Tools
+
+[APT (Advanced Package Tool)](https://documentation.ubuntu.com/server/how-to/software/package-management/index.html) is Ubuntu's package management system for installing, updating, and removing software easily. First, let's fetch the latest index of packages:
+
+```bash
+sudo apt update
+```
+
+Next, let's install some commonly used command line tools and utilities for development:
+
+```bash
+sudo apt install \
+  git gh htop zsh fzf nano \
+  man-db zip unzip ufw wget \
+  jq dnsutils ripgrep fd-find gcc
+```
+
+Here's what each of the above tools does:
+
+1. `git` - Git CLI for downloading, modifying, and updating source code repositories
+2. `gh` - GitHub's official CLI for authenticating and interacting with GitHub projects
+3. `zsh` - Replacement for `bash` shell with better tab completion and customization
+4. `fzf` - Fuzzy finder for quickly searching and filtering files, commands, and text
+5. `nano` - A simple, user-friendly command line text editor for quick file modifications
+6. `man-db` - Manual page database and viewer for accessing system documentation
+7. `zip` & `unzip` - Utilities for compressing files or extracting them from ZIP archives
+8. `ufw` (Uncomplicated firewall) - simplified interface for managing network firewall rules
+9. `wget` - Tool for downloading files and web pages from URLs via HTTP/HTTPS/FTP
+10. `jq` - Lightweight command-line processor for parsing and manipulating JSON data
+11. `htop` - Interactive process viewer & system monitor with a colorful, user-friendly UI
+12. `dnsutils` - DNS lookup utilities including `dig`, `nslookup`, and `host` commands
+13. `ripgrep` - Ultra-fast text search tool to recursively search directories using regex
+14. `fd-find` - Simple, fast, and user-friendly alternative to the Linux `find` command
+15. `gcc` - GNU Compiler Collection for compiling C, C++, and several other languages
+
+You can learn more about any of these tools using the `man` command (e.g. `man jq`). Run the `sudo apt upgrade` command from time to upgrade packages to their latest versions.
+
+## 6. Switch to Z Shell
+
+![zsh-theme-preview](https://i.imgur.com/9ODBggb.png)
+
+[Zsh](https://en.wikipedia.org/wiki/Z_shell) (Z shell) is a replacement for the system-default [Bash](<https://en.wikipedia.org/wiki/Bash_(Unix_shell)>) shell with support for better tab completion and customization via plugins. Let's create a Zsh configuration file using `nano`:
+
+```bash
+TERM=xterm-256color nano $HOME/.zshrc
+```
+
+Paste the following text into the file, then press `Ctrl+O Enter` to save, and `Ctrl+X` to exit:
+
+```shell
+# Enable full color support
+export TERM=xterm-256color
+
+# Install (if absent) and initialize zinit plugin manager
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+[ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
+[ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+source "${ZINIT_HOME}/zinit.zsh"
+
+# User the Powerlevel10k theme
+zinit ice depth=1; zinit light romkatv/powerlevel10k
+
+# Essential Zsh plugins
+zinit light zsh-users/zsh-syntax-highlighting
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+
+# git shortcuts: https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git
+zinit snippet OMZP::git
+zinit snippet OMZP::gh
+
+# Register completions from plugins
+autoload -U compinit && compinit
+zinit cdreplay -q
+
+# Load Powerlevel10k configuration; To customize run `p10k configure`
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Save command history
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+# Enable case insensitive completions
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# Show colors in ls output
+alias ls='ls --color'
+
+# Use fzf for searching command history
+source /usr/share/doc/fzf/examples/completion.zsh
+source /usr/share/doc/fzf/examples/key-bindings.zsh
+```
+
+The above configuration offers a minimal yet powerful [initial setup](https://www.youtube.com/watch?v=ud7YxC33Z3w) for software development. You can continue customizing your setup over time with more [plugins](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins) and productivity [tools](https://dev.to/lissy93/cli-tools-you-cant-live-without-57f6).
+
+Finally, let's make the switch from Bash to Zsh using the `chsh` command:
+
+```bash
+chsh -s $(which zsh)
+```
+
+Quit the current session by executing the `exit` command and start a new session using the SSH command used earlier. Upon logging back in, you will be prompted to configure the [Powershell10k](https://github.com/romkatv/powerlevel10k) Zsh theme. Respond as follows for a minimal but comprehensive prompt:
+
+- _Prompt Style:_ (1) Lean
+- _Character Set:_ (1) Unicode
+- _Prompt Colors:_ (2) 8 colors
+- _Show current time?_ (n) No
+- _Prompt Height:_ (1) One line
+- _Prompt Spacing:_ (1) Compact
+- _Icons:_ (1) Few icons
+- _Prompt Flow:_ (1) Concise
+- _Enable Transient Prompt?_ (n) No
+- _Instant Prompt Mode:_ (3) Off (**IMPORTANT**)
+
+Make sure to select "(3) Off" for "Instant Prompt Mode" to avoid layout issues with Zellij. Use the command `p10k configure` to relaunch the wizard and customize your prompt.
+
+## 7. Install and Configure Zellij
+
+![](https://i.imgur.com/JRMXDZT.png)
+
+[Zellij](https://zellij.dev/) is a terminal workspace that allows you to create and manage long-running multi-pane terminal sessions within a single window. Run these commands to download and install Zellij:
+
+```bash
+wget https://github.com/zellij-org/zellij/releases/download/v0.42.2/zellij-x86_64-unknown-linux-musl.tar.gz
+tar -xvf zellij*.tar.gz
+chmod +x zellij
+sudo mv zellij /usr/local/bin
+```
+
+Replace `v0.42.2` in the URL above with the latest version of Zellij from the [releases](https://github.com/zellij-org/zellij/releases) page, and replace `x86_64` with `aarch64` if your Linux VM is running on an [ARM-based processor](https://www.getorchestra.io/guides/determine-your-systems-architecture-x86-64-or-arm64). To launch Zellij automatically on logging in, let's update our Zsh configuration using `nano`:
+
+```bash
+nano $HOME/.zshrc
+```
+
+Add these lines at the end of the file, then press `Ctrl+O Enter` to save, and `Ctrl+X` to exit:
+
+```bash
+# Attach to existing Zellij session, or start one if required
+ZELLIJ_AUTO_ATTACH=true
+eval "$(zellij setup --generate-auto-start zsh)"
+```
+
+Quit the current session by executing the exit command and start a new session using the SSH command used earlier. Upon logging back in, you will be prompted to configure Zellij. Select "Unlock First (non-colliding)" to avoid keybinding conflicts with other CLI tools:
+
+![zellij-config](https://i.imgur.com/ULPtWC7.png)
+
+Now you can create multiple tabs and panes using Zellij's on-screen [keyboard shortcuts](https://github.com/zellij-org/zellij/blob/main/zellij-utils/assets/config/default.kdl). Your Zellij session will continue running in the background even if you close your terminal window. When you SSH into the VM again, Zellij will reattach to the existing session.
+
+## 8. Install and Configure Neovim
+
+![neovim-preview](https://i.imgur.com/gzZn3hV.png)
+
+[Neovim](https://neovim.io/) is a modern, extensible terminal-based code editor. We'll install Neovim and set up [LazyVim](https://www.lazyvim.org/), a preconfigured collection of plugins that turn Neovim into a full-fledged integrated development environment (IDE). Run these commands to install Neovim and set up LazyVim:
+
+```bash
+curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+sudo rm -rf /opt/nvim
+sudo tar -C /opt -xzf nvim-linux-x86_64.tar.gz
+rm nvim-linux-x86_64.tar.gz
+sudo ln -s /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+git clone https://github.com/LazyVim/starter $HOME/.config/nvim
+```
+
+_Replace `x86_64` with `arm64` above if your Linux VM is running on an ARM-based processor._
+
+Quit the current session by executing the `exit` command and start a new session using the SSH command used earlier. Upon logging back in, run the `nvim` command to start Neovim and initialize all the plugins included with LazyVim. Watch this [short tutorial](https://www.youtube.com/watch?v=N93cTbtLCIM) to learn more.
+
+**NOTE**: You can also [configure Visual Studio Code](https://code.visualstudio.com/docs/remote/ssh-tutorial) to develop on the VM remotely over SSH.
+
+## 9. Authenticate with GitHub
+
+Run the following authenticate the GitHub `gh` CLI to clone, develop, and push source code:
+
+```bash
+gh auth login
+```
+
+**NOTE**: Skip the above if this is a shared machine and use a [scoped PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for Git operations.
+
+Select the following responses for the questions displayed on the screen:
+
+![gh-auth-responses](https://i.imgur.com/BNHGqb4.png)
+
+Open the URL https://github.com/login/device in a web browser on your local machine and enter the 6-character code (e.g. `C362-0740`) shown on the terminal to complete the setup. Similar CLIs are available for other version control platforms like [GitLab](https://docs.gitlab.com/editor_extensions/gitlab_cli/) and [BitBucket](https://marketplace.atlassian.com/apps/1211193/bitbucket-command-line-interface-cli?tab=overview&hosting=datacenter).
+
+
+Create a `work` directory, clone a GitHub repository, and open it up in Neovim:
+
+```bash
+mkdir -p $HOME/work && cd $HOME/work
+git clone https://github.com/aakashns/nextjs-starter.git
+cd nextjs-starter
+nvim .
+```
+
+Create a second Zellij tab by pressing `Ctrl+g`, then `t`, then `n`. You can use this tab to install dependencies, run the application, check logs, etc. Let's install [Node.js](https://nodejs.org/en/download) with `nvm`:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+\. "$HOME/.nvm/nvm.sh"
+nvm install 24
+```
+
+Next, enter the application folder, install dependencies, and run the development server:
+
+```bash
+cd ~/work/nextjs-starter
+npm install
+npm run dev
+```
+
+You can now open up the URL http://your-vm's-ip:3000 (e.g. http://5.78.129.4:3000 ) in a browser to interact with the web app. It reloads automatically as you edit & save code files:
+
+![nextjs-preview](https://i.imgur.com/URbimRg.png)
+
+Thanks to Zellij, the application continues running even if you close the terminal window. You can pick up right where you left off when you SSH back into the VM. If you have write access to the repository, you can commit & push your changes back to GitHub using the `git` CLI.
+
+## 10. Network Firewall and Port Forwarding
+
+Note that our web app is currently publicly accessible over the internet. We'll use `ufw` ([Uncomplicated Firewall](https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands)) to prevent unauthorized access to the VM. Execute the following commands in the VM to block all incoming network traffic except our SSH connection:
+
+```bash
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw enable
+```
+
+Now, close the terminal window and log back into the VM with the following SSH command:
+
+```bash
+ssh -i ~/.ssh/devbox \
+  -L 3000:localhost:3000 \
+  -o ServerAliveInterval=60 \
+  -o ServerAliveCountMax=3 \
+  root@5.78.129.4
+```
+
+_Replace `5.78.129.4` with your VM's public IP and change `3000` to the port your app uses._
+
+This above command sets up port forwarding to access port 3000 on the remote server through localhost:3000, and configures keep-alive settings to maintain the connection. The web app is now accessible at http://localhost:3000 (but not at http://your-vm's-ip:3000).
+
+## Conclusion
+
+We've set up a powerful, secure, and easy-to-use remote development environment with many modern tools and utilities. You can launch your workspace instantly with a single SSH command and develop from any device while maintaining a consistent development setup.

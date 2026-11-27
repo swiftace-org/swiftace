@@ -1,0 +1,408 @@
+# TanStack Start: Part 2 - Development Tools
+
+In the [previous tutorial](/posts/tanstack-start-part-1), we set up a [TanStack Start](https://tanstack.com/start) project from scratch with TypeScript, Vite, and file-based routing. In this tutorial, we'll improve our development workflow<sup>[[1]](#note-1)</sup> by setting up IDE extensions, code formatting, code linting, Tailwind CSS, and browser-based devtools.
+
+Here are the steps we'll follow:
+
+1. [Install editor extensions](#install-editor-extensions)
+2. [Configure editor settings](#configure-editor-settings)
+3. [Configure code formatter](#configure-code-formatter)
+4. [Configure code linter](#configure-code-linter)
+5. [Configure Tailwind CSS](#configure-tailwind-css)
+6. [Install TanStack Devtools](#install-tanstack-devtools)
+7. [Install React Devtools](#install-react-devtools)
+
+
+<a id="install-editor-extensions"></a>
+
+## Step 1 - Install Editor Extensions
+
+You can install [extensions](https://marketplace.visualstudio.com/VSCode) to enhance your code editor with language-specific features like autocomplete, error highlighting, and formatting. Open the _Extensions_ panel<sup>[[2]](#note-2)</sup> in VSCodium, VS Code, or Cursor using the shortcut `Cmd/Ctrl+Shift+X` and install these three extensions:
+
+1. <a id="extension-oxc"></a>[Oxc](https://marketplace.visualstudio.com/items?itemName=oxc.oxc-vscode) - Provides fast code [formatting](#configure-code-formatter) and [linting](#configure-code-linter) for JavaScript and TypeScript using the Oxc toolchain<sup>[[3]](#note-3)</sup>. It is a faster and lighter alternative to older tools like [ESLint](https://eslint.org/) and [Prettier](https://prettier.io/).
+
+    ![vscode-lint-error](/img/vscode-lint-error.jpg)
+
+2. <a id="extension-tailwind"></a>[Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) - Adds autocomplete suggestions, syntax highlighting, error/bug detection, and hover previews for [Tailwind CSS](#configure-tailwind-css) utility classes within JSX.
+
+    ![tailwind-intellisense](/img/tailwind-intellisense.jpg)
+
+3. <a id="extension-color-highlight"></a>[Color Highlight](https://marketplace.visualstudio.com/items?itemName=naumovs.color-highlight) - Displays inline color previews next to CSS color values (hex codes, RGB, HSL, etc.) in your code. This helps you visually identify and pick colors easily.
+
+    ![color-highlight-extension](/img/color-highlight-extension.png)
+
+After installing the extensions, you may need to reload your code editor for them to take effect. You can do this by pressing `Cmd/Ctrl+Shift+P` and searching for "Reload Window".
+
+
+<a id="configure-editor-settings"></a>
+
+## Step 2 - Configure Editor Settings
+
+Project-specific editor settings can be configured in a `.vscode` folder<sup>[[4]](#note-4)</sup> at the root of your project. These settings override your global preferences, ensuring everyone working on the project uses the same editor configuration. Run this command to create the `.vscode` folder:
+
+```bash
+mkdir .vscode
+```
+
+
+Create a file `.vscode/settings.json` with the following contents:
+
+```javascript
+{
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}
+```
+
+Here's what each setting configures:
+
+- `"editor.defaultFormatter": "oxc.oxc-vscode"`: Use Oxc extension for formatting code.
+
+- `"editor.formatOnSave": true`: Automatically format code whenever a file is saved.
+
+- `"editor.tabSize": 2`: Set the indentation width to 2 spaces (the default is 4 spaces).
+
+- `"files.associations": { "*.css": "tailwindcss" }`: Use the Tailwind CSS extension for syntax highlighting, Intellisense<sup>[[5]](#note-5)</sup>, and code completion in `*.css` files.
+
+Next, create a file `.vscode/extensions.json` with the following contents:
+
+```javascript
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "oxc.oxc-vscode",
+    "naumovs.color-highlight"
+  ]
+}
+```
+
+This file lists recommended extensions for the project. When someone opens the project in VS Code, VSCodium, or Cursor for the first time, they'll see a prompt suggesting they install these extensions. This helps new contributors get the right tooling set up quickly.
+
+
+<a id="configure-code-formatter"></a>
+
+## Step 3 - Configure Code Formatter
+
+A code formatter automatically restructures your code to follow consistent style rules<sup>[[6]](#note-6)</sup> by fixing indentation, spacing, line breaks, punctuation, etc. without changing the actual code. Run this command to install [oxfmt](https://oxc.rs/docs/guide/usage/formatter), the formatter provided by the [Oxc](https://oxc.rs) compiler toolchain:
+
+```bash
+npm install oxfmt
+```
+
+Create a configuration file `oxfmt.config.ts` in the project root with the following contents:
+
+```javascript
+import { defineConfig } from "oxfmt"
+
+export default defineConfig({
+  ignorePatterns: ["src/routeTree.gen.ts"],
+  semi: false,
+  sortImports: true,
+})
+```
+
+Here's what each option configures:
+
+- `ignorePatterns: ["src/routeTree.gen.ts"]` - Skip the auto-generated [routeTree.gen.ts](https://tanstack.com/start/latest/docs/framework/react/guide/routing#route-tree-generation) file, since it's managed by TanStack Start and shouldn't be edited or reformatted.
+- `semi: false`: Omit semicolons at the end of statements (JavaScript [doesn't need them](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-automatic-semicolon-insertion)).
+- `sortImports: true`: Sorts `import` statements to keep them [consistent and scannable](https://perfectionist.dev/rules/sort-imports).
+
+Add this script to `package.json` to format the entire codebase with a single command:
+
+```javascript
+{
+  // other fields..
+  "scripts": {
+    // other scripts..
+    "format": "oxfmt"
+  }
+}
+```
+
+You can now run `npm run format` to format the entire codebase at once. Additionally, every time you edit a code file and save it, it will be automatically formatted by the [Oxc extension](#extension-oxc).
+
+
+<a id="configure-code-linter"></a>
+
+## Step 4 - Configure Code Linter
+
+A linter analyzes your code for potential errors, style issues, and suspicious patterns without running it<sup>[[7]](#note-7)</sup>. It highlights problems like unused variables, missing accessibility attributes, and [invalid hooks](https://react.dev/warnings/invalid-hook-call-warning). Run this command to install [oxlint](https://oxc.rs/docs/guide/usage/linter), the linter provided by the [Oxc](https://oxc.rs) toolchain:
+
+```bash
+npm install oxlint
+```
+
+Create a configuration file `oxlint.config.ts` in the project root with the following contents:
+
+```javascript
+import { defineConfig } from "oxlint"
+
+export default defineConfig({
+  ignorePatterns: ["src/routeTree.gen.ts"],
+  plugins: ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y"],
+  rules: {
+    "prefer-const": "off", // allow 'let' for variable declaration
+    "react/rules-of-hooks": "error", // correct hook call order
+    "react/exhaustive-deps": "warn", // complete dependency arrays in useEffect
+    "react/jsx-key": "error", // key prop in lists
+    "react/jsx-no-target-blank": "error", // safe external links
+    "react/jsx-no-duplicate-props": "error", // no repeated props
+    "react/no-direct-mutation-state": "error", // use setState instead
+    "react/button-has-type": "error", // explicit button type
+    "react/iframe-missing-sandbox": "error", // sandbox iframes
+    "react/jsx-no-useless-fragment": "error", // remove extra fragments
+    "react/jsx-no-comment-textnodes": "warn", // comments outside JSX text
+    "react/jsx-no-script-url": "error", // no javascript: URLs
+    "react/self-closing-comp": "warn", // self-close empty elements
+    "react/checked-requires-onchange-or-readonly": "error", // controlled inputs
+    "react/forward-ref-uses-ref": "error", // forwardRef must use ref
+  },
+})
+```
+
+Here's a brief description of the configuration:
+
+- `ignorePatterns: ["src/routeTree.gen.ts"]` - Skip the auto-generated route tree file.
+- `plugins: [...]` - Enable recommended rule sets from the Oxlint's built-in plugins <sup>[[8]](#note-8)</sup>.
+- `rules: { ... }`: Override default behavior (disabled/error/warning) of specific rules<sup>[[9]](#note-9)</sup>.
+
+
+Add this script to `package.json` to lint the entire codebase with a single command:
+
+```javascript
+{
+  // other fields..
+  "scripts": {
+    // other scripts..
+    "lint": "oxlint"
+  }
+}
+```
+
+You can now run `npm run lint` to check the entire codebase for issues. Additionally, the [Oxc extension](#extension-oxc) will highlight lint errors and warnings directly in your code editor as you type.
+
+
+<a id="configure-tailwind-css"></a>
+
+## Step 5 - Configure Tailwind CSS
+
+[Tailwind CSS](https://tailwindcss.com) is a utility-first CSS framework that lets you apply small single-purpose classes like [`flex`](https://tailwindcss.com/docs/display#flex), [`p-4`](https://tailwindcss.com/docs/padding#basic-example), and [`text-lg`](https://tailwindcss.com/docs/font-size#basic-example) to specific HTML tags directly in your JSX instead of defining custom CSS classes separately<sup>[[10]](#note-10)</sup>. Run this command to install Tailwind and its Vite plugin:
+
+```bash
+npm install tailwindcss @tailwindcss/vite
+```
+
+Add the `tailwindcss` plugin to `vite.config.ts`:
+
+```javascript
+import { defineConfig } from "vite"
+import { tanstackStart } from "@tanstack/react-start/plugin/vite"
+import { nitro } from "nitro/vite"
+import viteReact from "@vitejs/plugin-react"
+import tailwindcss from "@tailwindcss/vite"
+
+export default defineConfig({
+  plugins: [tanstackStart(), nitro(), viteReact(), tailwindcss()],
+  server: { port: 3000 },
+  resolve: { tsconfigPaths: true },
+})
+```
+
+The `@tailwindcss/vite` plugin scans source files (HTML, JSX, CSS) for utility classes and generates only the CSS that's actually used<sup>[[11]](#note-11)</sup>. Next, create a file `src/styles.css` and the following code to set up the base styles, utilities, and theme variables<sup>[[12]](#note-12)</sup> from Tailwind:
+
+```css
+@import "tailwindcss";
+```
+
+Import the file into `src/routes/__root.tsx` and add a `links` entry to load it on every page:
+
+```javascript
+// existing imports..
+import appCss from '@/styles.css?url' // <-- add this
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [ /* existing meta tags */ ],
+    links: [{ rel: 'stylesheet', href: appCss }], // <-- add this
+  }),
+  component: RootComponent
+})
+
+// existing code..
+```
+
+The `?url` suffix tells Vite to return the URL path to the CSS file instead of importing the file's contents. The `links` array adds a `<link rel="stylesheet" href="...">` tag to the `<head>`.
+
+Next, update `src/routes/index.tsx` to use Tailwind utility classes instead of inline styles:
+
+```javascript
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+
+export const Route = createFileRoute('/')({ component: IndexPage })
+
+function IndexPage() {
+  const [count, setCount] = useState(0)
+  return (
+    <div className="p-4">
+      <nav className="flex gap-2">
+        <a className="font-bold">Home</a>
+        <Link to="/about">About</Link>
+      </nav>
+      <p className="mt-4">
+        <button
+          type="button"
+          className="rounded bg-blue-600 px-3 py-1 text-white"
+          onClick={() => setCount(count + 1)}
+        >
+          Click Me: {count} clicks
+        </button>
+      </p>
+    </div>
+  )
+}
+```
+
+Run `npm run dev` and open http://localhost:3000 to verify that the new styles are applied.
+
+
+
+<a id="install-tanstack-devtools"></a>
+
+## Step 6 - Install TanStack Devtools
+
+[TanStack Devtools](https://tanstack.com/devtools/latest/docs/quick-start) gives you an in-browser panel for inspecting and debugging TanStack libraries<sup>[[13]](#note-13)</sup> while your app runs. We'll add the TanStack Router [devtools panel](https://tanstack.com/router/latest/docs/devtools) to our app to inspect routes, query parameters, and navigation state. First, install the required packages:
+
+ 
+
+```bash
+npm install @tanstack/devtools-vite @tanstack/react-devtools @tanstack/react-router-devtools
+```
+
+Here's what each package does:
+
+- `@tanstack/devtools-vite`: [Vite plugin](https://tanstack.com/devtools/latest/docs/vite-plugin) for seamless integration & enhanced debugging.
+- `@tanstack/react-devtools`: React component for rendering the TanStack Devtools UI.
+- `@tanstack/react-router-devtools`: Devtools panel for inspecting TanStack Router.
+
+
+Add the TanStack `devtools()` Vite plugin as the first entry in `vite.config.ts`:
+
+```javascript
+import { defineConfig } from "vite"
+import { tanstackStart } from "@tanstack/react-start/plugin/vite"
+import { nitro } from "nitro/vite"
+import viteReact from "@vitejs/plugin-react"
+import tailwindcss from "@tailwindcss/vite"
+import { devtools } from '@tanstack/devtools-vite'
+
+export default defineConfig({
+  plugins: [devtools(), tanstackStart(), nitro(), viteReact(), tailwindcss()],
+  server: { port: 3000 },
+  resolve: { tsconfigPaths: true },
+})
+```
+
+Import the devtools components in `src/routes/__root.tsx` and render them in the `<body>`:
+
+```javascript
+// other imports..
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+
+export const Route = // existing code..
+
+function RootComponent() {
+  return (
+    <html lang="en">
+      <head><HeadContent /></head>
+      <body>
+        <Outlet />
+        <TanStackDevtools
+          config={{ position: 'bottom-right' }}
+          plugins={[{
+            name: 'TanStack Router',
+            render: <TanStackRouterDevtoolsPanel />,
+          }]}
+        />
+        <Scripts />
+      </body>
+    </html>
+  )
+}
+```
+
+When you run the development server using `npm run dev`, you'll now see a circular button in the bottom-right corner of the page<sup>[[14]](#note-14)</sup>. Clicking it will 
+open the TanStack Devtools UI with a _Router_ panel where you can inspect the current state of the router. Here's what it looks like: 
+
+![tanstack-devtools](/img/tanstack-devtools.jpg)
+
+**NOTE**: TanStack Devtools are automatically disabled and excluded from the production build.
+
+
+<a id="install-react-devtools"></a>
+
+## Step 7 - Install React Devtools
+
+[React Devtools](https://react.dev/learn/react-developer-tools) is a browser extension for inspecting React applications. It lets you inspect the React component tree, view or edit props and state, and identify performance problems. It doesn't require any code changes and connects automatically when it detects a React app. 
+
+
+Install the extension for [Chrome](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en), [Firefox](https://addons.mozilla.org/en-US/firefox/addon/react-devtools/), or [Edge](https://microsoftedge.microsoft.com/addons/detail/react-developer-tools/gpphkfbcpidddadnkolkpfckpihlkkil), then open your app in the browser and launch the [browser's developer tools](https://developer.chrome.com/docs/devtools/overview)<sup>[[15]](#note-15)</sup>. You should now see two additional tabs named _Components_ and _Profiler_ to inspect and profile your React app. Here's what it looks like:
+
+![react-devtools-extension](/img/react-devtools-extension.png)
+
+Use the _Components_ tab to ensure your components have the expected props, state, and children during development. Use the _Profiler_ tab to debug rendering & performance issues.
+
+Finally, run these commands to add the changes to Git, create a commit, and push to GitHub:
+
+```bash
+git add .
+git commit -m "Set up development tools and Tailwind CSS"
+git push
+```
+
+
+## Conclusion
+
+In this tutorial, we enhanced the development workflow for our TanStack Start app. We installed editor extensions, configured editor settings, set up a code formatter and linter, incorporated Tailwind CSS, and installed TanStack and React DevTools for debugging.
+
+Here's the finished code: https://github.com/swiftace-org/tanstack-start-tutorial/tree/part-2
+
+In the [next tutorial](/posts/tanstack-start-part-3), we'll set up a UI component library and design system for the project.
+
+
+### Footnotes
+
+1. <a id="note-1"></a> A development workflow refers to the tools and habits you use while building software: editing, formatting, testing, previewing, debugging, and shipping. A good workflow shortens the [feedback loop](https://en.wikipedia.org/wiki/Feedback_loop), helping you catch problems and make changes confidently.
+
+2. <a id="note-2"></a> The Extensions panel exists in most VS Code-based editors, though the sidebar layout may vary. In [VS Code](https://code.visualstudio.com/docs/configure/extensions/extension-marketplace), VSCodium, and Cursor, `Cmd/Ctrl+Shift+X` opens it directly.
+
+3. <a id="note-3"></a> [Oxc](https://oxc.rs) is a Rust-based JavaScript and TypeScript toolchain with a parser, formatter, linter, and related compiler tools. Its main appeal is speed: formatting and linting stay responsive enough to run comfortably inside the editor.
+
+4. <a id="note-4"></a> The `.vscode` folder stores workspace-specific [editor settings](https://code.visualstudio.com/docs/getstarted/settings), extension recommendations, tasks, and debug profiles. VS Code-compatible editors such as VSCodium and Cursor also read this folder, so the same project-level setup works.
+
+5. <a id="note-5"></a> [IntelliSense](https://code.visualstudio.com/docs/editing/intellisense) is VS Code's name for editor assistance such as autocomplete, parameter hints, hover docs, and inline errors. Extensions can plug into it to provide language-specific support, including Tailwind class completion.
+
+6. <a id="note-6"></a> Consistent formatting makes code easier to scan and review, but enforcing it manually is tedious and inconsistent. An automatic formatter removes small style debates, reduces noisy diffs, and keeps the codebase visually uniform. [Prettier's rationale](https://prettier.io/docs/why-prettier) explains this.
+
+7. <a id="note-7"></a> [Linting](https://en.wikipedia.org/wiki/Lint_(software)) is a form of static analysis: it inspects source code without running it and flags patterns likely to cause bugs, accessibility issues, or maintenance problems. It complements TypeScript by checking concerns like hook usage and JSX correctness.
+
+8. <a id="note-8"></a> Oxlint groups rules into [built-in plugins](https://oxc.rs/docs/guide/usage/linter/plugins.html) such as `eslint`, `typescript`, `react`, `jsx-a11y`, `unicorn`, and `oxc`. Enabling a plugin turns on a related family of checks without installing separate lint packages.
+
+9. <a id="note-9"></a> Each [Oxlint rule](https://oxc.rs/docs/guide/usage/linter/rules.html) can usually be set to `off`, `warn`, or `error`. This lets you tune strictness per project: errors for must-fix issues, warnings for guidance, and disabled rules for checks that don't fit your codebase.
+
+10. <a id="note-10"></a> Traditional CSS often means inventing custom class names and writing separate rules for each UI variation. That can create naming overhead, dead CSS, and hard-to-predict cascade behavior. [Adam Wathan's essay](https://adamwathan.me/css-utility-classes-and-separation-of-concerns/) explains the utility-class approach well.
+
+11. <a id="note-11"></a> Tailwind doesn't ship your app with its entire design system upfront. It [scans your source files](https://tailwindcss.com/docs/detecting-classes-in-source-files) for the utility classes you actually use and generates CSS containing only those styles, which helps keep the final stylesheet relatively small.
+
+12. <a id="note-12"></a> Tailwind is customizable through [theme values](https://tailwindcss.com/docs/theme) for tokens like colors, spacing, fonts, shadows, and breakpoints. Defining these centrally gives you a consistent design language while still letting you compose styles with utility classes.
+
+13. <a id="note-13"></a> TanStack is a family of tools including [Router](https://tanstack.com/router), [Query](https://tanstack.com/query), [Table](https://tanstack.com/table), [Virtual](https://tanstack.com/virtual), [Form](https://tanstack.com/form), and [Start](https://tanstack.com/start). [TanStack Devtools](https://tanstack.com/devtools) provides one shared debugging UI across them.
+
+14. <a id="note-14"></a> The floating button is the [TanStack Devtools](https://tanstack.com/devtools/latest/docs/quick-start) launcher. The `position: 'bottom-right'` config controls where it appears, and the `plugins` array decides which panels are available, such as the [Router devtools panel](https://tanstack.com/router/latest/docs/devtools).
+
+15. <a id="note-15"></a> Browser developer tools ([Chrome](https://developer.chrome.com/docs/devtools/overview), [Firefox](https://firefox-source-docs.mozilla.org/devtools-user/), and [Edge](https://learn.microsoft.com/en-us/microsoft-edge/devtools-guide-chromium/overview)) are built-in browser panels for inspecting the DOM, JavaScript, network requests, console logs, storage, and performance. [React Devtools](https://react.dev/learn/react-developer-tools) appears inside that toolbox as extra tabs.

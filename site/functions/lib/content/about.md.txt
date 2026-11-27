@@ -1,0 +1,1 @@
+[SwiftAce](https://github.com/swiftace-org/swiftace) is an open-source platform for hosting online courses. It ships as a single binary that you can self-host on your own server and domain, with your data in Postgres. Your site's name, branding, copy and integrations are all set from an admin page.

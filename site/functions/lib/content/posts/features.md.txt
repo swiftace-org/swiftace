@@ -1,0 +1,109 @@
+# What Can You Do with SwiftAce?
+
+_**NOTE**: This features list is out of date. See the [home page](/) for the features of the released version of SwiftAce._
+
+[SwiftAce](https://swiftace.org) is an (upcoming) open-source platform for hosting online courses. It can be customized, white-labeled, and self-hosted on a custom domain. It intends to serve independent online educators looking to share their knowledge and expertise.
+
+![](/img/screenshot.png)
+
+The features offered by SwiftAce can be categorized into the four sections:
+
+1. **Developer** - Functionality available to developers responsible for deploying and managing a self-hosted version of SwiftAce.
+
+2. **Administrator** - Functionality available to the site administration for setting up courses, managing learning material, enrollments, grading etc.
+
+3. **Learner** - Functionality available to learners who browse, enroll, and take courses on the site.
+
+4. **Miscellaneous** - Other features/functionality that doesn’t fit into one of the above categories.
+
+As you can probably tell, a developer will typically also be an admin, and an admin will also have access to all learner features.
+
+The folllowing checklist of features serves as a roadmap for the development of SwiftAce, with ticked boxes representing implemented features and unticked boxes representing planned features.
+
+## Developer Features
+
+A developer responsible for deploying and managing a self-hosted version of SwiftAce can:
+
+- [ ] Visit https://swiftace.org to read installation instructions
+- [x] Clone the `swiftace` GitHub repository to view/modify source code
+- [ ] Provide admin access to their Cloudflare account
+- [ ] Deploy SwiftAce to their Cloudflare account
+- [ ] Configure a SwiftAce site (domain, branding etc.)
+- [ ] Provide custom CSS, JavaScript, and HTML to override default behavior
+- [ ] Attach a custom domain to their SwiftAce site
+- [ ] Monitor/review a SwiftAce site
+- [ ] Upgrade a SwiftAce site
+- [ ] Export data from a SwiftAce site
+- [ ] Delete a SwiftAce site
+- [ ] Add/remove admins for a SwiftAce site
+- [ ] Configure and connect their Stripe account to support paid courses
+- [ ] Connect their SendGrid/AWS SES account to support sending emails
+- [ ] Enable & configure Social Sign In or custom SSO to allow easier login
+- [ ] View/edit all configurations/customizations in a single JSON file
+- [ ] Configure a Google Analytics integration
+
+## Administrator Features
+
+An adminstrator managing courses & learners on a SwiftAce site can:
+
+- [x] Log into a SwiftAce site using email & password/verification code
+- [x] Customize global whitelabeling settings like branding, copy, etc.
+- [ ] Configure site access to be public or private
+- [ ] Add, remove, and modify other site admins
+- [ ] View a list of all the courses on the platform
+- [ ] Add a new course to the site
+- [ ] Delete a course from the site
+- [ ] Change the order in which courses appear on the site
+- [ ] Edit the details and change the visibility of a course
+- [ ] Mark a course as paid and set a price for the course
+- [ ] Add lessons and assignments to a course
+- [ ] Add video, notes, and quiz questions to a lesson
+- [ ] Add video, problem statement, and submission instructions to an assignment
+- [ ] Evaluate assignment submissions and offer feedback for submissions
+- [ ] Change the order in which lessons and assignments appear on the site
+- [ ] View and export a list of learners enrolled into a course
+- [ ] Enroll learners in to a course
+- [ ] Unenroll learners from a course
+- [ ] Generate a certificate of completion for a learner
+- [ ] View a list of learners who have signed up on the site
+- [ ] Edit and delete learner accounts
+
+## Learner Features
+
+A learner looking to take courses on a SwiftAce site can:
+
+- [ ] Visit a SwiftAce site and view a list of available courses (if site is public)
+- [x] Log in to the site using the available sing-in methods (email & OTP is default)
+- [x] Update their name and profile picture
+- [ ] View the details of a course (overview, list of lessons & assignments)
+- [ ] Enroll into a free course
+- [ ] Pay and enroll into a paid course
+- [ ] Unenroll from a course
+- [ ] Open up a lesson in a course they’re enrolled into
+- [ ] Watch a video, access notes for a lesson
+- [ ] Take a quiz and complete a lesson
+- [ ] Open up an assignment in a course they’re enrolled into
+- [ ] Make a submission for the assignment
+- [ ] View history of submissions and evaluation feedback for an assignment
+- [ ] Receive & view a certificate upon completing a course
+- [ ] Download all their data
+- [ ] Delete their account
+- [ ] View when a course, lesson, or assignment was last updated
+
+## Miscellaneous Features
+
+Apart from the above, SwiftAce sites also offer the following features:
+
+- [ ] Mobile-Friendly Responsive Design
+- [ ] Search Engine Optimization
+- [ ] AAA Accessibility
+- [ ] Progressive Web App
+- [ ] Internationalization and Localization
+- [ ] Local Development Server
+- [ ] Dark Mode and Themes
+- [ ] Plugins to Extend Functionality
+- [ ] JSON REST API
+
+This page will be updated regularly to reflect the completion status of the listed features. To suggest new features, please create an issue on the [GitHub repository](https://github.com/swiftace-org/swiftace).
+
+_Last Updated: May 15, 2024_

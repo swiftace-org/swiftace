@@ -1,0 +1,257 @@
+# macOS Terminal Setup
+
+In this post, we'll set up a fast, good-looking, and productive development environment on macOS, using the [Ghostty](https://ghostty.org) terminal emulator, the [Homebrew](https://brew.sh) package manager, the [Zsh](https://www.zsh.org/) shell with the [Powerlevel10k](https://github.com/romkatv/powerlevel10k) theme, and the [Neovim](https://neovim.io) code editor. Here are the steps we'll follow:
+
+1. [Install Ghostty](#install-ghostty)
+2. [Install Homebrew](#install-homebrew)
+3. [Install a Nerd Font](#install-a-nerd-font)
+4. [Configure Ghostty](#configure-ghostty)
+5. [Install command line tools](#install-command-line-tools)
+6. [Configure Zsh](#configure-zsh)
+7. [Set up Neovim](#set-up-neovim)
+8. [Create a work directory](#create-a-work-directory)
+
+
+<a id="install-ghostty"></a>
+
+## Step 1 - Install Ghostty
+
+[Ghostty](https://ghostty.org) is a fast, GPU-accelerated terminal. Download it here: https://ghostty.org/download
+
+![ghostty](/img/ghostty.png)
+
+Install and open the app. The first time you launch it, you may have to manually approve it by going to **System Settings &rarr; Privacy & Security** to get past the macOS security warning.
+
+
+<a id="install-homebrew"></a>
+
+## Step 2 - Install Homebrew
+
+[Homebrew](https://brew.sh) is the package manager we'll use to install command line tools and fonts. Follow the instructions on the [official website](https://brew.sh) or run the following command to install Homebrew:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+After installation, make sure to add `brew` to your system `PATH` by running the commands printed at the end of the installer output. You can verify the installation by running:
+
+```bash
+brew --version
+```
+
+
+<a id="install-a-nerd-font"></a>
+
+## Step 3 - Install a Nerd Font
+
+![nerd-fonts-icons](https://i.imgur.com/BOJpz7C.png)
+
+[Nerd Fonts](https://www.nerdfonts.com/) include the extra glyphs and icons that used by the Powerlevel10k terminal prompt theme we'll set up later. Run this command to install the Meslo Nerd Font:
+
+```bash
+brew install font-meslo-lg-nerd-font
+```
+
+<a id="configure-ghostty"></a>
+
+## Step 4 - Configure Ghostty
+
+Open Ghostty's configuration file (**Cmd + ,**) and add the following settings:
+
+```ini
+background-opacity=0.7
+background=#000000
+font-family = MesloLGS Nerd Font Mono
+macos-titlebar-style = tabs
+window-padding-x=8
+window-padding-y=8
+maximize=true
+font-size=14
+shell-integration-features=sudo,ssh-env
+```
+
+This sets a translucent black background, the Meslo Nerd Font, tabbed titlebars, padding, and a maximized window. Save the file, quit and restart Ghostty to apply the changes.
+
+
+<a id="install-command-line-tools"></a>
+
+## Step 5 - Install Command Line Tools
+
+Run this command to install some essential command line tools with Homebrew:
+
+```bash
+brew install git fzf ripgrep htop gh zoxide
+```
+
+Here's what each one does:
+
+- [`git`](https://git-scm.com/) - version control system for tracking changes in code
+- [`fzf`](https://github.com/junegunn/fzf) - fuzzy finder for searching files and command history
+- [`ripgrep`](https://github.com/BurntSushi/ripgrep) - extremely fast recursive search tool (`rg`)
+- [`htop`](https://htop.dev/) - interactive process and resource monitor
+- [`gh`](https://cli.github.com/) - GitHub's official command line interface
+- [`zoxide`](https://github.com/ajeetdsouza/zoxide) - a `z` command for directly jumping to your most-used directories
+
+Next, authenticate the GitHub CLI so you can clone, push, and manage repositories:
+
+```bash
+gh auth login
+```
+
+Follow the on-screen prompts to complete the authentication in your browser. Then, configure your name and email used by the `git` CLI while committing changes:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email you@example.com
+```
+
+
+
+<a id="configure-zsh"></a>
+
+## Step 6 - Configure Zsh
+
+[Zsh](https://www.zsh.org/) is an alternative to [Bash](https://www.gnu.org/software/bash/) and has been the default shell on macOS since Catalina (2019). It's largely compatible with Bash, but adds better tab completion, theming, and plugin support. The `~/.zshrc` file configures your Zsh shell. Open it for editing as follows:
+
+```bash
+nano ~/.zshrc
+```
+
+Add the following configuration. It installs the [zinit](https://github.com/zdharma-continuum/zinit) plugin manager, the Powerlevel10k theme, and a few essential plugins for syntax highlighting, completions, and autosuggestions:
+
+```bash
+function __git_prompt_git() {
+  GIT_OPTIONAL_LOCKS=0 command git "$@"
+}
+
+# Outputs the name of the current branch
+function git_current_branch() {
+  local ref
+  ref=$(__git_prompt_git symbolic-ref --quiet HEAD 2> /dev/null)
+  local ret=$?
+  if [[ $ret != 0 ]]; then
+    [[ $ret == 128 ]] && return  # no git repo.
+    ref=$(__git_prompt_git rev-parse --short HEAD 2> /dev/null) || return
+  fi
+  echo ${ref#refs/heads/}
+}
+
+# Enable full color support
+export TERM=xterm-256color
+
+# Install (if absent) and initialize zinit plugin manager
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+[ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
+[ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+source "${ZINIT_HOME}/zinit.zsh"
+
+# Use the Powerlevel10k theme
+zinit ice depth=1; zinit light romkatv/powerlevel10k
+
+# Essential Zsh plugins
+zinit light zsh-users/zsh-syntax-highlighting
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+
+# git shortcuts: https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git
+zinit snippet OMZP::git
+zinit snippet OMZP::gh
+
+# Register completions from plugins
+autoload -U compinit && compinit
+zinit cdreplay -q
+
+# Load Powerlevel10k configuration; To customize run `p10k configure`
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Save command history
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+# Enable case insensitive completions
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# Show colors in ls output
+alias ls='ls -G'
+
+# Use fzf for searching command history
+source /opt/homebrew/opt/fzf/shell/completion.zsh
+source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+
+# Use zoxide as a smarter cd command
+eval "$(zoxide init zsh)"
+```
+
+Save the file with `Ctrl+o`, then exit with `Ctrl+x`. Open a new terminal window (or run `source ~/.zshrc`) to apply the changes. The first launch will install the plugins, and let you configure Powerlevel10k. Respond as follows for a minimal but comprehensive prompt:
+
+- _Prompt Style:_ (1) Lean
+- _Character Set:_ (1) Unicode
+- _Prompt Colors:_ (2) 8 colors
+- _Show current time?_ (n) No
+- _Prompt Height:_ (1) One line
+- _Prompt Spacing:_ (1) Compact
+- _Icons:_ (1) Few icons
+- _Prompt Flow:_ (1) Concise
+- _Enable Transient Prompt?_ (n) No
+- _Instant Prompt Mode:_ (1) Verbose
+
+![zsh-theme-preview](/zsh-prompt.png)
+
+Here are a few tips to get the most out of this setup:
+
+- **Autosuggestions:** As you type, Zsh suggests a completion from your history in gray. Press the `→` (right arrow) key to accept it, or `Ctrl+→` to accept one word at a time.
+- **History search:** Press `Ctrl+R` to fuzzy-search your command history with `fzf`. Keep typing to narrow the results, then press `Enter` to run the selected command.
+- **Directory jumping:** Use the `z` command to jump to recently visited folders (`z ghostty` instead of `cd ~/work/ghostty`). Run `zi` to pick from matching directories interactively.
+- **Git shortcuts:** The `git` plugin adds handy aliases like `gst` (`git status`), `gco` (`git checkout`), `gp` (`git push`), and `glog` (`git log` graph). See the [full list](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git#aliases).
+- **Syntax highlighting:** Commands turn green when valid and red when not, so you can catch typos before pressing `Enter`.
+
+
+<a id="set-up-neovim"></a>
+
+## Step 7 - Set Up Neovim
+
+You'll probably do most of your editing in a graphical IDE like [Cursor](https://cursor.com), [Codium](https://vscodium.com), or [VS Code](https://code.visualstudio.com), but it's also nice to have a modern & capable editor you can reach for right in the terminal.
+
+![neovim-preview](https://i.imgur.com/gzZn3hV.png)
+
+
+[Neovim](https://neovim.io/) is a modern, extensible terminal-based code editor. We'll install Neovim and set up [LazyVim](https://www.lazyvim.org/), a preconfigured collection of plugins that turn Neovim into a full-fledged integrated development environment (IDE). Run these commands to install Neovim and set up LazyVim:
+
+```bash
+brew install neovim
+git clone https://github.com/LazyVim/starter ~/.config/nvim
+rm -rf ~/.config/nvim/.git
+```
+
+Open a new terminal window, then run the `nvim` command to start Neovim and initialize all the plugins included with the LazyVim config. Watch this [short tutorial](https://www.youtube.com/watch?v=N93cTbtLCIM) to learn more.
+
+
+<a id="create-a-work-directory"></a>
+
+## Step 8 - Create a Work Directory
+
+Run these commands to create & enter a dedicated `~/work` directory for your projects:
+
+```bash
+mkdir -p ~/work
+cd ~/work
+```
+
+You can now clone & work with repositories from GitHub inside `~/work` using the `git` CLI:
+
+```bash
+git clone https://github.com/ghostty-org/ghostty
+```
+
+## Conclusion
+
+We set up a complete terminal environment on macOS, with a modern terminal emulator, a package manager, useful command line tools, and a customized Zsh shell. This setup gives you a fast, productive, and pleasant foundation for day-to-day development work.

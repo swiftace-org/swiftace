@@ -218,6 +218,10 @@ background, with `--logo-dark` for the dark variants) are other layouts. Layout,
 artwork live in `scripts/social-images/`; colors use the design tokens in `src/styles.css`. It
 needs Chromium: `vp exec playwright install chromium`.
 
+## Website
+
+[swiftace.org](https://swiftace.org) lives in [`site/`](site/). It is a Bun server behind Caddy, not part of the binary. See [`site/README.md`](site/README.md).
+
 ## License
 
 [MIT](LICENSE)

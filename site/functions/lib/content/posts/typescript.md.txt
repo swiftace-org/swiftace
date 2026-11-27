@@ -1,0 +1,47 @@
+# Moving Away From TypeScript
+
+I’m currently migrating [Jovian](https://jovian.com) to [Cloudflare Workers](https://workers.cloudflare.com/), a fast and cheap serverless edge runtime for building web applications. I started by writing some backend routes in TypeScript, but after using it for close to a month, I’ve decided to switch to plain old JavaScript. I simply had to do it because the TypeScript compiler kept getting in my way and interrupting my flow with type errors.
+
+Code that seemed obviously correct to me would show errors (the squiggly red lines in VS Code) simply because the compiler didn’t have enough information. I faced the issue most frequently while creating and using JSX (React) components. Here’s a component that displays a page title, description, and a “Sign In” / “Sign Out” button, written in plain JavaScript:
+
+```javascript
+function PageHeader({title, description = "", isLoggedIn}) {
+  return (
+    <div>
+      <h1>{title}</h1>
+      {description && <p>{description}</p>}
+      <div>{isLoggedIn ? "Sign Out" : "Sign In"}</div>
+    </div>
+  );
+}
+```
+
+And here’s how it is used:
+
+```javascript
+<PageHeader title="Jovian - Learning Platform" />
+```
+
+All the information needed to use the component is already present in the JavaScript version. When you start typing `<PageHeader` , VS Code tells you that the component takes three props: `title`, `description`, and `isLoggedIn`:
+
+![](https://i.imgur.com/oTlXCzP.png)
+
+It also tells you that `title` is a required prop, whereas `description` is optional. Sure, `title` is of type `any`, but it should be rather obvious to any developer (especially one familiar with the codebase) that a string would be an acceptable value for a prop named `title`. It’s also fairly obvious that a prop named `isLoggedIn` is probably a boolean, and that a string would be an acceptable value for a prop named `description`.
+
+Just as types provide information about a function/component, so do good variable/prop names. In fact, I’d argue that names provide more information than types. Even if VS Code didn’t show types for the props `title`, `description`, and `isLoggedIn`, their purpose (and hence types) can be inferred quite easily from their names. However, the reverse is not true. If the props were named `t`, `d`, and `l`, it would be impossible to guess the purpose of each prop, even if their types were known.
+
+TypeScript developers are taught to frown at the first sight of the `any` type. However, I would argue it’s the correct type for `title` in this case. I would even go so far as to say that the inferred type `string` for the prop `description` is wrong. The `title` prop is simply passed into an `h1`: `<h1>{title}</h1>`, which means there are many other types of acceptable values for the title: numbers, HTML elements (e.g. a `div` containing an icon and some text), or other JSX elements.
+
+The `PageHeader` component doesn’t _need_ to know the type of `title`, since it’s simply passing it on to another component without touching it. This happens a lot in large React applications, where many props are directly passed down the tree to child components. Having to specify a type for the prop at every level is wasteful, frustrating, and creates unnecessary maintenance overhead. If you’ve specified the type `string` for the prop `title` that’s passed down a tree of components, you’ll have to update every single location when you want to pass a `div` instead.
+
+Types are used to constrain the set of acceptable values for a variable or a function argument. This is commonly referred to as “type safety”, because it makes your code _safer_, i.e., less likely to break in unexpected ways. The type checker is integrated into the VS Code, and getting rid of the squiggly red lines in your code makes you feel your code will not break. And yet, it does! The TypeScript compiler is itself written in TypeScript, and yet has [~1800 known bugs](https://github.com/microsoft/TypeScript/labels/Bug) on GitHub.
+
+As programmers, our job is to encode logic into instructions computers can understand. Programs fail when the logic we’re encoding is incorrect/incomplete or if we’ve failed to encode it properly into instructions for a computer. We break up our programs (i.e. sets of instructions) into functions and modules to reuse common instructions, improve readability, and make it easy to change programs as requirements change.
+
+Type systems operate at the boundaries where we break up our programs. They allow us to specify which parts of our program can fit together, like the pieces in a jigsaw puzzle. Two pieces can fit together only if they have compatible shapes. However, not every two pieces that can fit together will result in a correct program. For correctness, you also have to look at what’s within the pieces themselves. And that is often more important than looking at the boundaries.
+
+I feel TypeScript gets in my way a bit too much, and the additional code & type kung fu is not worth it. More often than not, I find myself worrying more about how to get all the types right, with generics and everything, rather than the logic I need to encode. TypeScript promises to be an opt-in solution to typing, but you quickly realize that’s not really the case when you rename a file from `.js` to `.ts`. The compiler expects a lot from you, and I am simply not up to it.
+
+I do want type-checking here and there, where I _feel_ it is necessary, and I can sprinkle it in using [JSDoc comments](https://jsdoc.app/about-getting-started). Unlike TypeScript, it’s truly opt-in and can be added/removed at the level of individual function arguments. It also doesn’t bug you with red squiggly lines and lets you run your JavaScript code as is without having the satisfy the compiler. The flexibility comes with the responsibility of making sure I don’t write code that just breaks all the time. I feel good programming practices and naming conventions can help address that to a large extent.
+
+With this change, I hope to avoid breaking my flow, build software faster, write less code, improve code readability, and include sufficient type hints and documentation using JSDoc so that other developers can understand & navigate the codebase easily and things don’t break in unexpected ways. I’ll revisit this decision in a few months and determine if the switch was worth it.

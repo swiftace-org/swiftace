@@ -1,0 +1,61 @@
+# Slack Power User Guide
+
+Slack is simply email with a higher volume and an unreasonable expectation of instant replies. Pretty much all work-related conversations happen on Slack, and one might even say it is the only viable medium to do so for most companies.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*irCUB_R2R33sTa5h8fLmGA.gif)
+
+At [Jovian](https://www.jovian.ai/), we offer private chat support for participants of our Data Science & ML Bootcamp over Slack, where we receive hundreds of queries every day. We’re able to address over 90% of queries within 24 hours with a team of just five, and each of us gets to inbox zero every single day.
+
+Here are some strategies for staying on top of Slack conversations:
+
+1. **Make your conversations asynchronous, not instant.** Instant communication requires you to constantly break your attention from focusing on actual work for an extended period. Changing your operating model to “I’ll answer when I can/want to” can help you engage in deep work _and_ have more thoughtful conversations.
+
+2. **Read and reply to messages in batches, 2–3 times a day.** Processing messages in batches is several times faster than trying to process each message as it arrives. Block time on your calendar specifically to read and reply to messages on Slack. Putting it on your calendar will let you stop worrying about it and set clear expectations for coworkers regarding when they can expect to hear from you.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*sFsbVAdY0H-Ry6rk7aGQjQ.png)
+
+3. **Pause notifications when you’re working.** If the expectation from your company is that you’re working deeply on something important for most of your day, then it’s in their best interest that you do it without any interruptions. My laptop is on DnD mode for most of the day, so Slack isn’t a constant disturbance.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*5EcMGvn6WT-rlzM0CeyBHw.png)
+
+4. **Organize your channels into sections.** There are more channels in your Slack sidebar than you can keep track of. Name the channels appropriately (or ask your coworkers to), and organize them into sections that will help you identify important areas of activity at a glance.
+
+![](https://miro.medium.com/v2/resize:fit:1400/0*v8rTZJtlQKYy6Aa4.gif)
+
+5. **Configure the sidebar to only show (mostly) unread conversations.** Looking at all the channels all the time is not very useful. There may be one or two sections where you might want to display all channels and want each channel to come to your attention, but most sections can be configured just to show unread channels/conversations.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*vYG3Y1RMWw3mhT2Ly90d0A.png)
+
+6. **Use a naming convention to standardize channel names.** We use predefined prefixes of the format `#nn-type-name`while creating new channels (where `nn` is generally a 2 digit number that helps sort channels in the sidebar, `type` is a common prefix used by all channels of a specific type, and `name` is the unique portion specific to the channel). This way, you’ll never lose track of important channels.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*80dzFXjQlHgCB-T1FVxThw.png)
+
+7. **Use the fast switcher (Cmd+K) to get to the right channel quickly.** Scrolling to your sidebar to look for a channel can take a really long time, especially if you have many channels with similar names. Use Cmd+K and start typing to quickly filter channels and use the arrow keys on your keyboard to select and open the desired channel. Once you get used to it, switching channels only takes a second or two, even when you have hundreds of channels.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*CuQDQYVzzPesIu_oxS4xMQ.png)
+
+8. **Use “Mark as Unread” and reminders to track open tasks.** If there’s something you can’t resolve immediately during a batch processing session, just mark it unread and come back to it during the next session. If there’s something you need to follow up on or be reminded about, set a reminder and Slackbot will remind you. This will allow you to get open tasks out of your head and get back to them at the appropriate time.
+
+9. **Prefer communicating on channels over DMs.** Smooth and clear communication between people and teams is important for making progress on a company’s goals, and DMs tend to silo conversations and divide context. When A talks to B, B talks to C, and C talks to A about the same project/task, nobody has the full context, yet the overall time spent in discussion is higher than what it would have been if the conversation happened on a channel where A, B, and C were all present.
+
+10. **Create channels as soon as you need them.** Don’t hesitate to create new channels for a specific task/project/discussion/topic. In fact, default to creating new channels whenever you want to kick something off.
+
+11. **Archive channels as soon as you don’t need them.** Don’t hesitate to archive a channel when you feel its purpose is served, or there hasn’t been much activity for some time (a week, maybe). You can always unarchive it if required.
+
+12. **Save and reuse important information and common questions.** There’s a lot of important information shared on Slack that’s likely to be looked up many times. In such cases, pin the message to the channel (if it’s relevant for everyone), or add it to your “Saved Items” by clicking on the bookmark button.
+
+![](https://miro.medium.com/v2/resize:fit:1400/0*bCgCzmERfdU3NCU6.png)
+
+13. **Mute channels or sections that don’t require frequent attention.** Several channels only contain notifications from software integrations. Many of these messages need not be read every day, it’s probably okay to read them once a week. Similarly, there might be common channels that you’re part of just to check in from time to time and see what’s happening. It’s best to mute such channels, and check them at leisure, perhaps once a week/month.
+
+![](https://miro.medium.com/v2/resize:fit:1400/1*vsl2JqlZeJ9wSDUqP-peUQ.png)
+
+14. **Take it easy with apps and integrations.** Just because an application has a Slack integration, it doesn’t mean you should install it, enable it, and notify everyone about every single message from the tool. Try to pick & configure integrations so that all notifications are actionable. If you’d like to get all types of notifications for record-keeping, then keep the channel muted.
+
+![](https://miro.medium.com/v2/resize:fit:1040/1*WupEkoIoQvV4Kf0DI8y5Lw.png)
+
+15. **Let coworkers know when they can follow up with you.** Despite your best efforts, some messages may slip through the cracks, and you won’t be able to take action at the appropriate time. Your coworkers may hesitate to check back with you due to the fear of appearing rude, and this may leave them blocked. It helps to let coworkers know that they can follow up with you after a specified duration (e.g. 1 day) if they haven’t received a reply from you by then.
+
+Implement these strategies, and you’ll be surprised at how easily you’ll be able to get through your Slack backlog every day without constantly worrying about missing or forgetting to reply to something important.
+
+Hope this helps!

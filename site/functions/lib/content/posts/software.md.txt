@@ -1,0 +1,35 @@
+# The Business of Software
+
+The fundamentals of business are simple: you make something people want and convince them to pay more than what it costs you to make and sell it. This sounds almost obvious, but I don’t think I fully understood or internalized it for a long time. I definitely didn’t use it as the foundation for making decisions, which is where it really matters.
+
+I operated with the sense of “build something cool and somehow it will work out,” which is true to some extent, like with many open-source projects, but it can severely limit the overall impact of what you’ve built. Linux and Git are notable exceptions, but even there, one could argue that big corporations have benefited far more from them compared to their creator Linus Torvalds. That is probably still acceptable because it is ultimately end users who are the real beneficiaries.
+
+Somehow, the very idea of “selling” software that they’re building feels impure to many programmers (I know it still does to me), perhaps just as the idea of making art for the sake of selling it feels impure to artists. But unless you are willing to resign yourself to a life of struggle and remain unfazed while others possibly build upon or profit off your creations, it would serve you well to find ways to make some money from the software you’re building.
+
+Open-source sponsorship and patronage exist, and maybe they’re good enough to support the development of certain kinds of software, like programming languages, application frameworks, or developer tools. A few hundred thousand dollars (or perhaps a few million) a year can go a long way toward supporting the development of software meant to be downloaded and executed by end users on their computers.
+
+However, if you have to host your software on the cloud for others to use, your costs will grow linearly (or worse) with usage and you will incur significant maintenance & support overhead. You can open-source your software and let people host it themselves, most users wouldn’t want to go through the pain of setting up and maintaining a hosted version of your software themselves. The lack of turnkey options might severely limit the reach of your software.
+
+Eventually, some company (or companies) will come along and provide a cloud-hosted software-as-a-service version of your product and charge for it. That might be fine with you, but it’s likely that their hosted offering will not be as good as you know it can be. It is also likely to be slow and bloated, full of sales-y junk like “upgrade now”, “get this extra feature”, “integrate your CRM”, etc. It’s unlikely that your original vision will be fully realized.
+
+The company hosting your software cares about making money from it, and they’ll likely do whatever they can to maximize the amount of money they can make. They’ll have quarterly revenue goals, possibly a CFO, designers, product managers, investors, and a lot of other people who know little to nothing of essence about your creation and how it should be built upon. How can they know? They can’t read your mind or see the full picture in your head.
+
+There is another side, however, to the question of commercializing your software yourself or letting other companies do it, which is worthy of greater consideration. Botched and bloated or not, the company that commercializes your software will have real paying users. People pay for software when it helps them get something important or valuable done faster or better. The exchange of money is possibly the strongest indicator of real utility.
+
+Talking to paying users offers a kind of understanding that no amount of thinking, planning, or surveying can offer. Just one person telling you “Here’s what I use it for, here’s what I like, here’s what I hate, here’s what else I want it to do,” can lead to revelations and insights that might otherwise have taken months to uncover, or might never have gotten uncovered at all. Talking to users offers a rapid feedback loop and helps prioritize bug fixes and new features.
+
+If you do choose to commercialize your software yourself, it’s important to use revenue as just one signal while deciding how you’re going to evolve your creation. This is not easy, especially once you have found the coveted “product-market fit,” because your software then turns into a golden goose that lays one golden egg a day forever. It’s actually better than that, as it will lay 10% more golden eggs every next month for a very long time.
+
+As with the golden goose, everyone involved wants all the eggs till eternity faster, so you raise more capital, hire marketing and sales and customer success and product and design teams, add more features that you can upsell, introduce an enterprise offering, engage in “strategic” partnerships/acquisitions, and fill your software with all sorts of bloat that can help you charge more money from more people. Once again, your original vision will likely remain unrealized.
+
+You give in to the greed and butcher the golden goose. This is how you get Facebook, and Windows, and Salesforce, and Google (Et tu, Larry?), and the toilet that WhatsApp is turning into, and GPT-4 Turbo (the jury is still out on this, but my hopes are not very high), and the like. Their founders slowly gave up on everything that is pure and meaningful and unadulterated, and allowed their inventions to turn into brainwashing cash machines.
+
+People hate big commercial software because the creators gave in to the temptation of greed. It’s not that they’re bad people. Every human being is susceptible to greed, which is why every religion dedicates a significant portion of its teachings to actively avoiding greed and prioritizing giving over taking. Billions (or even millions) of potential dollars make a very compelling argument, and you learn to twist logic to fit what you seek and not vice versa. Perhaps the only notable company that has been able to exercise some restraint here, at least in terms of the quality and user experience of their products is Apple, although cracks are starting to show there too.
+
+There’s value in building without profit as a motive, in that it protects you from falling prey to greed. But there’s also value in building with profit as a motive, in that it enables you to iterate faster and reach more users. So what’s “the right way” to build software? I don’t know yet, except that it’s probably somewhere in between, and it requires a fair bit of grit, resilience, and self-discipline. It’s something many of the greatest inventors and entrepreneurs of our generation have failed at.
+
+I think one way to address the problem of greed is to completely remove yourself from the equation and ask the question:
+
+> What’s something that needs to exist but doesn’t, and what would the ideal version of it look like?
+
+Write down your answer, and keep looking at it from time to time. Understand that every decision you take will take you closer or further away from it, and choose wisely.

@@ -1,0 +1,27 @@
+# Cutting Cloud Computing Costs by 100x
+
+Over the past year, I've been working on reducing the monthly cloud bill for [Jovian](https://jovian.com). I've achieved a ~200x reduction while improving application performance and growing monthly revenue. I'm aiming for a further 2-3x reduction over the next couple of months.
+
+Based on my experience, I conjecture that cloud computing costs for most companies are at least 100x higher than they need to be. My claim is based on the following insights:
+
+- Cloud resources are often heavily overprovisioned and not closely monitored/optimized. Most deployments use far bigger and far too many machines than is necessary, even with auto-scaling turned on. A large fraction of CPU cycles, RAM, and disk are wasted.
+
+- Cloud providers offering dedicated services for various use cases (e.g. Lambda, RDS, S3, Kubernetes) often charge a heavy premium over hardware and running costs, while advertising cost savings compared to using plain old cloud VMs. Their claims are [false](/posts/ditching-serverless).
+
+- Applications are often split into too many independently deployed microservices that are either unnecessary or not worth the cost. They're prevalent not because they reduce cost or improve performance, but because software teams like to "own" their service(s).
+
+- Many product features and backend services are either unnecessary or not worth the cost (i.e. their ROI is too low). They arise from hiring too many people (devs, managers, PMs, directors, VPs) and then feeling compelled to give them some work to do.
+
+- Old features, dead code paths, and zombie services are not removed regularly, even long after they've stopped being used in the end product, due to their complexity and the fear of unintentionally breaking something else. People who built them have left.
+
+- Technology choices have massive CPU and memory usage implications at scale, e.g., blocking Python web servers require dozens of times more resources than non-blocking JavaScript servers for the same number of incoming requests. And then there's Rust.
+
+- For the past two decades, we've been living in a massive growing market for software "eating the world", and the gains were large enough that optimization was not really a concern for companies building software. Hardware was also getting faster & cheaper.
+
+- Finally, at the level of code itself, profiling often reveals an 80-20 situation where certain inefficient statements, functions, or database queries using the highest compute and memory can be optimized, restructured, or eliminated entirely for significant gains.
+
+Each of the above concerns can be addressed independently to achieve a 2-5x cost reduction, and the gains are multiplicative. It's tempting to think these arguments only make sense for small companies. However, the larger the company, the greater is the inefficiency.
+
+It does take significant time, effort, and careful design to limit your cloud costs to the absolute minimum. However, if you can be mindful of where your CPU cycles and bytes of RAM are spent as you build your application, a 100x lower cloud bill isn't out of reach.
+
+P.S. After reading this, you're probably thinking, _"This definitely doesn't apply to my application/company."_ That's the natural reaction to such a bold claim. I encourage you, however, to give this some serious thought. You might be surprised with what you discover.

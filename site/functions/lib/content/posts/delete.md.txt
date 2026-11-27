@@ -1,0 +1,37 @@
+# Deleting 50,000 Lines of Code in 3 Days
+
+Last week, I deleted over 50,000 lines from the codebase for [Jovian](https://jovian.com). All of the deleted code was previously running production, powering our web application that serves hundreds of thousands of requests every day. The deleted code represents about 70% of our frontend codebase, written in JavaScript, using React and Next.js.
+
+I found it pleasantly surprising that I was able to remove over two-thirds of the code in just three days without completely breaking the application. However, I found it even more surprising that almost nothing of essence was lost in the process. On the other hand, the purge led to a radical simplification of the application and the codebase, and the platform feels much lighter and easier to use.
+
+We’ve been building Jovian since 2019, and the platform has gone through various stages of evolution over the years. We added new features, pages, buttons, and settings whenever we needed them, but we rarely considered removing things (who does?). We made a conscious effort to keep the application simple and easy to use, but it nevertheless gathered a lot of “feature debt”.
+
+I’d read somewhere that over 80% of features in a typical software application are almost never used, and I remembered seeing this screenshot showing all the tools available in Microsoft Word:
+
+![](https://i.imgur.com/KiYZCks.png)
+
+While the situation wasn’t nearly this bad with Jovian, having a complex application and a large codebase did make it difficult to make changes, upgrade libraries, and add new features that might actually matter.
+
+A few weeks ago, I started working on an [experimental rewrite](https://jovian.pages.dev/) of our web application, built using the newest version of [Next.js](https://nextjs.org/blog/next-14) and deployed to [Cloudflare Pages](https://pages.cloudflare.com/). I quickly realized that a full-scale rewrite from scratch would not work. It would take several months to rebuild the entire application, and it would almost certainly be riddled with hundreds of bugs. Big bang migrations seldom work, and even when they do, they take far longer than planned. I experienced this firsthand while working at Twitter, where I spent several months migrating code from Ruby on Rails to Scala.
+
+Incremental migration, however, presented its own set of challenges. The new pages I had created were quite simple in structure and content while existing pages in our application had several interactive tabs, buttons, and widgets. Our existing web application uses REST APIs served by a Python backend, whereas I wanted to leverage [server actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) to interact with our database directly from Next.js, to make the app faster while also eliminating the cost of hosting the backend. This would require migrating hundreds of API endpoints containing tens of thousands of lines of non-trivial business logic from Python to JavaScript, which I was not looking forward to doing.
+
+For a while, it seemed like there was no way out of this situation. The application and its codebase seemed like a giant elephant capable only of taking slow and small steps, reluctant to move at all. I experienced great resistance every time I opened up the codebase in VS Code because the amount of work involved was simply too much.
+
+Then, a few days ago, it struck me that I could move faster by shedding weight. I could remove unnecessary widgets and buttons from a screen, migrate it to the new stack (fortunately, Next.js supports [incremental migration](https://nextjs.org/docs/app/building-your-application/upgrading/app-router-migration)), and add back the removed elements later. What followed, however, can only be described as carnage:
+
+![](https://i.imgur.com/jZDOTSq.png)
+
+![](https://i.imgur.com/kDSlqWi.png)
+
+I didn’t set out to delete two-thirds of the codebase. I wanted to remove just enough to start migrating one module. I looked up page visits for each module over the last 30 days in Google Analytics to determine where to start. While I knew that some pages were less frequently visited than others, I was surprised to see that there were modules that accounted for less than 0.1% of page visits. This meant I could remove them entirely without affecting 99.9% of users. I could delete entire directories containing dozens of files and thousands of lines of code.
+
+As I removed the rarely used modules and their entry points from the rest of the application, it slowly became clear that the app was getting simpler with fewer tabs, pages, and menu items. Removing unused code also felt good. As the codebase got smaller, the resistance and anxiety I was experiencing about the migration also started to reduce. I felt bad initially for removing modules we had spent several weeks or months building, but I knew that I could always get back whatever I needed in the future from the Git history.
+
+After removing entire modules that were seldom used, I proceeded to remove individual screens and popups that accounted for less than 0.5% of traffic. Again, I was surprised to find that hundreds of files could be removed without affecting 99.5% of users. In fact, it affected them in a good way. Five tabs became three, then two, then one, and at this point, tabs could be removed from the page altogether. Many pages now had a more straightforward structure and a single primary action. Fewer API calls led to faster page loads and screen transitions. It felt great!
+
+Once all unnecessary modules and pages were removed, I started digging further in Google Analytics to identify how frequently the features on the remaining pages were being used. I discovered several features that were rarely used, buttons that were almost never clicked, and menu items that were never even seen. So, I proceeded to remove them. The more I took away, the more I liked what was left. I removed several sidebars, dropdown menus, buttons, widgets, popups, and the internal application state & conditional logic required to support them. This also made the code more understandable, which should further ease the migration. What initially seemed like several months of effort now feels like something I can power through in a couple of weeks.
+
+Sunk cost fallacy and loss aversion are human biases that make it difficult to let go of things we no longer need. I still fear I might have taken away too much or removed something essential, but the analytics say otherwise. Just as many users are visiting the site today as before the purge, and they can do (and are doing) pretty much everything they were doing earlier. New users will undoubtedly find the platform easier to navigate and simpler to use. I wonder how many other applications might benefit from deleting 70% of code every few years. It’ll lower the maintenance overhead, allow them to move faster, reduce load times, and ship smaller packages while simultaneously improving user experience and making their software better.
+
+> _“Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away” - Antoine de Saint-Exupery_

@@ -1,0 +1,489 @@
+# TanStack Start: Part 1 - Project Setup
+
+[TanStack Start](https://tanstack.com/start/) is a full stack web framework built on top of [React](https://react.dev), the popular UI library. This series of tutorials will guide you through the process of building a fully-featured modern web application with TanStack Start. We'll build a personal task management app called DoLater.
+
+To follow along with this tutorial, you'll require [Node.js](https://nodejs.org/) (version 25.x or higher) installed on a computer running macOS, Linux, or [Windows WSL](https://learn.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-wsl#install-windows-subsystem-for-linux). You'll also need a terminal<sup>[[1]](#note-1)</sup> like [Ghostty](https://ghostty.org) and a code editor<sup>[[2]](#note-2)</sup> like [VSCodium](https://vscodium.com/). Knowledge of HTML, CSS & TypeScript is assumed here.
+
+Here are the steps we'll follow:
+
+1. [Initialize a new Node.js project](#initialize-a-new-nodejs-project)
+2. [Install and configure TypeScript](#install-and-configure-typescript)
+3. [Install and configure Vite](#install-and-configure-vite)
+4. [Install and configure TanStack Router](#install-and-configure-tanstack-router)
+5. [Define the root React component](#define-the-root-react-component)
+6. [Define file-based routes](#define-file-based-routes)
+7. [Run and build the application](#run-and-build-the-application)
+8. [Set up a Git repository](#set-up-a-git-repository)
+
+
+<a id="initialize-a-new-nodejs-project"></a>
+
+## Step 1 - Initialize a Node.js Project
+
+Open up a terminal window, and run these commands to create a project folder and enter it:
+
+```bash
+mkdir dolater
+cd dolater
+```
+
+Open the folder in a code editor, and create a file `package.json` with the following contents:
+
+```javascript
+{
+  "name": "dolater",
+  "private": true,
+  "type": "module"
+}
+```
+
+The `package.json` configuration file is used to describe a Node.js project, keep track of its dependencies, and define scripts for executing the code, running tests, creating production bundles, etc. We'll enhance the file gradually over time. Here's what it currently contains:
+
+- `"name": "dolater"`: Sets a unique identifier for the project (used by some CLI tools)<sup>[[3]](#note-3)</sup>
+
+- `"private": true`: Prevents accidental publishing to the public NPM package registry<sup>[[4]](#note-4)</sup>
+
+- `"type": "module"`: Indicates the project uses the ES module syntax (not CommonJS)<sup>[[5]](#note-5)</sup>
+
+
+<a id="install-and-configure-typescript"></a>
+
+## Step 2 - Install and Configure TypeScript
+
+The code for the application will be written in [TypeScript](https://www.typescriptlang.org/), a superset of JavaScript with static typing. It catches many errors at compile time, before your code runs. Install the TypeScript compiler and `@types/node` (type definitions for Node.js built-ins<sup>[[6]](#note-6)</sup>) using this command:
+
+```bash
+npm install typescript @types/node
+```
+
+These dependencies are downloaded to a `node_modules` folder in the project root, and they're also automatically listed in the `package.json` file under the `dependencies` key<sup>[[7]](#note-7)</sup>:
+
+```javascript
+{
+  // added below existing fields..
+  "dependencies": {
+    "typescript": "^5",
+    "@types/node": "^25.3.5",
+  }
+}
+```
+
+Create a file `tsconfig.json` in the project root to configure the TypeScript compiler<sup>[[8]](#note-8)</sup>:
+
+```javascript
+{
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] },
+    "jsx": "react-jsx",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  }
+}
+```
+
+Here's a brief description of the important configurations:
+
+- `paths: { "@/*": ["./src/*"] }`: Creates an  [import alias](https://blog.logrocket.com/using-path-aliases-cleaner-react-typescript-imports/) `@/` mapping to `./src/`, so you can write `import { x } from '@/utils'` instead of relative paths like `../../utils`.
+
+- `"jsx": "react-jsx"`: Transform JSX syntax like `<Button title=".." />` using [React](https://www.typescriptlang.org/tsconfig/#jsx).
+
+- `target: "ES2022"`: Compiles TypeScript code into the [ES2022 version](https://www.w3schools.com/js/js_versions.asp) of JavaScript.
+
+- `"module": "ESNext"`: Does not [transform](https://www.typescriptlang.org/docs/handbook/modules/reference.html#es2015-es2020-es2022-esnext) `import`/`export` statements into `require()`.
+
+- `moduleResolution: "bundler"`: Supports [importing modules]((https://www.typescriptlang.org/tsconfig/#moduleResolution)) as preferred by modern bundlers like Vite, without requiring a filename extension (e.g. `utils.js`) in imports.
+
+The other configurations are largely optional but enforce good programming practices and make the compilation faster. See the official [TSConfig reference](https://www.typescriptlang.org/tsconfig/) to learn more about them.
+
+
+
+<a id="install-and-configure-vite"></a>
+
+## Step 3 - Install and Configure Vite
+
+TanStack Start is built on top of [Vite](https://vite.dev), a powerful & configurable tool<sup>[[9]](#note-9)</sup> that lets you (i) run & preview your web app while developing it, and (ii) optimize & package the app for deploying to production. Run this command to install Vite and some necessary plugins using `npm`<sup>[[10]](#note-10)</sup>:
+
+```bash
+npm install vite @tanstack/react-start @vitejs/plugin-react nitro
+```
+
+To configure Vite, create a file `vite.config.ts` in the project root with the following code:
+
+```javascript
+import { defineConfig } from 'vite'
+import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+import { nitro } from "nitro/vite"
+import viteReact from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [tanstackStart(), nitro(), viteReact()],
+  server: { port: 3000 }, // listen for requests on port 3000
+  resolve: { tsconfigPaths: true }, // use import "paths" from tsconfig.json
+})
+```
+
+During development, Vite reads the project code & dependencies, compiles TypeScript files, caches the results, serves them as ES modules. Plugins add the following functionality:
+
+- `@tanstack/react-start` configures Vite to handle HTTP requests using TanStack Start, enabling routing, server-side rendering, response streaming, server functions, etc.
+
+- `nitro` is a production-ready web server and bundler that can package the application's server-side code for any deployment target (Node.js, Bun, Cloudflare Workers, etc.)
+
+- `@vitejs/plugin-react` converts JSX syntax (e.g. `<TaskItem id={4} />`) into plain JavaScript function calls using React's JSX runtime and enables Fast Refresh.<sup>[[11]](#note-11)</sup>.
+
+![vite-dev-server](/img/vite-dev-server.jpg)
+
+The setting `server.port: 3000` configures Vite to use the network port 3000<sup>[[12]](#note-12)</sup> for the development server, and `resolve.tsConfigPaths: true` instructs Vite to resolve imports e.g. `import { X } from '@/utils'` according to the `tsconfig.json` file defined earlier<sup>[[13]](#note-13)</sup>.
+
+
+<a id="install-and-configure-tanstack-router"></a>
+
+## Step 4 - Install and Configure TanStack Router
+
+TanStack Start uses [TanStack Router](https://tanstack.com/router) as its routing system<sup>[[14]](#note-14)</sup>. Install it with this command:
+
+```bash
+npm install @tanstack/react-router
+```
+
+Next, run this command to create an `src` folder which will contain all the application code:
+
+```bash
+mkdir src
+```
+
+Then, create a file `src/router.ts` that exports a function `getRouter` to create the router:
+
+```javascript
+import { createRouter } from '@tanstack/react-router'
+import { routeTree } from './routeTree.gen'
+
+export function getRouter() {
+  const router = createRouter({
+    routeTree,
+    scrollRestoration: true,
+  })
+
+  return router
+}
+```
+
+**Note**: You might see a TypeScript import error because the file  `routeTree.gen.ts` containing the typed route tree doesn't exist. This file will be auto-generated later by TanStack Start<sup>[[15]](#note-15)</sup>.
+
+
+This router matches the incoming request URL (e.g. `/tasks/34`) against a tree of routes to determine which file from `src/routes` should generate the response (e.g. `tasks/$id.tsx`).
+
+![tanstack-start-routing](/img/tanstack-start-routing.jpg)
+
+This approach, where the framework automatically creates route handlers based on the file and folder structure of the project, is called file-based routing. TanStack Router offers a powerful, flexible, and fully type-safe file-based routing system [as described in the docs](https://tanstack.com/router/latest/docs/routing/file-based-routing).
+
+
+<a id="define-the-root-react-component"></a>
+
+## Step 5 - Define the Root React Component
+
+We can now start building the user interface of our web application using React components. Run this command to install `react` and `react-dom`<sup>[[16]](#note-16)</sup> along with their type definitions:
+
+```bash
+npm install react react-dom @types/react @types/react-dom
+```
+
+Run this command to create the folder `src/routes` which will contain all the route files:
+
+```bash
+mkdir src/routes
+```
+
+TanStack Start requires a special "root" route which wraps every other route and defines a root React component for the outer HTML shell of the application i.e. the `<html>`, `<head>`, and `<body>` tags. Create a file `src/routes/__root.tsx` with the following contents:
+
+```javascript
+/// <reference types="vite/client" />
+import {
+  Outlet,
+  createRootRoute,
+  HeadContent,
+  Scripts
+} from '@tanstack/react-router'
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'DoLater' },
+    ],
+  }),
+  component: RootComponent,
+})
+
+function RootComponent() {
+  return (
+    <html>
+      <head><HeadContent /></head>
+      <body>
+        <Outlet />
+        <Scripts />
+      </body>
+    </html>
+  )
+}
+```
+
+Here's a brief description of the important parts of the code:
+
+- `createRootRoute` is used to create the root route with a `head` and a `component`.
+- `head` is used to configure `<meta>`, `<script>`, and `<link>` tags<sup>[[17]](#note-17)</sup> for the app.
+- `component` configures `RootComponent` to be used as the outer shell of the app.
+- `RootComponent` is a React component containing `<html>`, `<head>` & `<body>` tags.
+- `HeadContent` injects all user-configured tags (from root & child routes) into `<head>`.
+- `Outlet` renders the actual page content from the matched child route (e.g. `/about`).
+- `Scripts` injects the JavaScript bundles needed for React's client-side interactivity<sup>[[18]](#note-18)</sup>.
+
+<a id="define-file-based-routes"></a>
+
+## Step 6 - Define File-Based Routes
+
+Let's create two routes<sup>[[19]](#note-19)</sup>: the "Home" page `/` (TanStack calls this an "index" route), and an "About" page `/about`. Create a file `src/routes/index.tsx` with the following contents:
+
+```javascript
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+
+export const Route = createFileRoute('/')({
+  component: IndexPage,
+})
+
+function IndexPage() {
+  const [count, setCount] = useState(0)
+  return (
+    <div>
+      <nav style={{ display: 'flex', gap: 4}}>
+        <a>Home</a>
+        <Link to="/about"> About </Link>
+      </nav>
+      <p>
+        <button onClick={() => setCount(count + 1)}>
+            Click Me: {count} clicks
+        </button>
+      </p>
+    </div>
+  )
+}
+```
+
+Every route file must export a `Route` created with `createFileRoute`<sup>[[20]](#note-20)</sup>, which configures a `component` used to generate the response. Here, the `IndexPage` React component renders a couple of links ("Home" and "About") and a button that can be clicked to update a counter.
+
+Next, create a route file `src/routes/about.tsx` which renders the about page (`/about`):
+
+```javascript
+import { createFileRoute, Link } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/about')({
+  component: AboutPage,
+})
+
+function AboutPage() {
+  return (
+    <div>
+      <nav style={{ display: 'flex', gap: 4}}>
+        <Link to="/">Home</Link>
+        <a>About</a>
+      </nav>
+      <p>DoLater is a task management app for lazy people.</p>
+    </div>
+  )
+}
+```
+
+We now have all the files we need, and the project folder should have the following structure:
+
+```txt
+dolater
+├── node_modules/          # generated by NPM, contains dependencies
+├── src/                   # contains all the application code
+│   ├── routes/            # contains route files
+│   │   └── `__root.tsx`   # contains root route (application shell)
+│   │   └── `index.tsx`    # "/" route (Home page)
+│   │   └── `about.tsx`    # "/about" route (About page)
+│   ├── `router.ts`       # exports getRouter function
+├── `package-lock.json`    # generated by NPM, tracks package versions
+├── `package.json`         # project metadata, dependencies, and scripts
+└── `tsconfig.json`        # configuration for TypeScript compiler
+├── `vite.config.ts`       # plugins and configuration for Vite
+```
+
+TanStack Route also supports [dynamic routes](https://tanstack.com/router/latest/docs/routing/routing-concepts#dynamic-route-segments) (e.g. `tasks.$id.tsx`) that can handle any route matching a pattern (e.g. `/tasks/34`, `tasks/45`). We'll explore these in future tutorials.
+
+<a id="run-and-build-the-application"></a>
+
+## Step 7 - Run and Build the Application
+
+Add a scripts section<sup>[[21]](#note-21)</sup> to `package.json` to develop, build, and preview the app with Vite:
+
+```javascript
+{
+  // add this below existing fields..
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node .output/server/index.mjs"
+  }
+}
+```
+
+Run this `npm` command to invoke the `dev` script and start the Vite development server:
+```bash
+npm run dev
+```
+Open the link http://localhost:3000 in a web browser to view the "Home" page of the app:
+
+![tanstack-start-part-1-preview](/img/tanstack-start-part-1-preview.png)
+
+Clicking the button increments the counter, and clicking "About" navigates to `/about` and updates the URL. TanStack Router also auto-generates `src/routeTree.gen.ts` containing the typed route tree based on the files in `src/routes/` whenver routes are added/modified.
+
+Run the following command to prepare a packaged bundle for deployment to production:
+
+```bash
+npm run build
+```
+
+Vite and Nitro compile and optimize the application, writing the output to an `.output/` folder. The `.output/public/` subfolder contains static assets (HTML, CSS, JavaScript), and the `.output/server/` subfolder contains the Node.js server code for handling HTTP requests.
+
+Run `npm run start` to start the production server and verify that the final build works:
+
+```bash
+npm run start
+```
+
+Open http://localhost:3000 in a browser to view the production build. Unlike the dev server, which compiles the source code in `src` on the fly, you're now running the fully compiled, optimized application from the `.output` folder. It can be deployed to a hosting provider<sup>[[22]](#note-22)</sup>.
+
+
+<a id="set-up-a-git-repository"></a>
+
+## Step 8 - Set Up a Git Repository
+
+[Git](https://git-scm.com/) is a version control system<sup>[[23]](#note-23)</sup> that tracks changes to your code over time. It lets you save snapshots of your project, revert to earlier versions, share your project's source code online, and collaborate with others. Let's set and publish up a a Git repository for our project.
+
+Create a `README.md` file in the project root with some documentation about the project:
+
+```markdown
+# DoLater
+
+DoLater is a task-management app built with TanStack Start.
+
+## Important commands
+
+1. `npm install` - Install dependencies
+2. `npm run dev` - Run Vite development server
+3. `npm run build` - Build production bundle
+4. `npm start` - Run production server
+```
+
+Create a `.gitignore` file<sup>[[24]](#note-24)</sup> in the project root to prevent tracking of certain files & folders:
+
+```txt
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env
+.nitro
+.tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+
+```
+
+These are generated files and folders (like `node_modules/`, `dist/` & `.output/`) that can be recreated from source code, or local environment files (like `.env`) that may contain secrets. 
+
+Now initialize a Git repository, add the files we've created, and create your first commit<sup>[[25]](#note-25)</sup>:
+
+```bash
+git init  # Create a new Git respository in the project root
+git add . # Include add files & folders within the current folder
+git commit -m "Initial commit" # Record a snapshot with a message
+```
+
+You can push the repository to GitHub<sup>[[26]](#note-26)</sup> to back up your code and share it. Create a [new repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository#creating-a-new-repository-from-the-web-ui) on GitHub (without a `README` or `.gitignore`), then connect and push as follows:
+
+```bash
+git remote add origin https://github.com/<username>/dolater.git
+git push -u origin main
+```
+
+Replace `<username>` with your GitHub username. The `-u` flag sets `origin/main` as the default upstream branch, so future pushes only require `git push`. You'll  need to generate and provide a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token) to authenticate yourself with GitHub while pushing.
+
+
+## Conclusion
+
+In this tutorial, we set up a TanStack Start project from scratch. We initialized a Node.js project, configured TypeScript & Vite, set up file-based routing, created a root component & two page routes, ran the development server, built the app, and pushed the code to GitHub.
+
+Here's the finished code: https://github.com/swiftace-org/tanstack-start-tutorial/tree/part-1
+
+In the [next tutorial](/posts/tanstack-start-part-2), we'll focus on improving the development workflow with IDE extensions, code linting & formatting, browser-based devtools, and guidelines for AI coding agents.
+
+
+### Footnotes
+
+1. <span id="note-1"></span> A terminal is a text-based interface for typing and executing commands on your computer. On macOS you can use the built-in Terminal.app, though alternatives like Ghostty offer better performance and customization.
+
+2. <span id="note-2"></span> A code editor provides syntax highlighting, auto-completion, and error detection for writing code. VSCodium is a free, open-source build of VS Code without Microsoft's telemetry and proprietary additions.
+
+3. <span id="note-3"></span> The `name` field is used by `npm` to identify the package in error messages, when publishing, and when other packages list it as a dependency. For private projects, it mainly appears in logs and tooling output.
+
+4. <span id="note-4"></span> The [NPM registry](https://www.npmjs.com/) is a public repository of JavaScript packages that anyone can publish to and download from. Setting `private: true` ensures you can't accidentally publish your project's code there.
+
+5. <span id="note-5"></span> ES modules use `import`/`export` syntax (standardized in ES2015), while CommonJS uses `require()`/`module.exports`. Most modern tools and browsers support ES modules natively, making them the preferred choice for new projects.
+
+6. <span id="note-6"></span> `@types/node` provides TypeScript type definitions for Node.js built-in modules like `fs`, `path`, and `process`. Without it, TypeScript won't recognize Node.js globals used by TanStack Start's server-side code.
+
+7. <span id="note-7"></span> Running `npm install` downloads packages into `node_modules/` and records their exact versions in `package-lock.json`. The `dependencies` section in `package.json` tracks which packages your project needs, using version ranges like `^5`.
+
+8. <span id="note-8"></span> The `tsconfig.json` file controls how the TypeScript compiler checks and transforms your code. It configures language features, module resolution, strictness levels, and output format all in one central place.
+
+9. <span id="note-9"></span> Vite (French for "fast") uses native ES modules to serve files on demand during development, avoiding the slow bundling step of older tools like Webpack. It also uses Rollup under the hood for optimized production builds.
+
+10. <span id="note-10"></span> `npm` (Node Package Manager) is the default command-line tool for installing and managing JavaScript packages. Package names prefixed with `@` (like `@tanstack/react-start`) belong to an organization scope on the NPM registry.
+
+11. <span id="note-11"></span> Fast Refresh instantly updates React components in the browser when you save a file, without losing component state. This makes the development feedback loop much faster compared to a full page reload.
+
+12. <span id="note-12"></span> A network port is a numbered endpoint (0–65535) that identifies a specific service on your computer. Port 3000 is commonly used for local development servers. If it's already in use, Vite will automatically pick the next available port.
+
+13. <span id="note-13"></span> Without `tsconfigPaths`, Vite wouldn't understand import aliases like `@/utils`. This setting makes Vite read the `paths` mapping from `tsconfig.json`, so both TypeScript and Vite resolve these imports consistently.
+
+14. <span id="note-14"></span> A router maps URL paths to components that render the page content. TanStack Router is a type-safe router for React that supports file-based routing, nested layouts, search parameter validation, and automatic code splitting.
+
+15. <span id="note-15"></span> When the dev server starts, TanStack Start scans `src/routes/` and generates `src/routeTree.gen.ts` automatically. This file contains a typed route tree that the router uses to match URLs to components, and it updates whenever route files change.
+
+16. <span id="note-16"></span> `react` is the core library providing component APIs like `useState` and `useEffect`. `react-dom` provides the rendering layer that connects React components to the browser's DOM, handling updates and event delegation.
+
+17. <span id="note-17"></span> `<meta>` tags provide metadata like character encoding and viewport settings. `<script>` tags load JavaScript files. `<link>` tags reference external resources like stylesheets and favicons. Together they configure how browsers display the page.
+
+18. <span id="note-18"></span> The server bundle runs on the server to render the initial HTML for each request (server-side rendering). The client bundle runs in the browser to make the page interactive by handling clicks, state updates, and navigation without full page reloads.
+
+19. <span id="note-19"></span> A route defines the URL pattern and data-loading logic for a path, while the page is the React component that renders the visual content. In TanStack Start, each route file configures both: the route definition and its associated page component.
+
+20. <span id="note-20"></span> `createFileRoute` takes the route path as a string argument (e.g. `'/'` or `'/about'`) so TanStack Router can verify at build time that the file location matches its declared route.
+
+21. <span id="note-21"></span> The `scripts` section in `package.json` defines shortcut commands you can run with `npm run <name>`. This lets you use simple names like `dev`, `build`, and `start` instead of typing out the full underlying commands each time.
+
+22. <span id="note-22"></span> A hosting provider runs your application on their servers so it's accessible on the internet. Popular options for TanStack Start apps include [Vercel](https://vercel.com), [Netlify](https://www.netlify.com), and [AWS](https://aws.amazon.com).
+
+23. <span id="note-23"></span> A version control system records every change made to your files, who made it, and when. This lets you undo mistakes, compare versions, and work on features in parallel using branches without losing previous work.
+
+24. <span id="note-24"></span> A `.gitignore` file lists patterns for files and folders that Git should not track. Git matches these patterns (one entry per line) against file paths and silently skips anything that matches when staging or committing.
+
+25. <span id="note-25"></span> A commit is a snapshot of your project at a specific point in time, identified by a unique hash (e.g. `a1b2c3d`). Each commit records what changed, who made the change, and a message describing why.
+
+26. <span id="note-26"></span> [GitHub](https://github.com) is a cloud platform for hosting Git repositories. It adds collaboration features like pull requests, issue tracking, and code review on top of Git. Alternatives include [GitLab](https://gitlab.com) and [Bitbucket](https://bitbucket.org).
