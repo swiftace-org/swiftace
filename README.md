@@ -58,7 +58,12 @@ kept, so subsequent deploys skip those questions. After the first deploy, sign i
 using the code sent to your admin email; no separate signup or `make-admin` step is needed.
 Use `swiftace make-admin <email>` when promoting additional accounts later.
 
-To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and restart.
+To upgrade, use **Update now** under Updates on `/manage/config`'s General tab, or turn on
+**Update automatically** there to install new releases from a daily check. Both run
+`swiftace update` as root through the `swiftace-update` units `deploy` installs: it downloads
+the latest release and runs its `deploy`, so the site restarts for a few seconds. From a shell,
+`sudo swiftace update` does the same. A server deployed before 0.2.2 needs one
+`sudo swiftace upgrade && sudo swiftace deploy` to get the units.
 
 ## Command line
 
@@ -69,9 +74,10 @@ To upgrade, `sudo swiftace upgrade`, then `sudo swiftace deploy` to migrate and 
 | `swiftace make-admin <email>`                                  | Makes an existing account an admin                                                                       |
 | `swiftace upgrade [version] [-y]`                              | Replaces the binary with the latest release, or the given one, checked against its `SHA256SUMS`          |
 | `swiftace deploy <domain> [redirects…] [--preview-domain <d>]` | Installs SwiftAce as a service behind Caddy (as root, on Linux)                                          |
+| `swiftace update`                                              | Upgrades a deployed server to the latest release and deploys it (as root)                                |
 | `swiftace version`, `swiftace help`                            | Prints the version, or the commands and variables                                                        |
 
-`SWIFTACE_RELEASES_URL` points `upgrade` somewhere other than this repository's releases.
+`SWIFTACE_RELEASES_URL` points `upgrade`, `update` and `/manage/config` somewhere other than this repository's releases.
 
 ## Configuration
 

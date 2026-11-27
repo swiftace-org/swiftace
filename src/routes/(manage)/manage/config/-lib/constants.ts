@@ -261,3 +261,9 @@ export const BRANDING_TAB_ASSETS = (Object.keys(BRAND_ASSET_DETAILS) as BrandAss
 )
 
 export const ICON_MIN_SIZE = 512
+
+export const UPDATE_POLL_INTERVAL_MS = 3000
+/** systemd starts the updater as soon as the request appears, so a minute means it isn't there. */
+export const UPDATE_PICKUP_TIMEOUT_MS = 60 * 1000
+/** Longer than a download and a deploy take, but short of swiftace-update.service's own limit. */
+export const UPDATE_TIMEOUT_MS = 20 * 60 * 1000

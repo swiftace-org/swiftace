@@ -1,9 +1,18 @@
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
 import { describe, expect, it } from "vite-plus/test"
 
 import { DEFAULT_INTEGRATION_SETTINGS } from "@/lib/config"
 import type { IntegrationSettings } from "@/types/site-config"
 
-import { toAdminIntegrationSettings, toIntegrationSettings } from "./utils.server"
+import {
+  readUpdateStatus,
+  toAdminIntegrationSettings,
+  toIntegrationSettings,
+  writeUpdateRequest,
+} from "./utils.server"
 
 const stored: IntegrationSettings = {
   ...DEFAULT_INTEGRATION_SETTINGS,
@@ -185,6 +194,27 @@ describe("service configuration", () => {
       expect(
         toIntegrationSettings({ objectStorage: { ...objectStorage, endpoint } }, stored),
       ).toHaveProperty("error")
+    }
+  })
+})
+
+describe("update files", () => {
+  it("writes the request the updater watches for, and reads back only what it reports", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "swiftace-update-"))
+    try {
+      const requestedAt = await writeUpdateRequest(dir)
+      expect(await readFile(join(dir, "update-requested"), "utf8")).toBe(`${requestedAt}\n`)
+
+      expect(await readUpdateStatus(dir)).toBeNull()
+      const status = { state: "failed", startedAt: requestedAt, fromVersion: "0.2.1", error: "x" }
+      await writeFile(join(dir, "update-status.json"), JSON.stringify(status))
+      expect(await readUpdateStatus(dir)).toEqual(status)
+      for (const junk of ["{", "null", JSON.stringify({ ...status, state: "exploded" })]) {
+        await writeFile(join(dir, "update-status.json"), junk)
+        expect(await readUpdateStatus(dir)).toBeNull()
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true })
     }
   })
 })

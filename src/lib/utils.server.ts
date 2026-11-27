@@ -219,6 +219,7 @@ function toSiteConfig(rows: { section: string; data: unknown }[]): SiteConfig {
     legal: mergeOverDefaults(DEFAULT_SITE_CONFIG.legal, stored.legal),
     integrations: mergeOverDefaults(DEFAULT_SITE_CONFIG.integrations, stored.integrations),
     aiTutor: { ...aiTutor, models: aiTutor.models.filter(isAiTutorModel) },
+    updates: mergeOverDefaults(DEFAULT_SITE_CONFIG.updates, stored.updates),
   }
 }
 
