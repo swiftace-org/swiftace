@@ -3,8 +3,8 @@
 
 export const SITE = {
   general: {
-    siteName: "Datalane Academy",
-    companyName: "Datalane Learning",
+    siteName: "Meridian Academy",
+    companyName: "Meridian Learning",
     tagline: "Hands-on courses in data science and AI",
     description:
       "Learn Python, SQL, machine learning and AI by building real projects, with video lessons, notebooks and graded assignments.",
@@ -321,7 +321,7 @@ export function coverHtml(course: DemoCourse): string {
     <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1.5px,transparent 1.5px);background-size:28px 28px"></div>
     <div style="position:absolute;right:-40px;top:60px;width:620px;height:520px;opacity:.95">${MOTIFS[motif]}</div>
     <div style="position:absolute;left:72px;bottom:72px;width:560px;color:white">
-      <div style="font-size:22px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:18px">Datalane Academy</div>
+      <div style="font-size:22px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:18px">${SITE.general.siteName}</div>
       <div style="font-size:64px;font-weight:800;line-height:1.05">${course.title}</div>
     </div>
   </div></body></html>`

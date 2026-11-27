@@ -3,9 +3,10 @@
 // with test/demo-data.ts, and a seeded one is reused. Images live in the fakes, so they're
 // uploaded again on every run.
 //
-//   DATABASE_URL=postgres://… bun test/demo.ts [dist/swiftace]
+//   DATABASE_URL=postgres://… bun test/demo.ts [dist/swiftace] [--screenshots <dir>]
 //
-// With a binary, it migrates and runs it on PORT (4000). Without one, it seeds the database
+// With a binary, it migrates and runs it on PORT (4000), or with `--screenshots` saves
+// test/demo-screenshots.ts's light and dark screenshots of it to <dir> and stops. Without one, it seeds the database
 // `vp run dev` uses and prints the environment to run it with. Sign in as admin@example.com or
 // any learner: the emailed codes are printed here. Chromium renders the images, as in
 // test/integration.ts.
@@ -28,11 +29,17 @@ import {
   sectionVideo,
   TUTOR_CONVERSATION,
 } from "./demo-data.ts"
+import { takeScreenshots } from "./demo-screenshots.ts"
 import { fakeServiceEnv, startFakeServices } from "./fake-services.ts"
 
 const DATABASE_URL = process.env.DATABASE_URL
 if (!DATABASE_URL) throw new Error("Set DATABASE_URL to a database the demo may fill")
-const binary = process.argv[2] ? resolve(process.argv[2]) : null
+const args = process.argv.slice(2)
+const screenshotsFlag = args.indexOf("--screenshots")
+const screenshotsDir = screenshotsFlag >= 0 ? args.splice(screenshotsFlag, 2)[1] : undefined
+if (screenshotsFlag >= 0 && !screenshotsDir) throw new Error("Pass a directory to --screenshots")
+const binary = args[0] ? resolve(args[0]) : null
+if (screenshotsDir && !binary) throw new Error("Taking screenshots needs a binary to run")
 const PORT = Number(process.env.PORT ?? 4000)
 const HOST = process.env.HOST ?? "127.0.0.1"
 const BUCKET = "swiftace-demo"
@@ -69,21 +76,13 @@ if (rows[0].count === 0) {
   console.log("Seeded the demo content")
 } else {
   console.log("Courses exist already, so the demo content wasn't seeded")
+  // The notebook's server has a new port each run.
+  await db.query(`update course_sections set resources = $1 where slug = $2`, [
+    notebookUrl,
+    COURSES[0]!.sections.find((section) => section.notebook)!.slug,
+  ])
 }
 await db.end()
-
-let server: Bun.Subprocess | null = null
-if (binary) {
-  server = Bun.spawn([binary, "start"], { env, stdout: "inherit", stderr: "inherit" })
-  console.log(`\nDemo site: http://${HOST}:${PORT}`)
-} else {
-  console.log(
-    `\nRun the dev server with these added to .env:\n${Object.entries(fakeServiceEnv(fakes.url))
-      .map(([key, value]) => `${key}=${value}`)
-      .join("\n")}`,
-  )
-}
-console.log(`Sign in as ${ADMIN.email} (admin) or ${LEARNERS[0]!.email}; codes are printed below\n`)
 
 let printed = 0
 const printer = setInterval(() => {
@@ -93,15 +92,60 @@ const printer = setInterval(() => {
   printed = fakes.state.emails.length
 }, 500)
 
-for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.on(signal, async () => {
-    clearInterval(printer)
-    server?.kill()
-    await server?.exited
-    await notebooks.stop(true)
-    await fakes.stop()
-    process.exit(0)
+let server: Bun.Subprocess | null = null
+if (binary) {
+  server = Bun.spawn([binary, "start"], {
+    env,
+    stdout: screenshotsDir ? "ignore" : "inherit",
+    stderr: "inherit",
   })
+  console.log(`\nDemo site: http://${HOST}:${PORT}`)
+  if (screenshotsDir) {
+    const base = `http://${HOST}:${PORT}`
+    await waitForServer(base)
+    try {
+      await takeScreenshots({
+        base,
+        dir: resolve(screenshotsDir),
+        email: ADMIN.email,
+        emails: () => fakes.state.emails,
+      })
+    } finally {
+      await stop()
+    }
+  }
+} else {
+  console.log(
+    `\nRun the dev server with these added to .env:\n${Object.entries(fakeServiceEnv(fakes.url))
+      .map(([key, value]) => `${key}=${value}`)
+      .join("\n")}`,
+  )
+}
+console.log(`Sign in as ${ADMIN.email} (admin) or ${LEARNERS[0]!.email}; codes are printed below\n`)
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => void stop())
+
+async function stop() {
+  clearInterval(printer)
+  server?.kill()
+  await server?.exited
+  await notebooks.stop(true)
+  await fakes.stop()
+  process.exit(0)
+}
+
+async function waitForServer(base: string) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (
+      await fetch(base).then(
+        (response) => response.ok,
+        () => false,
+      )
+    )
+      return
+    await Bun.sleep(200)
+  }
+  throw new Error(`The demo site didn't answer at ${base}`)
 }
 
 /** Renders the covers and icon, and stores them in the fakes under content-hashed keys. */
