@@ -1,0 +1,3 @@
+# site/ is swiftace.org, its own Bun server. Its pages and vendored assets are not the app,
+# and linting them would demand edits that change the HTML.
+site

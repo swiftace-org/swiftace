@@ -1,0 +1,280 @@
+# How to Deploy a Web App to a Cloud VM
+
+Let's walk through the process of deploying a web application to a Linux-based [cloud virtual machine](https://chatgpt.com/share/67381924-3264-800a-87e1-4b66b658da21) (VM). Along the way, we'll also discuss best practices for ensuring the security and reliability of your app. Basic knowledge of [Linux](https://www.youtube.com/watch?v=rrB13utjYV4) and command-line tools is assumed here<sup>[[1]](#note-1)</sup>.
+
+Here are the steps we'll follow:
+
+1. Create an SSH key pair to access and operate cloud VMs securely
+2. Rent a Linux-based VM online and assign a public IP address to it
+3. Configure DNS records to point a domain name to the rented VM
+4. Log in to the VM remotely using SSH and execute shell commands
+5. Download source code and prepare the production build of a web app
+6. Run the web app as a system service with auto-restart on crash/reboot
+7. Configure a reverse proxy to serve the web app securely over HTTPS
+8. Set up a network firewall to block undesired traffic on non-HTTP ports
+
+To get the most out of this tutorial, first follow along and deploy the included [sample web app](https://github.com/aakashns/nextjs-starter), and then repeat the process to deploy your own app by making the necessary changes. If you encounter errors, post screenshots to AI tools like [ChatGPT](https://chatgpt.com)/[Claude](htps://claude.ai) and ask for help.
+
+## 1. Create an SSH Key Pair
+
+We'll use a command-line tool called [SSH (Secure Shell)](https://chatgpt.com/share/6783dc7f-41d8-8007-8661-9f472bcb4c25) to access and operate a cloud VM remotely from a local machine (e.g., your laptop). While we can log in to a cloud VM via SSH with just a username and password, using an [SSH key pair](https://chatgpt.com/share/6783dcc1-3ab8-8007-9cb2-d79ce6c6a8da) is a much more secure method.
+
+Let's generate a new SSH key pair on our local machine. Open up a new terminal on Linux, macOS, or [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/setup/environment) and run the following command (without the `$` at the start):
+
+```bash
+$ ssh-keygen -t ed25519 -f ~/.ssh/webapp -C "webapp"
+```
+
+_You can replace `webapp` above and hereafter with a more specific name e.g. `my-blog`._
+
+You'll be prompted to enter an optional [passphrase](https://chatgpt.com/share/6783dd1d-6554-8007-b6ad-7fdc5a5224de) to encrypt the private key, adding yet another layer of security. If you set one, you'll be asked to enter it every time you use the key. Let's verify that the key pair was created in the directory `~/.ssh` using the `ls` command:
+
+```bash
+$ ls ~/.ssh
+
+webapp  webapp.pub
+```
+
+Two key files are created in `~/.ssh`: a private key `webapp` and a public key `webapp.pub`.
+
+## 2. Rent a Cloud VM
+
+Rent a cloud VM with at least 1 GB RAM on a platform like [Hetzner Cloud](https://www.hetzner.com/cloud/) or [DigitalOcean](https://www.digitalocean.com/pricing/droplets). The cheapest VM on Hetzner ($5 per month for 2 CPU cores, 4 GB RAM, and 40 GB disk space) can comfortably support up to 10,000 daily users for a typical web application<sup>[[2]](#note-2)</sup>.
+
+While configuring the VM, make sure to enable the assignment of a [public IPv4 address](https://chatgpt.com/share/6783dd74-aa58-8007-b593-ed4820c37d4a) and select "SSH Key" as the authentication method (instead of a "root" user password). To add your public SSH key to the VM, first run the following command on your local machine:
+
+```bash
+$ cat ~/.ssh/webapp.pub
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2TIn2kyfSfBCUlSr6CNgrYTarqEUoCy1gEeC14qqmx webapp
+```
+
+Then, copy the result displayed and paste it into the "Add SSH Key" dialog on Hetzner<sup>[[3]](#note-3)</sup>:
+
+![ssh-key](https://i.imgur.com/AYNNoFd.png)
+
+Leave other settings in their default state, create the VM, and note its public IPv4 address:
+
+![ipv4](https://i.imgur.com/kun3ulM.png)
+
+<a id="connect-a-domain" href="#"></a>
+
+## 3. Connect a Domain
+
+You can purchase a domain name (e.g., "yourdomain.com") for your web application from domain registrars like [Namecheap](https://www.namecheap.com/), [GoDaddy](godaddy.com/), or [Cloudflare](https://domains.cloudflare.com/). Once purchased, you must add a [DNS `A record`](https://chatgpt.com/share/6783ddc2-d44c-8007-9de0-9157dc03b75d) to point the domain (or a subdomain) to the IPv4 address of the cloud VM:
+
+![dns-record](https://i.imgur.com/rfwfv6G.png)
+
+Make sure it’s a straight DNS pointer [without a proxy](https://chatgpt.com/share/6783de1b-7644-8007-838a-527d1a892287), and delete any [conflicting DNS records](https://chatgpt.com/share/6783de5a-0388-8007-b195-eae4a3e40136) (`A` or `CNAME`). Run the `host` command locally to check if the domain points to the right IP:
+
+```bash
+$ host yourdomain.com
+
+yourdomain.com has address 48.13.135.0
+```
+
+_Replace `yourdomain.com` above and hereafter with the domain name you've configured._
+
+## 4. SSH into the VM
+
+We've successfully created a cloud VM, added an SSH public key to it, and configured a domain to point to its IP address. We can now log in to the VM via SSH using the private key created earlier. Just run the following command in a terminal on your local machine:
+
+```bash
+$ ssh -i ~/.ssh/webapp root@yourdomain.com
+```
+
+You'll be presented with the [warning](https://chatgpt.com/share/6783deaf-0288-8007-8bbe-29135bf654fe): `Are you sure you want to continue connecting?`. Type `yes` and press Enter/Return to continue. You're now remotely logged in to the cloud VM as the `root` user, and the `$` [prompt changes](https://chatgpt.com/share/6783deed-d808-8007-8107-472c94a13b4b) to `#`. Try executing the `pwd` command:
+
+```bash
+# pwd
+
+/root
+```
+
+_Use the `exit` command to log out, and run the SSH command shown earlier to log back in._
+
+## 5. Prepare a Web App
+
+You can use the VM to deploy web applications built using any programming language or framework. Let's demonstrate this process for a web app built using [Next.js](https://nextjs.org/), a popular JavaScript framework. First, let's install [Node.js](https://nodejs.org/en) and [npm](https://www.npmjs.com/about) to enable JavaScript execution:
+
+```bash
+# apt update && apt install nodejs npm
+```
+
+Next, let's download the source code for a Next.js project using the [`git clone`](https://chatgpt.com/share/6783df3e-a4fc-8007-9168-2f5788c66ce2) command:
+
+```bash
+# git clone https://github.com/aakashns/nextjs-starter.git webapp
+```
+
+If you clone a private repository, you'll be prompted to enter a username and password. If the repository is hosted on GitHub, make sure to enter a [personal access token](https://chatgpt.com/share/6783df7e-357c-8007-b02c-9f22ba74283d) as the password.
+
+Next, let's enter the project directory, install dependencies, and create a [production build](https://chatgpt.com/share/6783dfab-693c-8007-aac7-3700f7a9a32e):
+
+```bash
+# cd webapp && npm install && npm run build
+```
+
+_The above commands will differ based on the language and/or web framework you're using._
+
+We can now run the production server with the `npm start` command. However, to keep the server running even after we log out of the VM, we must set it up as a Linux system service.
+
+## 6. Create a System Service
+
+A [Linux system service](https://chatgpt.com/share/6783dff0-c15c-8007-98ae-74b32cbc5f33) is a background process that starts during system boot or runs in response to specific triggers. To run our web application as a system service, let's create a file `webapp.service` in the `/etc/systemd/system` directory using the [`nano` text editor](https://chatgpt.com/share/6783e01d-def0-8007-b789-d106f7dd7cb1):
+
+```bash
+# nano /etc/systemd/system/webapp.service
+```
+
+Paste the following text into the file, then press `Ctrl+O Enter` to save, and `Ctrl+X` to exit:
+
+```ini
+[Service]
+WorkingDirectory=/root/webapp
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/npm start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+The above [minimal configuration](https://chatgpt.com/share/6783e070-0338-8007-bf61-1c24b20baeb5) creates a service that runs `npm start` inside the directory `/root/webapp` on system boot, and automatically restarts the application if it ever crashes.
+
+Next, run the following command to load the configuration and start the service:
+
+```bash
+# systemctl enable --now webapp
+```
+
+We can verify that the service is up and running using the `systemctl status` command:
+
+```bash
+# systemctl status webapp
+
+● webapp.service
+     Loaded: loaded (/etc/systemd/system/webapp.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2024-11-14 10:36:50 UTC; 1min 49s ago
+   Main PID: 7642 (npm start)
+      Tasks: 31 (limit: 4543)
+     Memory: 80.8M (peak: 101.0M)
+        CPU: 3.057s
+     CGroup: /system.slice/webapp.service
+             ├─7642 "npm start"
+             ├─7657 sh -c "next start"
+             └─7658 "next-server (v15.0.3)"
+
+Nov 14 10:36:50 webapp systemd[1]: Started webapp.service.
+Nov 14 10:36:51 webapp npm[7642]: > nextjs-starter@0.1.0 start
+Nov 14 10:36:51 webapp npm[7642]: > next start
+Nov 14 10:36:52 webapp npm[7658]:    ▲ Next.js 15.0.3
+Nov 14 10:36:52 webapp npm[7658]:    - Local:        http://localhost:3000
+Nov 14 10:36:52 webapp npm[7658]:  ✓ Starting...
+Nov 14 10:36:52 webapp npm[7658]:  ✓ Ready in 744ms
+```
+
+The Next.js app is listening for HTTP requests on [port 3000](https://chatgpt.com/share/6783e0c3-0b4c-8007-9b22-68d003a58b91) (this may differ based on your language/framework). Open the URL http://yourdomain.com:3000 (replace `yourdomain.com` with your actual domain) in a browser on your local machine to access the web application:
+
+![web-app](https://i.imgur.com/LKrrL2t.png)
+
+Run the command `systemctl daemon-reload && systemctl restart webapp` to restart the service if you update the source code, rebuild the application, or edit the configuration. Use the command `journalctl -xefu webapp.service` to [view application logs](https://chatgpt.com/share/6783e11d-36d8-8007-8e38-6a1b5dd1da43) and error messages.
+
+## 7. Reverse Proxy with HTTPS
+
+We must serve our web app over [HTTPS (Hypertext Transfer Protocol Secure)](https://www.cloudflare.com/en-gb/learning/ssl/what-is-https/) to encrypt the data exchanged between users' browsers and our cloud VM. Let's install [Caddy](https://caddyserver.com/), a [reverse proxy server](https://blog.hubspot.com/website/reverse-proxy) that can intercept web traffic to decrypt requests and encrypt responses:
+
+```bash
+# apt install caddy
+```
+
+Caddy sets up a system service upon installation and starts listening for incoming requests on the standard ports for HTTP (port 443) and HTTPS (port 22). Let's [configure Caddy](https://chatgpt.com/share/6783e15e-87c8-8007-beac-01ede01dbc99) to route requests to our web app by editing the file `/etc/caddy/Caddyfile` using `nano`:
+
+```bash
+# nano /etc/caddy/Caddyfile
+```
+
+Erase the existing contents of the file, paste in the following (replace `yourdomain.com` with your actual domain), then save the file with `Ctrl+O Enter`, and exit `nano` with `Ctrl+X`:
+
+```bash
+yourdomain.com {
+	reverse_proxy localhost:3000
+}
+
+```
+
+_**TIP**: Add more entries above to host multiple web apps and domains on a single cloud VM._
+
+The above configuration instructs Caddy to provision an [SSL certificate](https://www.cloudflare.com/en-gb/learning/ssl/what-is-an-ssl-certificate/) for our domain, relay decrypted incoming requests to our web app listening on port 3000, and encrypt outgoing responses. Let's reload Caddy's system service to put the configuration changes into effect:
+
+```bash
+# systemctl reload caddy
+```
+
+You can now navigate to https://yourdomain.com (replace `yourdomain.com` with your actual domain) to see the web app served securely over HTTPS. The URL http://yourdomain.com (insecure HTTP) automatically redirects to HTTPS, ensuring that all web traffic is secure.
+
+## 8. Set Up a Network Firewall
+
+Note that our web app is still publicly accessible at http://yourdomain.com:3000 over the insecure HTTP protocol. We can prevent such unauthorized access by setting up a network firewall using `ufw` ([Uncomplicated Firewall](https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands)). Run the following commands in the cloud VM:
+
+```bash
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw allow http
+ufw allow https
+ufw enable
+```
+
+These commands disable incoming traffic from external sources on all network ports except the standard ports for SSH (port 22), HTTP (port 80), and HTTPS (port 443). The web app is no longer accessible at http://yourdomain.com:3000. Run `ufw status` to view open ports:
+
+```bash
+# ufw status
+
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+80/tcp                     ALLOW       Anywhere
+443                        ALLOW       Anywhere
+22/tcp (v6)                ALLOW       Anywhere (v6)
+80/tcp (v6)                ALLOW       Anywhere (v6)
+443 (v6)                   ALLOW       Anywhere (v6)
+```
+
+And that's it! We now have a robust and secure web application running on a cloud VM:
+
+![](https://i.imgur.com/gE1nVL4.png)
+
+## Conclusion
+
+While deploying a web application to a cloud VM might seem intimidating, it's ultimately a series of simple and logical steps. You can monitor and enhance the setup as follows:
+
+1. Use the [`htop` command](https://spin.atomicobject.com/htop-guide/) to track the VM's CPU and memory usage in real-time.
+
+2. Set up an uptime monitor like [Pulsetic](https://pulsetic.com/) to get notified over email if the app crashes.
+
+3. [Export logs](https://chatgpt.com/share/6738660f-6c04-800a-a311-13370f07a76e) from Caddy and your web app using `journalctl` to analyze traffic.
+
+4. Run multiple [load-balanced](https://chatgpt.com/share/67386680-ac98-800a-9a42-86ec9d43c3da) instances of the app to maximize CPU utilization.
+
+5. Enable [automatic disk backups](https://docs.hetzner.com/cloud/servers/getting-started/enabling-backups/) if you're saving important user data on the VM.
+
+6. [Scale up](https://chatgpt.com/share/67386750-4fd4-800a-ad18-53039a135284) the CPU and RAM of your cloud VM to keep up with increasing traffic.
+
+7. Serve static files using a [Content Delivery Network](https://www.cloudflare.com/en-gb/learning/cdn/what-is-a-cdn/) to save network bandwidth.
+
+8. Set up a [GitHub action](https://chatgpt.com/share/673867ed-8ba4-800a-bbcb-3849d211ea53) to automate the deployment of new changes to the VM.
+
+Apart from being [faster, cheaper, and more portable](https://swiftace.org/posts/ditching-serverless) than proprietary hosting platforms, our setup is also tremendously flexible. The largest VM on Hetzner (48 vCPUs, 192 GB RAM, and 960 GB disk space) can support hundreds of thousands of daily users for typical web apps.
+
+I hope you found this tutorial helpful.
+
+### Footnotes
+
+1. <a id="note-1"></a> [The Missing Semester of Your CS Education](https://missing.csail.mit.edu/) is a great practical introduction to Linux and the command line. These skills will pay lifelong dividends in your career as a developer.
+
+2. <a id="note-2"></a> With two CPU cores each serving one request at at time in ~150 ms, the VM can serve 1 million+ requests per day, i.e., ~10,000 daily users (assuming ~100 requests per user).
+
+3. <a id="note-3"></a> DigitalOcean requires you to upload a public key file. As the directory `~/.ssh/` is not accessible via a GUI file explorer, you'll have to [copy the public key](https://chatgpt.com/share/673848ea-1a68-800a-b90d-1232a7e4359e) to another directory.

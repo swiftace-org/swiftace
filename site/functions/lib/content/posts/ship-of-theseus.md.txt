@@ -1,0 +1,135 @@
+# Ship of Theseus Software Development
+
+I want [SwiftAce](https://swiftace.org) to be customizable and extensible. Educators should be able to install third-party plugins to modify the look, behavior & functionality of the platform, add new features, and set up integrations with other software.
+
+For instance, educators based in North America might install a [Stripe](https://stripe.com/en-th) plugin to collect payments, while those based in India might install a [Razorpay](https://razorpay.com/) plugin, while those based in Africa might install a [Paysack](https://paysack.com/) plugin, and so on.
+
+Similarly, while SwiftAce supports SQLite by default, it should be possible to connect it to an externally hosted Postgres/MySQL database. Likewise, we can easily come up with several categories of plugins e.g. localization, analytics, single sign-on, video hosting, etc.
+
+Plugins are typically developed using dedicated mechanisms, interfaces, and APIs for extensibility. WordPress, for instance, provides event-driven [hooks](https://developer.wordpress.org/apis/hooks/action-reference/) for executing custom code and modifying data. Such mechanisms often impose arbitrary limits on extensibility.
+
+## Extreme Extensibility
+
+I want to take extensibility to its logical extreme: user-installed plugins should be able to modify or extend every single component of SwiftAce, down to individual functions, variables, and HTML elements. I call this approach Ship of Theseus software development.  
+
+[The Ship of Theseus](https://en.wikipedia.org/wiki/Ship_of_Theseus) is a metaphorical ship whose planks are replaced one by one until none of the original planks remain. Although it's primarily a philosophical thought experiment, I feel it provides a useful mental model for continuity and incremental change.
+
+Most software is already a Ship of Theseus, in the sense that developers constantly modify source code, libraries, frameworks, and sometimes even programming languages. However, this ability is rarely offered to end users, or is offered in extremely restricted scopes.
+
+Here's the guiding principle for Ship of Theseus software development: *Make every component of your software replaceable via third-party plugins/extensions*. Every. Single. One. Let's look at how this can be achieved within a JavaScript (Node.js) application [[1]](#note-1). 
+
+## A Sample Program
+
+Let's say we have a JavaScript file `lib.mjs` [[2]](#note-2) containing a utility function called `operate`:
+
+```javascript
+// lib.mjs
+
+function operate(x, y) {
+  return x + y;
+}
+
+export default { operate };
+```
+
+Next, let's say we have another file `usage.mjs` which imports and uses the `operate` function define above:
+
+```javascript
+// usage.mjs
+
+import lib from './lib.mjs';
+
+function foo() {
+    console.log(lib.operate(1, 3))
+}
+
+export default { foo };
+```
+
+Finally, let's create a file `main.mjs` that serves as the entry point for the program, and simply invokes the `foo` function defined above:
+
+```javascript
+// main.mjs
+
+import usage from './usage.mjs';
+
+usage.foo();
+```
+
+We can now execute the program using Node.js:
+
+```shell
+$ node main.mjs
+4
+```
+
+As expected, the result is 4, since `foo` invokes `operate` with the inputs 1 and 3, and `operate` returns their sum, which `foo` then prints to the screen. Our program executes code from three files: `lib.mjs`, `usage.mjs`, and `main.mjs`.
+
+## A Sample Plugin
+
+Let's try to change the implementation of the `operate` funciton in `lib.mjs` without changing the file `lib.mjs` directly. First, let's add some code to `main.mjs` to check the existence of a file named `plugin.mjs` and execute the code within it, if the file exists:
+
+```javascript
+// main.mjs
+
+import usage from './usage.mjs';
+
+// Additional code to load a plugin, if present
+import { existsSync } from 'node:fs';
+async function loadPlugin() {
+  const filePath = './plugin.mjs';
+  // Check if the plugin file exists
+  const exists = existsSync('./plugin.mjs');
+  // Dynamically import & execute the code
+  if (exists) await import('./plugin.mjs');
+}
+await loadPlugin();
+
+usage.foo();
+```
+
+Next, let's create a file `plugin.mjs` which imports the `lib.mjs` module and overrides the operate function:
+
+```javascript
+// plugin.mjs
+
+import lib from './lib.mjs';
+
+// New implementation 
+function operate(x, y) {
+  return x + y;
+}
+
+// Override old implementation
+lib.operate = operate; 
+```
+
+Let's execute the program again and look at the result:
+
+```shell
+$ node main.mjs
+-2
+```
+
+The result is now `-2`, indicating that `usage.foo` uses the overridden implementation of `operator` from `plugin.mjs` even though we haven't modified `lib.mjs` or `usage.mjs` directly. 
+
+## Implications
+
+When we override `lib.operator` in `plugin.mjs`, the change is applied to all future usage of `lib.operator` in any file across the project. Such overrides are possible because of ES module caching [[3]](#note-3). 
+
+Note that `main.mjs` does not require a `plugin.mjs` file to be present in the project directory. The `plugin.mjs` file is only imported and executed if it exists. Thus, our application can be shipped to an end user with just `lib.mjs`, `usage.mjs`, and `main.mjs`. 
+
+An end user of our application can then download a `plugin.mjs` from a third-party developer (or write their own) to extend or modify the application as desired [[4]](#note-4), without modifying the original source code. I find this rather neat.
+
+I plan to use the Ship of Theseus approach to make every part of SwiftAce replaceable. I hope to see a vibrant community of themes, plugins, extensions, and integrations to help educators and students get the most out of SwiftAce in any context.
+
+
+### Footnotes
+
+1. <a id="note-1"></a> A similar design is possible with Python, Ruby, Lua, and several other languages. The only requirement is the ability to hot swap modules, functions, and variables at run time.
+
+2. <a id="note-2"></a> The `.mjs` file extension allows the usage of JavaScript [ES module imports](https://nodejs.org/api/esm.html) instead of `require` within Node.js applications.  
+
+3. <a id="note-3"></a> Once a module is loaded, it is cached in memory, and any modifications affect all usages of the module. Note that we’re using a default export and exporting an object to allow for mutations. Named exports from a module cannot be overridden.
+
+4. <a id="note-4"></a> Letting users download and run arbitrary code can be a security hazard, but it can dealt with outside the application codebase (e.g. only allowing plugins to be installed from trusted sources, having an “official” marketplace of plugins, etc.). 

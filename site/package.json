@@ -1,0 +1,12 @@
+{
+  "name": "swiftace.org",
+  "private": true,
+  "type": "module",
+  "description": "The swiftace.org website, served by Bun",
+  "scripts": {
+    "start": "bun server.js"
+  },
+  "dependencies": {
+    "marked": "12.0.2"
+  }
+}

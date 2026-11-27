@@ -1,0 +1,42 @@
+# Why I'm Switching to Deno
+
+After [ditching Cloudflare Workers](http://localhost:2001/posts/ditching-serverless) to deploy [SwiftAce](https://swiftace.org) on plain old cloud VMs, I've decided to build on [Deno](https://deno.com). It's a (relatively) new JavaScript runtime created by Ryan Dahl, the original author of [Node.js](https://nodejs.org/) (the current de facto choice for server-side JavaScript applications).
+
+
+## Cutting Edge Yet Stable
+
+JavaScript has come a long way since the early days of Node.js. With [ES6](https://webreference.com/javascript/es6/) and [subsequent versions](https://webreference.com/javascript/basics/versions/#ecma-script-2016-es-7), it has become rather delightful to write. By building on [V8](https://v8.dev/) and [ECMAScript modules](https://docs.deno.com/runtime/fundamentals/modules/), Deno supports the latest improvements in official JavaScript standards right out of the box.
+
+Deno offers standard browser APIs like `fetch`, web sockets, `localStorage`, web workers, etc. for server-side development. This should reduce context switching and allow for greater code sharing between the backend and the frontend while ensuring long-term stability.
+
+Deno's recent [2.0 release](https://deno.com/blog/v2.0) offers (almost) full backward compatibility with Node.js, so most NPM packages now work with Deno, even those with native [Node-API addons](https://nodejs.org/api/addons.html). Deno is also significantly [faster](https://deno.com/blog/v2.0#deno-is-fast) than Node.js across a wide range of scenarios.  
+
+## One Tool To Rule Them All
+
+The Node.js ecosystem has seen tremendous churn in tooling over the past 10 years. It's frustrating to keep up with the latest package manager, build tool, linter, code formatter, testing framework, and so on. It leads to a significant maintenance overhead.
+
+Deno, on the other hand, ships as a [single binary](https://docs.deno.com/runtime/reference/cli/) that offers almost everything needed for building web applications: package installation, linting, code formatting, TypeScript and JSX transpilation, test execution, documentation generation, and more. It's refreshingly simple! 
+
+While Deno's built-in tooling might not be as feature-rich as an assortment of the latest tools in the Node.js ecosystem, it offers a sane set of defaults. Deno 2.0 was developed over the course of [4.5 years](https://deno.com/blog/v1), so the built-in tooling is likely to remain stable for the next 5-10 years.  
+
+## No Bundling or Build Step
+
+As I've outlined in the [design principles](https://swiftace.org/posts/design-principles) for SwiftAce, I do not want to use any frontend frameworks, and I plan to write raw HTML, CSS, and JavaScript for the frontend. I want to take a similar approach for the backend, and avoid any transpilation, bundling, or build step.
+
+Deno has a built-in [HTTP server](https://docs.deno.com/runtime/fundamentals/http_server) which, combined with on-the-fly transpilation for TypeScript and JSX, eliminates the need for a backend framework or a build step. I can `git clone` the code to a production server and run with the exact same command I use in development. 
+
+I want SwiftAce to be [extensible](https://swiftace.org/posts/ship-of-theseus) via third-party plugins, and I feel eliminating the build step is necessary for the behavior I'm trying to achieve. Installing plugins should be as simple as downloading their code to a `plugins` directory and automatically restarting the web server. 
+
+## Avoiding Vendor Lock-In
+
+There's just one significant risk in picking Deno as the runtime for SwiftAce: vendor lock-in. While Deno is open source and MIT Licensed, it is developed and owned by a VC-backed company that also offers a proprietary serverless hosting platform called [Deno Deploy](https://deno.com/deploy). 
+
+At some point, Deno might start prioritizing and pushing features designed to work well (or exclusively) with their deployment platform. [Vercel](https://vercel.com) did this with [Next.js](https://nextjs.org), and it has turned out to be [ridiculously expensive](google.com/search?q=vercel+pricing+too+high) for many people, with no simple alternative for self-hosting.      
+
+I intend to mitigate this risk by not targeting Deno Deploy and operating with the assumption that we'll eventually migrate away from Deno. The cross-platform [standard library](https://deno.com/blog/std-on-jsr) can limit the surface area of most Deno-specific APIs, and I can create helper modules for the rest. 
+
+For now, it appears Deno is the right tool for the job. Time will tell how the choice plays out.
+
+
+
+

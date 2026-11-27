@@ -1,0 +1,27 @@
+## Features
+
+- **Courses** with video lessons, Jupyter notebooks, quizzes and graded assignments
+- **Certificates** for learners who complete a course
+- **AI tutor** that knows the course and the lesson a learner is on
+- **Paid courses** with Stripe subscriptions and free lesson previews
+- **White-labeling** for your site's name, logo, home page, pricing and legal pages
+- **Admin tools** to manage courses, participants, progress and grading
+- **Sign in** with email codes, Google or GitHub
+- **Integrations** with Amazon SES, Cloudflare R2 (or any S3-compatible storage), Turnstile and PostHog
+- **One-command deploys** behind Caddy, with updates from the admin page
+
+## Install
+
+SwiftAce runs on Linux and macOS (x64 and arm64). This installs the latest release as `/usr/local/bin/swiftace`, and running it again upgrades:
+
+```sh
+curl -fsSL https://swiftace.org/install.sh | sh
+```
+
+You'll need a Postgres database, Amazon SES to send email, and an S3-compatible bucket such as Cloudflare R2. On a Linux server with [Caddy](https://caddyserver.com/docs/install) installed and DNS pointing at it, deploy your site with:
+
+```sh
+sudo swiftace deploy example.com
+```
+
+It migrates the database, creates an admin account and runs SwiftAce as a service behind Caddy. See the [README](https://github.com/swiftace-org/swiftace#readme) for configuration, upgrades and local development.

@@ -1,0 +1,3 @@
+# site/ is swiftace.org. Formatting its pages or vendored CSS/JS would change files that
+# have to keep rendering as they do, including the syntax highlighter.
+site

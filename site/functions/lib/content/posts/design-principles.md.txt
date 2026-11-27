@@ -1,0 +1,26 @@
+# Design Principles for SwiftAce
+
+As an initial target, [SwiftAce](https://swiftace.org) intends to serve online educators (like myself) offering 2-5 courses with an audience of up to 100,000 registered learners. Eventually, it might expand to serve the needs of companies looking to use it for employee training, or schools/universities looking to use it as their primary LMS.
+
+From a technical standpoint, I want SwiftAce to satisfy the following criteria:
+
+1. **Robust**: Handle high traffic and large volumes of content without compromising functionality, performance, or reliability.
+2. **Fast**: Optimized for quick loading times and responsive interactions, even with complex course content.
+3. **Cheap**: Cost-effective to deploy and scale, with minimal infrastructure and maintenance costs.
+4. **Extensible**: Allow customization of look & feel, and extension of functionality with integrations and plugins.
+
+I feel these criteria are necessary for SwiftAce to succeed as an open-source project. Keeping these in mind, and considering that SwiftAce will be self-hosted by educators, I want to outline some key design principles:
+
+1. **No Frontend Frameworks**: I'm using raw HTML, CSS, and JavaScript (no React, Next.js, Tailwind, TypeScript etc.) to ensure maximum control, [reduce complexity](https://swiftace.org/posts/webdev), allow customization, and improve performance. It also avoids the overhead of constantly keeping up breaking changes, framework-level bug fixes, security updates, etc.
+
+2. **No Third-Party Services**: All functionality (database, [user authentication](https://swiftace.org/posts/authentication), analytics, monitoring, email, background jobs) will be built in-house or using open-source alternatives to avoid vendor lock-in, reduce costs, improve stability, and ensure privacy. We will provide APIs and webhooks for building custom integrations. Exception: YouTube/Vimeo for hosting videos.
+
+3. **Deployed to Plain Old Cloud VMs**: I've decided to [ditch serverless for plain old cloud VMs](https://swiftace.org/posts/ditching-serverless), as it will make the application faster, cheaper, and more reliable. A $5/month cloud VM should be able to support 10,000+ daily active users (this is equivalent to the current scale of [Jovian](https://jovian.com), and it costs us $500/month to run it). In other words, I'm aiming for a 99% reduction in cost.
+
+4. **100% Test Coverage**: Unlike SaaS platforms where new features are deployed weekly/daily, open-source software has a slower release cycle (monthly/quarterly/semi-annually), and users expect new versions to be stable and bug-free. All code will be thoroughly tested to catch bugs early, ensure reliability, and maintain high-quality standards. [Linus's law](https://www.laws-of-software.com/laws/linus/) should help us here.
+
+5. **Full Backward Compatibility**: We'll ensure that new updates do not break existing setups, allowing users to upgrade without fear of disrupting their current installations or customizations. This does, however, mean that new features will be added slowly (removing features is much harder than adding them), and the underlying data model will evolve gradually.
+
+6. **Extensive Documentation:** We'll provide comprehensive guides, tutorials, and API references to deploy, customize, and extend SwiftAce. This will reduce support requests, encourage community contributions, and help users fully leverage the platform's capabilities. We'll publish detailed technical articles & tutorials ([example](https://swiftace.org/posts/anatomy-of-a-form-part-1)) to encourage contributions.
+
+Some of the above add a significant overhead in terms of development time, and some are hard engineering challenges that will require some learning and experimentation.I might revisit some of these goals if chances of failure (or giving up) are high.

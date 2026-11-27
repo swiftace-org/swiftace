@@ -1,0 +1,22 @@
+# The What, Why, and How of SwiftAce
+
+[SwiftAce](https://swiftace.org) is an open-source platform for hosting online courses (think "Wordpress/Shopify for Online Education"). Like blogs and online marketplaces, courses are a cross-cutting concern across domains:
+
+- Open-source projects or programming languages might offer tutorials as official courses
+- Proprietary software services or platforms might want to offer training via online courses
+- Popular YouTubers might want to grow their income using an online course (many do)
+- Universities might offer online or remote certification programs to learners worldwide
+- Experts in various fields might want to share and monetize their knowledge online
+- Companies might want to train new employees using internal team-specific courses
+
+To be widely applicable across domains, SwiftAce must be cost-effective to deploy and scale with minimal infrastructure and maintenance costs. Specifically, a $5/mo [cloud VM](/posts/ditching-serverless) should be able to support up to 10,000 daily users, thereby making it a no-brainer to self-host.
+
+SwiftAce must also be completely customizable and extensible via custom themes, plugins, extensions, and integrations with payment gateways, authentication providers, AI chatbots, programming language compilers, marketing tools, etc. just like WordPress and Shopify.
+
+The core product is straightforward: courses have modules, modules have sections that can be lessons (with videos & notes), quizzes (multiple choice, fill in the blanks, etc.), and assignments/projects requiring submission and evaluation. Here's an indicative wireframe:
+
+![](https://i.imgur.com/UQYTQzT.png)
+
+All other use-case specific features will be added using plugins. This is surprisingly hard to enable because present-day software development tools & practices aren't designed for it. I've identified a [framework](https://swiftace.org/posts/ship-of-theseus) for extensibility, but there are implementation challenges ahead.
+
+Over the course of 2025, I intend to work towards launching alpha and beta versions of SwiftAce, create detailed documentation and guides, help initial users self-host SwiftAce, and initiate a third-party plugin ecosystem, all while keeping the [design principles](https://swiftace.org/posts/design-principles) in mind.

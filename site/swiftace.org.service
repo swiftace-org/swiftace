@@ -1,0 +1,39 @@
+[Unit]
+Description=swiftace.org
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+# The site/ directory, copied here. Files must be readable by the service user.
+WorkingDirectory=/opt/swiftace.org
+# Bun's JIT needs this folder's tsconfig, not the app's, or the pages don't render as HTML.
+ExecStart=/usr/local/bin/bun --tsconfig-override=/opt/swiftace.org/tsconfig.json server.js
+Environment=HOST=127.0.0.1
+Environment=PORT=2001
+DynamicUser=yes
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+# Bun compiles JavaScript to machine code as it runs, so MemoryDenyWriteExecute stays off.
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,273 @@
+# How to Build a Custom JSX Runtime
+
+[JSX](https://facebook.github.io/jsx/) is a syntax extension for JavaScript that lets you write HTML-like markup within a JavaScript file. It was first introduced by [React](https://legacy.reactjs.org/docs/introducing-jsx.html) and is now used by several web frameworks. JSX also lets you define custom reusable "components" <sup>[[1]](#note-1)</sup> and use them like HTML tags.
+
+Here's an example of some JSX code in a React application ([see it live](https://playcode.io/2057322)):
+
+```javascript
+import { createRoot } from 'react-dom/client';
+
+function Greeting({ name }) {
+  return <h1>Hello, {name}!</h1>;
+}
+
+function App() {
+  return (
+    <div class="container">
+      <Greeting name="World" />
+      <p>Welcome to JSX</p>
+    </div>
+  );
+}
+
+createRoot(document.body).render(<App />);
+```
+
+We define a JSX component `Greeting` that accepts a "prop"<sup>[[2]](#note-2)</sup> `name` and creates an `h1` heading. Then, we define a component `App` that creates a `div` containing a `Greeting` and a paragraph. Finally, we "render"<sup>[[3]](#note-3)</sup> the `App` into the body of the HTML page in the browser.
+
+In this tutorial, we'll create a custom JSX runtime that can be used within a web application (both on the server and within the browser) to turn JSX code into valid HTML. The code shown in this tutorial can be found here: [https://github.com/aakashns/custom-jsx-runtime](https://github.com/aakashns/custom-jsx-runtime).
+
+## How JSX Works
+
+While JSX code looks like HTML, under the hood JSX "elements"<sup>[[4]](#note-4)</sup> are transformed into JavaScript function calls. This transformation is done by a compiler/bundler like [TypeScript](https://www.typescriptlang.org/docs/handbook/jsx.html), [ESBuild](https://www.typescriptlang.org/docs/handbook/jsx.html), or [Deno](https://docs.deno.com/runtime/reference/jsx/). The code shown above is transformed into the following before execution:
+
+```javascript
+import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
+import { createRoot } from "react-dom/client";
+
+function Greeting({ name }) {
+  return _jsxs("h1", { children: ["Hello, ", name, "!"] });
+}
+
+function App() {
+  return _jsxs("div", {
+    class: "container",
+    children: [
+      _jsx(Greeting, { name: "World" }),
+      _jsx("p", { children: "Welcome to JSX" }),
+    ],
+  });
+}
+
+createRoot(document.body).render(_jsx(App, {}));
+```
+
+JSX tags are replaced with calls to the functions `_jsx` and `_jsxs` imported from a framework-specific "JSX runtime" <sup>[[5]](#note-5)</sup>. Both these functions accept three arguments:
+
+1. `type`: The type (or name) of the element. Tag names starting with lowercase letters (e.g. `div` or `p`) represent raw HTML tags and are converted to strings, while tag names starting with uppercase letters (e.g. `Greeting` or `App`) represent components. 
+
+2. `props`: Attributes passed to JSX tags are collected into an object of key-value pairs called `props`. Further, child tags are included in a special prop `children`. The `_jsx` function is used for zero or one child, while `_jsxs` is used for two or more children.
+
+3. `key` (optional): The attribute `key` is not included in `props`. Rather, it is passed as a third argument to the function. It typically represents a unique identifier for an element in a list. It is used by React and other frameworks for efficient [rendering of lists](https://react.dev/learn/rendering-lists). 
+
+Objects created using a JSX runtime are turned into DOM nodes (in a browser) or HTML files (on a server) using a renderer. The `App` object created above using `react/jsx-runtime` is rendered into a browser's `document.body` using `createRoot` from `react-dom/client`.
+
+## A Custom JSX Runtime
+
+Let's implement a simple JSX runtime to transform JSX tags into plain JavaScript objects. Let's create a folder `customjsx` and add a file `jsx-runtime.js` in it with the following code:
+
+```javascript
+// customjsx/jsx-runtime.js
+
+export function jsx(type, props, key = null) {
+  return { type, props, key };
+}
+
+export const jsxs = jsx;
+```
+
+That's it! That's the entire JSX runtime. The function `jsx` returns an object containing the `type`, `props`, and `key` passed in as arguments, and `jsxs` does the same. Libraries like [React](https://github.com/facebook/react/blob/main/packages/react/src/jsx/ReactJSXElement.js#L381), [Preact](https://github.com/preactjs/preact/blob/main/jsx-runtime/src/index.js#L29), or [Hono](https://github.com/honojs/hono/blob/main/src/jsx/dom/jsx-dev-runtime.ts#L9) use more sophisticated implementations to support specific features.
+
+Next, let's create a file `app.jsx` containing some JSX code mixed in with JavaScript:
+
+```javascript
+// app.jsx
+
+function Greeting({ name }) {
+  return <h1>Hello, {name}!</h1>;
+}
+
+console.log(
+  <div class="container">
+    <Greeting name="World" />
+    <p>Welcome to JSX</p>
+  </div>
+);
+```
+
+We define a component `Greeting` and use it to create a `div` element containing a `Greeting` and a paragraph. We log the `div` element to the console for inspection.
+
+## Configuration and Execution
+
+We'll run `app.jsx` using [Deno](https://deno.com), a Node.js alternative with [built-in](https://docs.deno.com/runtime/reference/jsx/) JSX support <sup>[[6]](#note-6)</sup>. We can configure Deno to use our JSX runtime by adding a file `deno.jsonc` with the following code:
+
+```javascript
+// deno.jsonc
+{
+  "compilerOptions": {
+    // Use a JSX runtime similar to React
+    "jsx": "react-jsx",
+    // Import the runtime from a custom source
+    "jsxImportSource": "./customjsx"
+  },
+  "imports": {
+    // Add ".js" to the path while importing the runtime
+    "./customjsx/jsx-runtime": "./customjsx/jsx-runtime.js"
+  }
+}
+```
+
+We can now execute the code (assuming we have already [installed](https://docs.deno.com/runtime/getting_started/installation/) Deno) by running the following command on a terminal (on Linux or macOS) or command prompt (on Windows): 
+
+```bash
+$ deno app.jsx
+```
+
+Executing the above command results in the following output:
+
+```javascript
+{
+  type: "div",
+  props: {
+    class: "container",
+    children: [
+      { type: [Function: Greeting], props: { name: "World" }, key: null },
+      { type: "p", props: { children: "Welcome to JSX" }, key: null }
+    ]
+  },
+  key: null
+}
+```
+
+The output is an object with the key `type` set to `div`, and `props` set to an object with keys `class` and `children`. The first child has `type` set to `Greeting` (our custom component) and a prop `name` set to `World`, while the second is a `p` tag with a single text child.
+
+## Rendering to HTML
+
+Next, let's define a function `renderToHtml` to turn the output of our JSX runtime into a valid HTML string. Let's create a file `render.js` within `customjsx` with the following code:
+
+```javascript
+// customjsx/render.js
+
+/* Renders a JSX element to its HTML string representation */
+export function renderToHtml(element) {
+  if ([null, undefined, false].includes(element)) return ""; // Empty
+  if (typeof element === "string") return escapeForHtml(element); // Text
+  if (typeof element === "number") return element.toString(); // Number
+  if (Array.isArray(element)) return element.map(jsxToStr).join(""); // List
+
+  if (typeof element !== "object") throw Error("Element must be an object");
+  const { type, props } = element;
+  if (typeof type === "function") return jsxToStr(type(props)); // Component
+
+  const { children, ...attrs } = props; // HTML tag
+  const attrsStr = attrsToStr(attrs);
+
+  if (VOID_TAGS.includes(type)) { // Self-closing e.g. <br>
+    if (children) throw Error("Void tag cannot have children");
+    return `<${type}${attrsStr}>`;
+  }
+
+  const childrenStr = jsxToStr(children);
+  return `<${type}${attrsStr}>${childrenStr}</${type}>`;
+}
+```
+
+`renderToHtml` recursively converts a tree of JSX elements into an HTML string. It handles empty values, text, numbers, custom component functions, HTML tags (normal and self-closing), and arrays of children elements. Let's also implement the helper functions it uses:
+
+```javascript
+// customjsx/render.js
+
+/* Convert &, <, >, ", ' to escaped HTML codes to prevent XSS attacks */
+function escapeForHtml(unsafeText) {
+  const CODES = { "&": "amp", "<": "lt", ">": "gt", '"': "quot", "'": "#39" };
+  return unsafeText.replace(/[&<>"']/g, (c) => `&${CODES[c]};`);
+}
+
+/* Convert an object of HTML attributes to a string */
+function attrsToStr(attrs) {
+  const illegal = /[ "'>\/= \u0000-\u001F\uFDD0-\uFDEF\uFFFF\uFFFE]/;
+  const result = Object.entries(attrs)
+    .map(([key, value]) => {
+      if (illegal.test(key)) {
+        throw Error(`Illegal attribute name: ${key}`);
+      }
+      if (value === true) return ` ${key}`; // Boolean (true)
+      if ([null, undefined, false].includes(value)) return null; // Skipped
+      return ` ${key}="${value.toString().replace(/"/g, "&quot;")}"`;
+    })
+    .filter(Boolean)
+    .join("");
+  return result;
+}
+
+/* Self-closing HTML tags that can't have children */
+const VOID_TAGS = ["area", "base", "br", "col", "command", 
+  "embed", "hr", "img", "input", "keygen", "link", 
+  "meta", "param", "source", "track", "wbr"];
+```
+
+Finally, let's turn `app.js` into a web application that renders JSX and serves an HTML page:
+
+```javascript
+// app.jsx
+
+import { renderToHtml } from "./customjsx/render.js";
+
+function Greeting({ name }) {
+  return <h1>Hello, {name}!</h1>;
+}
+
+function App() {
+  return (
+    <html>
+      <head>
+        <title>Custom JSX</title>
+      </head>
+      <body>
+        <div class="container">
+          <Greeting name="World" />
+          <p>Welcome to JSX</p>
+        </div>
+      </body>
+    </html>
+  );
+}
+
+// Use Deno's built in HTTP server
+Deno.serve((req) => {
+  const htmlPage = renderToHtml(<App />);
+  const headers = { "Content-Type": "text/html" };
+  return new Response(htmlPage, { headers });
+});
+
+```
+
+We can now run the app by executing the following command on a terminal:
+
+```bash
+$ deno --allow-net app.jsx
+```
+
+You can now open up the URL http://localhost:8000 in a browser to view the HTML page:
+
+![page-preview](https://i.imgur.com/x1TNa9l.png)
+
+And that's it! We've built a custom JSX runtime<sup>[[7]](#note-7)</sup> from scratch, including a function to turn JSX elements into a valid spec-compliant HTML string. We can use `renderToHtml` to programmatically generate HTML on both the server and within a browser.
+
+I hope you found this introduction to building JSX runtimes useful.
+
+### Footnotes
+
+1. <a id="note-1"></a> A **JSX component** is a self-contained, reusable piece of UI in JavaScript, defined as a [function or class](https://legacy.reactjs.org/docs/components-and-props.html#function-and-class-components). It typically integrates structure, styling, and behavior in a single unit.
+
+2. <a id="note-2"></a> **Props** (properties) are inputs that look like HTML attributes, [passed to](https://react.dev/learn/passing-props-to-a-component) a JSX component to enable customization, dynamic behavior, and data flow from parent nodes.
+
+3. <a id="note-3"></a> [Rendering](https://legacy.reactjs.org/docs/rendering-elements.html#rendering-an-element-into-the-dom) is the process of converting JSX elements into DOM nodes in the browser or HTML strings on a server. Libraries like [React Native](https://reactnative.dev) can also render to mobile apps. 
+
+4. <a id="note-4"></a> A JSX tag, together with its props and child tags, is called an **element**. Elements can be made up of simple HTML tags (e.g. `div`) or custom components (e.g. `Greeting`).
+
+5. <a id="note-5"></a> The mechanism of **JSX runtimes** enables web frameworks to implement [different strategies](https://chatgpt.com/share/671b49d9-a238-800a-99cf-998d1df8ed24) for parsing and rendering JSX nodes while using the same familiar syntax.
+
+6. <a id="note-6"></a> If you're using [TypeScript](https://www.w3schools.com/typescript/typescript_getstarted.php) with Node.js, you can [configure](https://www.typescriptlang.org/tsconfig/#jsxImportSource) it using a `tsconfig.json` file. Similarly, ESBuild can be [configured](https://esbuild.github.io/content-types/#using-jsx-without-react) via command line arguments or `tsconfig.json`.
+
+7. <a id="note-7"></a> Our implementation excludes features like [state](https://react.dev/learn/managing-state), [hooks](https://react.dev/reference/react/hooks), [keys](https://react.dev/learn/rendering-lists), etc. for creating dynamic and interactive UI elements, since we only use it to generate HTML strings. However, we should consider adding features like [`Fragment`](https://react.dev/reference/react/Fragment) and [`dangerouslySetInnerHtml`](https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html).

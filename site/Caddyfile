@@ -1,0 +1,14 @@
+# swiftace.org, proxied to the Bun server in swiftace.org.service.
+# Caddy obtains the certificate. The app listens only on loopback.
+#
+# If /etc/caddy/Caddyfile already has other sites, paste this block into it
+# instead of replacing the file. The port must match the service's PORT.
+swiftace.org {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:2001
+}
+
+# Once www.swiftace.org points at this machine:
+# www.swiftace.org {
+# 	redir https://swiftace.org{uri}
+# }

@@ -4,7 +4,8 @@ SwiftAce is an open-source course platform: video lessons, Jupyter notebooks, qu
 assignments, certificates, an AI tutor and Stripe subscriptions. It's a TanStack Start app, built
 with Vite+ and compiled into a single Bun binary, with its data in Postgres.
 
-- All source code is in `src/`; `src/cli/` is the `swiftace` binary's command line (see below)
+- All source code for the app is in `src/`; `src/cli/` is the `swiftace` binary's command line (see below)
+- `site/` is swiftace.org, a separate Bun server, not part of the binary and ignored by `vp check`
 - `components/ui` contains components from shadcn-ui (never edit these files directly)
   - always use these and add new ones using CLI if needed, don't write them yourself
   - one standing exception: `sidebar.tsx` imports `useIsMobile` from `@/lib/hooks`, not the

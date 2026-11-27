@@ -1,0 +1,108 @@
+# Building User Authentication from Scratch
+
+Building a user authentication system for a web or mobile app can be notoriously difficult, which is why there are dozens of open-source projects (e.g. [Passport](https://www.passportjs.org/), [Auth.js](https://auth.js.org/)) and cloud-based services (e.g. [Supabase](https://supabase.com/docs/guides/auth), [Clerk](https://clerk.com/)) dedicated to helping developers build secure and reliable user authentication.
+
+For SwiftAce, however, I’ve chosen to implement authentication from scratch. I want to limit the external dependencies in the project to the absolute minimum, and I don't feel user authentication necessarily requires external libraries or cloud services. This post outlines the high-level design of the authentication system.
+
+Most websites support various forms of authentication, like passwords, magic sign-in links, social logins, SMS one-time passwords, etc. For now, SwiftAce will only support one form of authentication (verification codes sent over email), but the underlying data model will establish a framework for adding other forms of authentication without breaking changes or disruptions.
+
+## User Interface
+
+There’s a single “Sign In / Sign Up” page that asks users for their email and includes a human verification check (CAPTCHA) powered by [Cloudflare Turnstile](https://www.cloudflare.com/en-in/products/turnstile/):
+
+![](https://i.imgur.com/5Z1XDjr.png)
+
+Upon clicking “Continue”, the system checks if the user already has an account on the site. If the user does not already have an account, a new form is presented, asking for their first name, last name, and a 6-digit verification code which is sent over email:
+
+![](https://i.imgur.com/xWSe8iu.png)
+
+If the user already has an account, they are simply asked to enter the verification code that is sent over email to sign in:
+
+![](https://i.imgur.com/12Rfjo8.png)
+
+Using verification codes sent over email to authenticate the user eliminates the need for a username and password. It also removes the need for an additional “verify your email” step. Upon entering the verification code and clicking “Continue”, the user is signed in and redirected to the home page:
+
+![](/img/screenshot.png)
+
+This is a simple, yet effective user authentication experience for getting things off the ground. Potential enhancements would include replacing “Email Address” with “Email or Phone” and adding social login options (Google, Apple, GitHub, etc.) on the first screen. At some point, we can also offer two-factor authentication for greater security.
+
+## Server-Side Logic
+
+SwiftAce uses [cookie-based authentication](https://stackoverflow.com/questions/17769011/how-does-cookie-based-authentication-work) to identify requests from logged-in users. Here’s how the entire authentication flow works:
+
+### Step 1 - Code Generation
+
+- When a user enters their email on the “Sign In / Sign Up” page and clicks “Continue”, a temporary 6-digit verification code is generated.
+  - The human verification check prevents spam by ensuring that the form cannot be submitted programmatically.
+- The verification code is stored in a key-value store (the user’s email is the key and the generated code is the value) and sent to the user over email (via [AWS SES](https://aws.amazon.com/ses/)).
+- Simultaneously, the user’s email is also looked up in a database to check if they are already registered.
+  - If an account is found, the next screen should only ask for a verification code.
+  - If an account isn’t found, the next screen should also ask for the user’s first and last name.
+
+### Step 2 - Code Verification
+
+- On the next screen, the user enters the verification code received over email, and clicks “Continue”. The user’s email is also submitted along with the code.
+  - This form is also protected by a human verification check to prevent a brute-force attack.
+- The user’s email is used to retrieve the generated code from the key-value store, and the generated code is compared with the code entered by the user.
+- If the two codes match, the user has successfully proven their ownership of the email, and they can now be logged in.
+
+### Step 3 - Account Creation (if needed)
+
+- If the user doesn’t already have an account, we create a new account by saving the user’s name and email into the database. Account creation generates a numeric user ID, which will uniquely identify the user within the system.
+- If the user already has an account, we simply look up their account in the database using the provided email and note their user ID.
+
+### Step 4 - Session Token Generation
+
+- A new session token is generated (it’s a random UUID) and a SHA 256 hash of this token is stored in the database table along with the user’s ID.
+- The session token is also returned in the HTTP response as part of a “Set-Cookie” header. This ensures that the session token is stored in a browser cookie, and is included in every future request sent from the user’s browser.
+
+### Step 5 - Session Token Verification
+
+- Whenever a new request is received from the same user, the cookie is looked up and the session token is retrieved. The SHA 256 hash of this token is then looked up in the database to retrieve the associated user ID.
+- Thus, requests with a valid session token can identify a user and perform privileged actions on behalf of the associated user, e.g., enrolling into courses, completing assignments, changing their profile picture, etc.
+
+### Step 6 - Logging Out
+
+- When a user logs out from the application, the session token is cleared from the browser cookie, and all sessions for the user are deleted from the database.
+- Thus, future requests from the browser can no longer identify a user or take actions on their behalf.
+- Session cookies are also configured to expire after 30 days. Once they expire, the user is automatically logged out.
+
+The server-side logic and the user interface markup together account for less than 300 lines of code and can be found in the files [login.jsx](https://github.com/swiftace-org/swiftace/blob/66bc8ba88a3f73bb889e809c8a9f34de6ae0721e/functions/login.jsx) and [auth.js](https://github.com/swiftace-org/swiftace/blob/66bc8ba88a3f73bb889e809c8a9f34de6ae0721e/functions/lib/utils/auth.js).
+
+## Data Model
+
+Here’s the SQLite command used to create the `users` database table for SwiftAce:
+
+    CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        first_name TEXT NOT NULL CHECK (length(first_name) < 128),
+        last_name TEXT CHECK (length(last_name) < 128),
+        avatar_url TEXT CHECK (length(avatar_url) < 1024)
+    );
+
+Every user has a unique ID, autogenerated when the user is created, along with the timestamp `created_at`. First name is the only necessary piece of information required to register a new user. The last name and profile picture (avatar) are optional.
+
+The `users` table does not contain a column for the user’s email address, which is stored in a separate table called `user_emails`. It is created using the following SQLite command:
+
+    CREATE TABLE user_emails (
+        email TEXT PRIMARY KEY NOT NULL CHECK (length(email) < 256),
+        user_id INTEGER NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+Storing user emails in a separate table allows associating multiple emails with a user account. It also allows for user accounts to be created without the need for an email. For instance, we could create another table `user_phone_numbers` which can be used in conjunction with the `users` table to implement phone-based authentication. Similarly, a table `user_social_logins` could be used in conjunction with the `users` table to implement social logins (Google, GitHub, etc.). Similarly, a table `user_passkeys` could be used to implement passwordless login with [passkeys](https://developers.google.com/identity/passkeys).
+
+Finally, here’s a table for keeping track of active user sessions:
+
+    CREATE TABLE user_sessions (
+        token_hash TEXT PRIMARY KEY NOT NULL,
+        user_id INTEGER NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+This table stores a hash of the session token, instead of the token itself, to prevent user sessions from being hijacked if the contents of the `user_sessions` are accidentally leaked. An alternate mechanism is [JSON Web Tokens](https://jwt.io/) which do not require a database lookup, but they cannot be revoked.
+
+And that’s everything it takes to build a user authentication system from scratch. It's simple, secure (as far as single-factor authentication systems go), and extensible. I hope you find this post useful for implementing user authentication in your own apps.

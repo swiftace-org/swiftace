@@ -1,0 +1,47 @@
+# Large-Scale Code Refactoring with AI
+
+I'm currently revamping [Jovian](https://jovian.com), migrating it from a [Next.js](https://nextjs.org/) 11 frontend + [Flask](https://flask.palletsprojects.com/en/stable/) (Python) backend to a full-stack [TanStack Start](https://tanstack.com/start) app, while also modernizing the user interface and changing some features. The revamped app is deployed at https://beta.jovian.com.
+
+I started out with a fairly flat structure where the `src/routes` folder contained all the [routes](https://tanstack.com/router/latest/docs/routing/file-based-routing) and `src/lib` contained files like `utils.ts`, `utils.server.ts`, `types.ts`, `config.ts` (for environment variables & constants), and `src/db` contained the database schema & queries.
+
+The folder `src/components` contained common components used throughout the app, and I placed components & server functions used in specific routes inside folders `-components` and `-functions` next to the route files (the `-` prefixed folders are [not treated](https://tanstack.com/router/latest/docs/routing/routing-concepts#excluding-files-and-folders-from-routes) as routes).
+
+As the codebase grew to 15k+ lines of TypeScript, the files in `src/lib` and `src/db` grew to hundreds of lines, some even over a thousand, so I decided to refactor it into a more modular structure, colocating helper functions and constants next to the route files that use them.
+
+A refactor of this scale would have taken at least a few days, if not a week, just a few months ago. However, Claude Opus 5 essentially one-shotted the whole refactor in ~20 minutes and cost around $25. Over 5700 lines of code were moved & hundreds of imports were updated.
+
+
+Here's the full prompt I used:
+
+<div style="font-family:monospace;background:#111;padding:0.5rem 0.5rem;">
+Aight Claude, we are going to do a major cleanup and refactor here. You see how some files have gotten soo big! (like @src/lib/utils.server.ts etc.). I think the codebase has reached a point where we need another layer of modularity. So here's what we're going to do:
+
+- Just as we have -components and -functions folders, let's also have a -lib folder which will have utils.ts, utils.server.ts, types.ts etc.
+
+- Now I want to keep any environment-derived variables in the top level config.ts and config.server.ts, but the other stuff can go into module-specific -lib/constants.ts and -lib/constants.server.ts files (let's not call it config anymore at the module level).
+
+- Basically, I want the entire codebase to now become more modular. And I feel the @src/db/read.server.ts and other db query files are also getting too long. So, let's maybe skip this CRUD-based file pattern and instead have a module-level -lib/db.server.ts files which will have the database queries.
+
+- And let's move @src/db/schema.server.ts to src/lib/schema.server.ts.
+
+- Finally, also move @src/lib/certificate.server.ts and @src/lib/markdown.server.ts to -lib/utils.server.ts files in the right place. I think these files are kinda random and don't fit.
+
+- Further, to better organize the routes by modules of work, let's create route groups e.g. (manage) can be a route group for management etc. in places where the existing directory structure isn't doing sufficient encapsulation.
+
+- And while we're at it, let's also re-look at the file-based routing setup and see if we made the right choices (e.g. directory vs flat) to organize routes properly (of course, don't change any actual route paths).
+
+- And let's of course also update the CLAUDE.md according to this new set of guidelines, but don't get too overly verbose (samajdhar to ishara kaafi hai).
+
+- And finally, I think some of the code comments are way too long, so let's shorten the big walls of text and just keep 2 lines max (unless absolutely necessary) and also establish that guideline.
+
+Okay, that's all I'm thinking right now, tell me if I'm making any big errors or overlooking something important, and if this is the right approach. Let's go.
+</div>
+
+It did ask me for a few clarifications (presented as multiple-choice questions) before starting the refactor, and I changed my mind about organizing types midway through the refactor:
+
+<div style="font-family:monospace;background:#111;padding:0.5rem 0.5rem;">
+okay, quick change here, i think moving types inside will cause type duplication, do you tink it imgiht be better to rather have a src/types folder and have several files there to group types?
+</div>
+
+
+Other than that, there was basically no intervention on my part (I did give it a couple of minor follow-up tasks), and the application worked perfectly after the refactor. Without AI, I might have never pursued this refactor. Programming has changed forever, there is no fighting it.

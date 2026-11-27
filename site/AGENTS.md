@@ -1,0 +1,2 @@
+- Paragraphs should never be more than 48 words long
+- Before writing anything, read at least one other post that might be related.

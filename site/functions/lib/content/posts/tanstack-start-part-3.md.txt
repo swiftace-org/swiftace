@@ -1,0 +1,462 @@
+# TanStack Start: Part 3 - Design System
+
+In the [previous tutorial](/posts/tanstack-start-part-2), we enhanced the developer experience for our [TanStack Start](https://tanstack.com/start) app. In this tutorial, we'll set up a modern design system, consisting of a color scheme, font family, icon library, interactive UI components, and dark mode support, all powered by [Shadcn UI](https://ui.shadcn.com)<sup>[[1]](#note-1)</sup>.
+
+Here are the steps we'll follow:
+
+1. [Install NPM packages](#install-npm-packages)
+2. [Set up custom styles](#set-up-custom-styles)
+3. [Create color schemes](#create-color-schemes)
+4. [Configure Tailwind theme](#configure-tailwind-theme)
+5. [Configure Shadcn CLI](#configure-shadcn-cli)
+6. [Add dark mode toggle](#add-dark-mode-toggle)
+7. [Update the Home Page](#update-the-home-page)
+
+
+<a id="install-npm-packages"></a>
+
+## Step 1 - Install NPM Packages
+
+Run this command to install the packages we'll need for setting up the app's design system:
+
+```bash
+npm install shadcn \
+  radix-ui \
+  lucide-react \
+  @fontsource-variable/inter \
+  class-variance-authority \
+  clsx \
+  tailwind-merge \
+  tw-animate-css \
+  tanstack-router-theme-provider
+
+```
+
+Here's what each package does:
+
+- [`shadcn`](https://www.npmjs.com/package/shadcn): CLI provided by Shadcn UI to download specific components to the project.
+- [`radix-ui`](https://www.npmjs.com/package/radix-ui): Unstyled building blocks<sup>[[2]](#note-2)</sup> for dialogs, dropdowns, etc. used by Shadcn UI.
+- [`lucide-react`](https://www.npmjs.com/package/lucide-react): A large collection of SVG icons as React components used by Shadcn UI.
+- [`@fontsource-variable/inter`](https://www.npmjs.com/package/@fontsource-variable/inter): A source to import and use the Inter<sup>[[3]](#note-3)</sup> font in CSS files.
+- [`class-variance-authority`](https://www.npmjs.com/package/class-variance-authority): Utility for defining component variants like `size` & `intent`.
+- [`clsx`](https://www.npmjs.com/package/clsx): A small utility for constructing complex `className` strings conditionally in JSX.
+- [`tailwind-merge`](https://www.npmjs.com/package/tailwind-merge): Removes conflicting Tailwind classes while constructing `className`.
+- [`tw-animate-css`](https://www.npmjs.com/package/tw-animate-css): Reusable animation utilities for overlays, dialogs, and other elements.
+- [`tanstack-router-theme-provider`](https://www.npmjs.com/package/tanstack-router-theme-provider): Theme provider and hook for dark mode support.
+
+
+<a id="set-up-custom-styles"></a>
+
+## Step 2 - Set Up Custom Styles
+
+In [Part 2](/posts/tanstack-start-part-2#configure-tailwind-css), we created a global `src/styles.css` file to set up Tailwind CSS and linked it from the root route. Add the following lines to import custom styles from the above packages:
+
+```css
+@import "tailwindcss"; /* already present */
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+```
+
+Here's what the new imports provide:
+
+- `tw-animate-css`: Tailwind animation utilities used in interactive Shadcn UI components.
+- `shadcn/tailwind.css`: Custom Tailwind [styles, utilities, and variants](https://github.com/shadcn-ui/ui/blob/main/packages/shadcn/src/tailwind.css) used by Shadcn UI.
+- `@fontsource-variable/inter`: Makes the `Inter` variable font family available for use.
+
+Most modern operating systems allow users to pick between _Light_ and _Dark_ [color schemes](https://web.dev/articles/prefers-color-scheme). Tailwind automatically detects a user's color scheme using the `prefers-color-scheme` CSS media query, and provides a `dark:` variant to style your site differently for dark mode.
+
+Add this line to `src/styles.css` to support manually switching between light and dark mode:
+
+```css
+@custom-variant dark (&:is(.dark *));
+```
+
+This override<sup>[[4]](#note-4)</sup> ensures that dark mode styles are applied only when the site's `<html>` tag has a `class="dark"` attribute, instead of depending on the `prefers-color-scheme` media query. We'll use the `dark` class to configure the color scheme and [toggle modes manually](#add-dark-mode-toggle).
+
+
+<a id="create-color-schemes"></a>
+
+## Step 3 - Create Color Schemes
+
+Shadcn UI components can be themed using a specific set of CSS variables<sup>[[5]](#note-5)</sup> called [theme tokens](https://ui.shadcn.com/docs/theming#theme-tokens). Add these variables to `styles.css` to configure the color scheme<sup>[[6]](#note-6)</sup> for light mode:
+
+```css
+:root {
+    --background: oklch(1 0 0);               /* Default background */
+    --foreground: oklch(0.141 0.005 285.823); /* Default text/icon color */
+    
+    /* Context-specific background & text/icon colors */
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.141 0.005 285.823);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.141 0.005 285.823);
+    --primary: oklch(0.488 0.243 264.376);
+    --primary-foreground: oklch(0.97 0.014 254.604);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.967 0.001 286.375);
+    --muted-foreground: oklch(0.552 0.016 285.938);
+    --accent: oklch(0.967 0.001 286.375);
+    --accent-foreground: oklch(0.21 0.006 285.885);
+    
+    /* Other single-purpose colors */
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.92 0.004 286.32);
+    --input: oklch(0.92 0.004 286.32);
+    --ring: oklch(0.705 0.015 286.067);
+    
+    /* Colors for chart elements */
+    --chart-1: oklch(0.845 0.143 164.978);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.596 0.145 163.225);
+    --chart-4: oklch(0.508 0.118 165.612);
+    --chart-5: oklch(0.432 0.095 166.913);
+    
+    /* Sidebar-specific colors */
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-primary: oklch(0.546 0.245 262.881);
+    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-accent: oklch(0.967 0.001 286.375);
+    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+    --sidebar-border: oklch(0.92 0.004 286.32);
+    --sidebar-ring: oklch(0.705 0.015 286.067);
+
+    /* Base border radius size */
+    --radius: 0.625rem; 
+}
+```
+
+Next, add these overrides to `src/styles.css` to configure the color scheme for dark mode: 
+
+```css
+.dark {
+    --background: oklch(0.141 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    
+    --card: oklch(0.21 0.006 285.885);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.21 0.006 285.885);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.424 0.199 265.638);
+    --primary-foreground: oklch(0.97 0.014 254.604);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: oklch(0.705 0.015 286.067);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: oklch(0.985 0 0);
+    
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.552 0.016 285.938);
+    
+    --chart-1: oklch(0.845 0.143 164.978);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.596 0.145 163.225);
+    --chart-4: oklch(0.508 0.118 165.612);
+    --chart-5: oklch(0.432 0.095 166.913);
+    
+    --sidebar: oklch(0.21 0.006 285.885);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.623 0.214 259.815);
+    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-accent: oklch(0.274 0.006 286.033);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+```
+
+By default, theme tokens have the values configured in the `:root` block i.e. for the light color scheme, but when dark mode is turned on by adding the `dark` class to the page's `<html>` tag, these variables are overridden by the values configured in the `.dark` block.
+
+<a id="configure-tailwind-theme"></a>
+
+## Step 4 - Configure Tailwind Theme
+
+To make the colors (e.g. `--primary`) configured above accessible via dynamically generated Tailwind utility classes (e.g. `bg-primary`, `text-primary`, `border-primary` etc.), we'll define some special CSS variables using the `@theme` directive<sup>[[7]](#note-7)</sup>. Add this code to `src/styles.css`:
+
+```css
+@theme inline {
+    /* Body and heading fonts */
+    --font-sans: 'Inter Variable', sans-serif;
+    --font-heading: var(--font-sans);
+    
+    /* Theme-based colors */
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    
+    /* Theme-based radius sizes */
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+```
+
+Variables prefixed with `--color-*` are used to generate those utility classes where colors are applicable (e.g. `bg-*`, `text-*`, `border-*`). Similarly, variables prefixed with `--font-*` and `--radius-*` are used to generate text and border related utility classes respectively.
+
+Finally, add this to `src/styles.css` to apply some base<sup>[[8]](#note-8)</sup> text and color styles to the app:
+
+```css
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}
+```
+
+<a id="configure-shadcn-cli"></a>
+
+## Step 5 - Configure Shadcn CLI
+
+The `shadcn` package does not export React components. Instead, it provides a [command line interface](https://www.w3schools.com/whatis/whatis_cli.asp) (CLI) that generates the source code for specific components on demand. Create a file `components.json` in the project root with these contents to configure the CLI:
+
+
+```javascript
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "radix-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles.css",
+    "baseColor": "zinc",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "rtl": false,
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "menuColor": "default",
+  "menuAccent": "subtle",
+  "registries": {}
+}
+```
+
+The configuration options are described in detail on the [docs site](https://ui.shadcn.com/docs/components-json). Here's a quick overview:
+
+- `style` is a hyphenated string (e.g. `radix-nova`). The first part controls the underlying component library (`radix` for [Radix UI](https://www.radix-ui.com/) or `base` for [Base UI](https://base-ui.com/)). The second part controls spacing, border radii, base font size etc. You can choose among several [built-in styles](https://ui.shadcn.com/create).
+
+- `tailwind`: Describes where Tailwind is configured and how generated theme tokens work. The `css` key configures the path of the main CSS file, `baseColor` is used to tint backgrounds & text, and `cssVariables` controls if CSS variables are used for theming.
+
+- `iconLibrary`: Selects which icon library generated components should use by default. The following libraries are supported: [Lucide](https://lucide.dev/), [Tabler](https://tabler.io/icons), [HugeIcons](https://hugeicons.com/), [Phosphor](https://phosphoricons.com/), and [Remix](https://remixicon.com/).
+
+- `aliases`: Configures the paths for various [files & folders](https://ui.shadcn.com/docs/components-json#aliases) used during code generation. The generated components are placed in the `ui` folder (`@/components/ui` in this case). 
+
+Next, create a file `src/lib/utils.ts` and add the `cn` helper function<sup>[[9]](#note-9)</sup> used by Shadcn UI:
+
+```javascript
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+// Combine class strings & resolve Tailwind conflicts
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+```
+
+Finally, you can run this command to generate the [Button](https://ui.shadcn.com/docs/components/radix/button) and [Dropdown Menu](https://ui.shadcn.com/docs/components/radix/dropdown-menu) components:
+
+```bash
+npx shadcn@latest add button dropdown-menu
+```
+Two new files, `button.tsx` & `dropdown-menu.tsx`, are generated inside `src/components/ui`.
+
+<a id="add-dark-mode-toggle"></a>
+
+## Step 6 - Add Dark Mode Toggle
+
+We'll use the button and dropdown menu components generated above to create a custom `ModeToggle` component for manually switching between the _Light_, _Dark_ and _System_ color schemes. Create a file `mode-toggle.tsx` in `src/components` with the following code<sup>[[10]](#note-10)</sup>:
+
+```javascript
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "tanstack-router-theme-provider"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+export function ModeToggle() {
+  const { setTheme } = useTheme()
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon">
+          <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+```
+
+We're using the `useTheme` hook from [`tanstack-router-theme-provider`](https://www.npmjs.com/package/tanstack-router-theme-provider), which requires a `ThemeProvider`<sup>[[11]](#note-11)</sup> to detect and set the color scheme. Add it to `src/routes/__root.tsx`:
+
+```javascript
+// add this below existing imports..
+import { ThemeProvider } from 'tanstack-router-theme-provider'
+
+export const Route = // existing code..
+
+function RootComponent() {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head><HeadContent /></head>
+      <body>
+        <ThemeProvider>
+          <Outlet />
+          <Scripts />
+          <TanStackDevtools plugins={[{ name: "Tanstack Router", render: <TanStackRouterDevtoolsPanel /> }]} />
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+The `<ThemeProvider>` wraps everything inside the `<body>` and a [`suppressHydrationWarning`](https://react.dev/reference/react-dom/client/hydrateRoot#suppressing-unavoidable-hydration-mismatch-errors) prop is added to `<html>` to prevent HTML mismatch warning due to server-side rendering<sup>[[12]](#note-12)</sup>.
+
+<a id="update-the-home-page"></a>
+
+## Step 7 - Update the Home Page
+
+Update the index route `src/routes/index.tsx` to use `ModeToggle` and `Button` components:
+
+```javascript
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { useState } from "react"
+import { ModeToggle } from "@/components/mode-toggle"
+import { Button } from "@/components/ui/button"
+
+export const Route = createFileRoute("/")({ component: IndexPage })
+
+function IndexPage() {
+  const [count, setCount] = useState(0)
+  return (
+    <div className="p-4">
+      <div className="flex items-center gap-4 mb-4">
+        <span className="font-medium">Home</span>
+        <Link to="/about" className="text-blue-500 hover:text-blue-500">
+          About
+        </Link>
+        <ModeToggle />
+      </div>
+      <Button type="button" onClick={() => setCount(count + 1)} className="w-30 cursor-pointer">
+        Click Me: {count}
+      </Button>
+    </div>
+  )
+}
+```
+
+Run `npm run dev` and open the URL http://localhost:3000 to view the updated home page:
+
+![mode-toggle-preview](/img/mode-toggle-preview.png)
+
+The design system is fully in effect and you can easily switch between light and dark modes. Finally, run these commands to add the changes to Git, create a commit, and push to GitHub:
+
+```bash
+git add .
+git commit -m "Add design system and dark mode"
+git push
+```
+
+## Conclusion
+
+In this tutorial, we set up the design system for our app using Shadcn UI. We imported the required packages, defined light and dark theme tokens, connected the theme to Tailwind, generated UI components, and updated the home page with a working dark mode toggle.
+
+You can use the Shadcn CLI to update any aspect of the design system (style, font, colors, icons, etc.) programmatically. Visit the [New Project](https://ui.shadcn.com/create?preset=b2BVlrp0C) page to customize & preview new styles, copy the preset ID, and run `npx shadcn apply --preset <pid>` to apply the selected preset.
+
+Here's the finished code: https://github.com/swiftace-org/tanstack-start-tutorial/tree/part-3
+
+In the next tutorial, we'll add user authentication with Log in & Sign up screens to the project.
+
+
+### Footnotes
+
+1. <a id="note-1"></a> [Shadcn UI](https://ui.shadcn.com/docs) is not a traditional UI component library. Instead of importing and using prebuilt components from an NPM package, you use a CLI to generate source files within your project based on a fully configurable & customizable [design system](https://ui.shadcn.com/create).
+
+2. <a id="note-2"></a> [Radix UI](https://www.radix-ui.com/) solves the hard parts of building interactive components: keyboard interaction, focus management, [ARIA attributes](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA), layering, and other accessibility logic. It's _headless_ i.e. it intentionally leaves out styling and visual design so it can fit any design system.
+
+3. <a id="note-3"></a> [Inter](https://rsms.me/inter/) is a popular [sans-serif](https://fonts.google.com/knowledge/glossary/sans_serif) typeface designed for user interfaces. The `@fontsource-variable/inter` package provides it as a variable font, so you can use different font weights in CSS without importing separate files for each weight (medium, bold, etc.).
+
+4. <a id="note-4"></a> `@custom-variant` is a Tailwind directive for defining your own variants. Here it redefines `dark:` to match any element inside a parent with the `dark` class. In our app, the `dark` class will be applied to the site's `<html>` tag using `tanstack-router-theme-provider`.
+
+5. <a id="note-5"></a> CSS variables (also called custom properties) are named CSS values like `--background` or `--primary` that can be reused with `var(...)`. They are scoped using CSS selectors, so they can be initialized on the [`:root`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:root) and overridden in specific contexts like `.dark`.
+
+6. <a id="note-6"></a> CSS colors can be written in formats like hex, `rgb()`, `hsl()`, and [`oklch()`](https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl). In `oklch(lightness chroma hue / alpha)`, lightness controls brightness, chroma controls color intensity, and hue selects the base color, making it easier to adjust consistently.
+
+7. <a id="note-7"></a> In Tailwind CSS, variables defined with `@theme` are special design tokens that generate utility classes and variants. Here's the full list of predefined design tokens you can use and customize: https://tailwindcss.com/docs/theme#default-theme-variable-reference
+
+8. <a id="note-8"></a> Tailwind's `@layer base` is used for low-level global styles on plain HTML elements like `body`, `h1`, `a`, or `*`. Tailwind merges these rules into its [`base` layer](https://tailwindcss.com/docs/preflight#extending-preflight), so they load in the correct order alongside its built-in reset and remain easy to override with utility classes.
+
+9. <a id="note-9"></a> `clsx` turns mixed inputs like `props.className`, `'px-2 text-center'` and `isActive && 'bg-primary'` into one class string. `twMerge` removes conflicting Tailwind utilities, so `'px-2 px-4'` becomes `'px-4'`. The `cn()` function combines their functionalities.
+
+10. <a id="note-10"></a> Shadcn uses a compound component API: `<DropdownMenu>` holds shared state while child components like `Trigger`, `Content` & `MenuItem` declare different parts of the UI. The [`asChild`](https://www.radix-ui.com/primitives/docs/guides/composition) prop on the trigger reuses the child `<Button>`, avoiding a wrapper button.
+
+11. <a id="note-11"></a> React's [context system](https://react.dev/learn/passing-data-deeply-with-context) lets data be shared with deeply nested components without passing props through every level. A provider like `<ThemeProvider>` places a context value above the tree, and hooks like `useTheme()` read or update it anywhere below.
+
+12. <a id="note-12"></a> `tanstack-router-theme-provider` stores the selected theme in the browser's [local storage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). During [server-side rendering](https://tanstack.com/start/latest/docs/framework/react/guide/ssr) `localStorage` is unavailable, so it's not known whether the `dark` class should be applied to `<html>`, leading to a hydration mismatch.

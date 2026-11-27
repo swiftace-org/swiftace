@@ -1,0 +1,105 @@
+# Ditching Serverless for a Plain Old Cloud VM
+
+[SwiftAce](https://swiftace.org) is an (upcoming) open-source platform for hosting online courses. It can be customized, white-labeled, and self-hosted on a custom domain. It intends to serve online educators offering 2-5 courses with an audience of up to 100,000 registered learners.
+
+I’ve been developing SwiftAce as a web app targeting [Cloudflare Workers](https://workers.cloudflare.com) as the deployment platform. It’s a serverless JavaScript runtime with associated services for [file storage](https://developers.cloudflare.com/r2/), [key-value stores](https://developers.cloudflare.com/kv/), and [relational databases](https://developers.cloudflare.com/d1/). Vercel, Netlify & AWS Lambda offer similar services.
+
+However, I’ve decided to ditch Cloudflare in favor of deploying to simple Linux-based cloud virtual machines (VMs) on platforms like [Hetzner](https://hetzner.com), Digital Ocean, and AWS EC2. I've found that deploying to cloud VMs will make the application faster, cheaper, and more portable <a href="#note-1">[1]</a>.
+
+## Cloudflare Workers
+
+Here’s what the setup looks like on Cloudflare Workers:
+
+![Cloudflare Setup](https://i.imgur.com/ckoVyMA.png)
+
+Cloudflare’s servers are present at 250+ locations around the world, and requests are routed to the nearest location. The round trip time from a user's browser to the nearest Cloudflare server is typically 50-100 milliseconds (ms).
+
+Within Cloudflare’s network, the application worker, the key-value store, the database, and the file store typically run on different machines, sometimes even different data centers <a href="#note-2">[2]</a>. Each key-value lookup and database query takes 50-200 ms to be served <a href="#note-3">[3]</a>.
+
+A typical request from a real-world application involves 1-2 key-value lookups and 2-5 database queries. Excluding the time taken for DNS lookup <a href="#note-4">[4]</a>, connection setup <a href="#note-5">[5]</a>, and CPU processing <a href="#note-6">[6]</a>, **the overall latency of a typical request is 200 ms to 1.5 seconds**.
+
+## Cloud VM
+
+Here’s what the setup looks like on a [Hetzner](https://www.hetzner.com/cloud) cloud virtual machine:
+
+![Cloud VM Setup](https://i.imgur.com/QtHDOXv.png)
+
+The entire application (backend server, database, key-value store, and file store) lives on a single cloud VM. The round trip time from a user’s browser to the server is 150-300 ms, 3x slower compared to Cloudflare Workers, as the location of the VM is fixed <a href="#note-7">[7]</a>.
+
+We use a [SQLite](https://www.sqlite.org/) database, which also functions as [a key-value store](https://rodydavis.com/sqlite/key-value), and the local file system is used as a file store. Most database queries are served in well under 10 ms since there are no network requests or additional services involved.
+
+Due to the low latency for data access, a typical request consisting of 1-2 key-value lookups and 2-5 database queries has an **overall latency of just 180-370ms.** The overall latency is thus significantly lower and less variable compared to Cloudflare Workers (200ms-1.5s).
+
+## Cost Comparison
+
+Cost is a bit of an apples-to-oranges comparison, as serverless platforms typically charge per request and service, whereas cloud platforms charge an hourly usage rate for a VM. However, we can still compare the overall cost in the context of our application.
+
+### Cloudflare
+
+The pricing for Cloudflare Workers starts at [$5 per month](https://developers.cloudflare.com/workers/platform/pricing/#workers). It includes the following:
+
+- 10 million requests per month i.e. about 240 requests per minute
+- 1 GB key-value storage (with 10 million reads and 1 million writes per month)
+- 5 GB database storage (with 5 million reads and 100,000 writes per day)
+- 10 GB file storage (with 10 million reads and 1 million writes per month)
+
+Usage-based pricing applies above these limits. Assuming a typical user makes 50-100 requests per day, the limits are generous enough to **support 3500+ daily active users** <a href="#note-8">[8]</a>.
+
+### Cloud VM
+
+The cheapest cloud VM on Hetzner costs around [$4.25 per month](https://www.hetzner.com/cloud/). It includes the following:
+
+- 2 vCPU cores (shared)
+- 4 GB RAM
+- 40 GB disk space
+- 20 TB of traffic
+
+Even if each CPU only serves one request at a time, with an average processing time of 150 ms, we can still support 800 requests per minute, a 3x improvement over Cloudflare. In other words, the cheapest cloud VM can **support 10,000+ daily active users** <a href="#note-9">[9]</a>.
+
+These estimates are extremely conservative. A typical Node.js application can serve dozens (often hundreds) of requests concurrently, and request processing time is well under 100ms. The cloud VM should be able to handle a 3-5x spike in traffic without much degradation.
+
+## Scaling and Portability
+
+Automatic scaling is one of the primary selling points of serverless platforms. However, most real-world applications will rarely (if ever) need to be scaled automatically by more than 2x. A bigger consideration, in my opinion, is portability i.e. moving your app to a different platform.
+
+Once your app is running on a serverless platform with proprietary services for data & file storage, it’s practically impossible to switch away. Many companies are locked into multimillion-dollar cloud bills despite the availability of significantly cheaper alternatives.
+
+With cloud VMs, switching providers or scaling can be as simple as copying over a `data` folder (containing the database and uploaded files) into a bigger VM. Platforms like Hetzner often allow scaling up existing VMs while retaining the hard disk and IP address.
+
+The largest VM on Hetzner offers 48 vCPUs, 192 GB RAM, and 960 GB of disk space. It might be able to **support up to 250k daily active users** <a href="#note-10">[10]</a>. Most deployments will never need to scale beyond a single cloud VM <a href="#note-11">[11]</a>, and a [free CDN](https://www.cloudflare.com/learning/cdn/what-is-a-cdn/) can be used to ease the load.
+
+A cloud VM might need to be restarted in the event of a crash. Some form of monitoring (e.g. [UptimeRobot](https://uptimerobot.com/)) and automated rebooting mechanism might be necessary. We might also need to set up regular disk [backups/snapshots](https://docs.hetzner.com/cloud/servers/backups-snapshots/overview/) to recover from catastrophic failures.
+
+## Conclusion
+
+I’m convinced that deploying to cloud VMs is the right choice for SwiftAce. The advertised benefits of serverless platforms viz. performance, reliability, and cost don’t apply in our case (and perhaps in general? 🤔). In fact, serverless is measurably worse in many aspects.
+
+The real benefit of serverless platforms is the ease of deployment and low maintenance overhead. For a self-hosted application, I feel deployment and maintenance can be simplified using automation scripts and daemons <a href="#note-12">[12]</a> without the additional cost and complexity.
+
+Having talked the talk, I now intend to walk the walk and find out how much performance and scale I can extract out of a plain old cloud VM. I hope you found this article helpful.
+
+### Footnotes
+
+1. <a id="note-1"></a>The numbers quoted in this article are based on online benchmarks, one-off experiments, and back-of-the-envelope calculations. I’m confident all the conclusions are valid. Nevertheless, I encourage you to verify the results independently.
+
+2. <a id="note-2"></a>Cloudflare's key-value store (KV) saves data at a small number of [centralized data centers](https://developers.cloudflare.com/kv/concepts/how-kv-works) and caches data at other locations after access. The relational database (D1) is confined to a [single location](https://developers.cloudflare.com/d1/configuration/data-location/), with read replication in some other locations.
+
+3. <a id="note-3"></a>Cloudflare doesn’t provide official numbers for the latency of KV and D1. There are, however, many independent [benchmarks](https://upstash.com/blog/edgecaching-benchmark), [reports](https://community.cloudflare.com/t/d1-latency-from-worker-high/582711), and [complaints](https://community.cloudflare.com/t/several-questions-about-workers-kv-and-do/315460) about these services being slow and unpredictable. The estimates I’ve used (50-200ms) are fairly generous.
+
+4. <a id="note-4"></a>[DNS lookup](https://www.cloudflare.com/learning/dns/what-is-dns/) resolves a hostname like “swiftace.org” to an IP like “172.67.174.16” by querying a DNS server. It typically takes 30-50 ms for the first request, and the DNS information is cached and reused for subsequent requests.
+
+5. <a id="note-5"></a>[A typical HTTP session](https://developer.mozilla.org/en-US/docs/Web/HTTP/Session) requires establishing a [TCP](https://www.techtarget.com/searchnetworking/definition/TCP) connection before any HTTP requests can be made. This adds one round trip to the latency of the first request. The same connection is reused for future requests and closed after 60 seconds of inactivity.
+
+6. <a id="note-6"></a>[CPU processing times](https://developers.cloudflare.com/workers/platform/limits/#cpu-time) for HTTP requests sent to Cloudflare Workers are in the order of milliseconds and can be ignored in the context of overall latency unless the worker needs to perform a CPU-intensive task e.g. parsing a CSV file with 10 million rows.
+
+7. <a id="note-7"></a>[The physical limit](https://chatgpt.com/share/53d416b0-8b85-42d8-87ee-b77fe4dba555) for a round trip when a client and a server are located on opposite sides of the world is ~200ms. It takes an extra round trip to establish a TCP connection, so the first request to a cloud VM can be slower in comparison to Cloudflare Workers.
+
+8. <a id="note-8"></a>I’ve assumed that course videos will hosted and streamed from an external platform like YouTube and Vimeo, or services like [Mux](https://www.mux.com/) and Cloudflare Stream. Fast and reliable video streaming is outside the scope of both Cloudflare Workers and cloud VMs.
+
+9. <a id="note-9"></a>10,000+ daily active users for an online course site is likely to be correlated with 30-40k monthly active users and 80-100k total registered users. 40 GB of disk space provides ~250 kb of data per user, which is reasonable (most users will have very little data).
+
+10. <a id="note-10"></a>Serving 250k daily active users with a single VM seems unachievable, but it’s a worthwhile target to aim for. It can be achieved if you only store data that’s absolutely necessary, optimize SQL queries, and use a low-level memory-safe language.
+
+11. <a id="note-11"></a>If further scaling is necessary, SQLite can be replaced with dedicated [Postgres](https://www.postgresql.org/) and [Redict](https://redict.io/) servers. An external file store like [S3](https://aws.amazon.com/pm/serv-s3) can be used instead of the local filesystem. The backend server can be scaled to multiple cloud VMs placed behind a load balancer.
+
+12. <a id="note-12"></a>I recently tried setting up [Writebook](https://once.com/writebook) by 37Signals on a Hetzner VM, and the [deployment process](https://books.37signals.com/2/the-writebook-manual/27/installation) was a breeze. Once you rent a server and point a domain to it, it takes a single command to download, install & run the application, with automatic SSL configuration.

@@ -1,0 +1,361 @@
+# Anatomy of a Form - Part 1
+
+Forms are an essential component of any web application. While there are many libraries and frameworks that help with form creation, input validation, data parsing, user feedback, etc., they often introduce unnecessary overhead and complexity.
+
+This series of tutorials offers a step-by-step guide for building robust and user-friendly forms using plain HTML, CSS, and JavaScript. In this series, we’ll build an "Account Settings" form for a web application, following these steps:
+
+1. [Set up a web server using Node.js](#server-setup) (in Part 1)
+2. [Create the form’s layout using HTML](#html-layout) (in Part 1)
+3. Style the form using CSS rules (in Part 2)
+4. Add interactivity with JavaScript (in Part 2)
+5. Process form submissions on the server (in Part 3)
+6. Redisplay form with success/error messages (in Part 3)
+
+This tutorial assumes familiarity with [HTML](https://www.htmldog.com/guides/html/beginner/), [CSS](https://www.htmldog.com/guides/css/beginner/), [JavaScript](https://www.htmldog.com/guides/javascript/) and [Node.js](https://nodejs.org/en). The finished code for this tutorial can be found [here](https://github.com/aakashns/anatomy-of-a-form/tree/main/part1).
+
+<span id="server-setup"></span>
+
+## Set Up a Web Server Using Node.js
+
+An HTTP web server is a computer program that receives requests from a browser in the form of URLs (web addresses) and responds with HTML pages, CSS styles, JavaScript files, images, etc. [Node.js](https://nodejs.org/) is a free, open-source, cross-platform JavaScript runtime environment that lets developers create servers, web apps and command line tools using JavaScript.
+
+While there are many Node.js frameworks like [Express.js](https://expressjs.com/), [Meteor.js](https://www.meteor.com/), [Next.js](https://nextjs.org/) etc. for creating web servers, we’ll use the built-in `node:http` module in this tutorial to keep things simple. The server-side logic covered here can be easily replicated in any language or framework of your choice (e.g. Ruby on Rails, Python, Django, Go, Java, etc.)
+
+To begin, let’s create a file `index.js`, open it up in a code editor (like [Visual Studio Code](https://code.visualstudio.com/)), and add the following code into it:
+
+```javascript
+const http = require("node:http");
+const fs = require("node:fs");
+
+function renderHtmlPage() {
+  return `
+    <!DOCTYPE html>
+    <html lang="en-US">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/styles.css" />
+        <script src="/script.js"></script>
+        <title>Account Settings</title>
+      </head>
+      <body>
+        <div id="container">
+          <h1>Account Settings</h1>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function handleRequest(req, res) {
+  console.log(req.method, " ", req.url);
+  if (req.url === "/") {
+    // Respond with an HTML page
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.write(renderHtmlPage());
+  } else if (req.url === "/styles.css") {
+    // Respond with a CSS file
+    res.writeHead(200, { "Content-Type": "text/css" });
+    if (fs.existsSync("styles.css")) res.write(fs.readFileSync("styles.css"));
+  } else if (req.url === "/script.js") {
+    // Respond with a JavaScript file
+    res.writeHead(200, { "Content-Type": "text/javascript" });
+    if (fs.existsSync("script.js")) res.write(fs.readFileSync("script.js"));
+  } else {
+    // Reject all other URLs
+    res.writeHead(404);
+    res.write("Not Found");
+  }
+  res.end();
+}
+
+// Create server and listen on port 8080
+http.createServer(handleRequest).listen(8080);
+```
+
+Here are some notes about the above code:
+
+- The above code, when executed, creates an HTTP web server that listens on the port 8080. Requests to the server are processed using the helper function `handleRequest`.
+
+- The web server responds to the root URL `/` with the [HTTP 200 OK status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200) and a simple HTML page containing the heading "Account Settings" in its body.
+
+  - The HTML source code for the page is created using the helper function `renderHtmlPage` which uses the [template literal syntax](https://chatgpt.com/share/e394546f-4958-4989-8adb-7f6d063ec700) for multiline strings.
+
+  - The HTML page references the URL `/styles.css` for applying styles using CSS and the URL `/script.js` for adding interactivity to the page using JavaScript.
+
+- The web server respond to the URLs `/styles.css` and `/script.js` with the contents of the files `styles.css` and `script.js` respectively (if these files exist). We’ll create these files in Part 2 of the series.
+
+- The web server responds all URLs other than `/` , `/styles.css`, and `/script.js` with a [HTTP 404 Not Found status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404) and a "Not Found" message.
+
+### Run the Web Server
+
+You’ll need to [install Node.js](https://nodejs.org/en/download) on your computer to run the server. Once installed, you can execute the following command on a Linux/macOS terminal or Windows command prompt to start the server:
+
+    npx nodemon index.js
+
+The above command uses the [nodemon package](https://www.npmjs.com/package/nodemon) to automatically restart the server every time we make changes to the file `index.js`. You can also run the server using the command `node index.js`, but you’ll have to manually shut down and restart the server for every code change.
+
+The web server is now running on your computer, listening for requests on the port 8080. You can open up the URL http://localhost:8080 in a browser to view the HTML page:
+
+![server-demo](https://i.imgur.com/6eZPgn5.png)
+
+<span id="html-layout"></span>
+
+## Create the Form’s Layout Using HTML
+
+It’s a good practice to document form fields, their data types, and any constraints/validations they must satisfy before you start building a form. This can also help you decide whether the form should span multiple sections or pages.
+
+Our "Account Settings" form will contain the following fields:
+
+1. Full Name (text, required, under 64 characters)
+2. Email (text, read-only i.e. cannot be updated)
+3. Avatar Image (JPEG/PNG file, optional, smaller than 1 MB)
+4. Bio (text, optional, under 1000 characters)
+
+A real web application will probably use a database like [MySQL](https://www.w3schools.com/mysql/mysql_intro.asp) to store account settings for different users. For this tutorial, however, we’ll store & update some dummy account settings data in a simple [JSON](https://www.freecodecamp.org/news/what-is-json-a-json-file-example/) file. Let’s create a file `data.json` with the following contents:
+
+```json
+{
+  "fullName": "John Doe",
+  "email": "johndoe@example.com",
+  "avatarUrl": "https://i.pravatar.cc/250?img=8",
+  "bio": ""
+}
+```
+
+Next, let’s define a function `renderForm` within `index.js` with the folllowing code:
+
+```javascript
+function renderForm() {
+  // Read existing values from "data.json"
+  const initialValues = JSON.parse(fs.readFileSync("./data.json"));
+
+  return `
+      <form id="settings-form" method="post" enctype="multipart/form-data" action="/">
+        <fieldset>
+          ${renderFullNameField(initialValues.fullName)}
+          ${renderEmailField(initialValues.email)}
+          ${renderAvatarField(initialValues.avatarUrl)}
+          ${renderBioField(initialValues.bio)}
+        </fieldset>
+        <input type="submit" value="Save Settings" />
+      </form>
+    `;
+}
+```
+
+Here are some notes about the above code:
+
+- `renderForm` reads the contents of `data.json` into the variable `initialValues`. It's a JavaScript object with keys `fullName`, `email`, `avatarUrl` & `bio` pointing to their respective values.
+
+- `renderForm` uses the `form` element to create an HTML form. Here’s how it works:
+
+  - The [`action` attribute](https://developer.mozilla.org/en-US/docs/Learn/Forms/Sending_and_retrieving_form_data#the_action_attribute) specifies the URL that processes the form submission, which is `/` in this case i.e. the same URL that displays the form.
+
+  - The [`method` attribute](https://developer.mozilla.org/en-US/docs/Learn/Forms/Sending_and_retrieving_form_data#the_method_attribute) specifies the HTTP method used for submission. It defaults to `GET`, but `POST` is a more appropriate choice when the form has large text fields or file upload fields.
+
+  - The [`enctype` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#enctype) must be set to`multipart/form-data` if the form contains file upload fields, as in this case.
+
+  - The `fieldset` tag inside a form helps improve the accessibility of the form for users dependent on screen readers or other assistive technologies.
+
+  - The form contains a button for submitting a response, created using an `input` tag with `type` set to `"submit"`. Its label is specified using the `value` attribute.
+
+- `renderForm` invokes helper functions (defined below) for creating specific form fields using the template literal [string interpolation syntax](https://chatgpt.com/share/e118d0aa-21fc-4101-b055-34217bf6a54f) . Values from `initialValues` are passed into the respective helper functions (e.g. `initialValues.email` is passed into `renderEmailField`).
+
+### Form Field 1 - Full Name
+
+Let’s define a function `renderFullNameField` within `index.js` for the "Full Name" field:
+
+```javascript
+function renderFullNameField(fullNameValue) {
+  return `
+    <label>
+      <div>Full Name</div>
+      <input
+        type="text"
+        name="fullName"
+        placeholder="Enter full name"
+        required
+        maxlength="64"
+        value="${escapeHtml(fullNameValue)}"
+      />
+    </label>
+  `;
+}
+
+// Replace characters that disturb the HTML layout
+function escapeHtml(unsafeValue) {
+  return unsafeValue
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+```
+
+Here are some notes about the above code:
+
+- `renderFullNameField` accepts a single argument `fullNameValue` and returns a string representing the HTML code for the "Full Name" form field, pre-filled with the contents of `fullNameValue`.
+
+- The outer `label` tag is used to display the label "Full Name" for the form field. Placing the `input` tag inside the the label helps screen readers and assistive technologies associate form fields with their labels.
+
+- The `input` tag is used to create the actual form field where a user can enter some text. Its attributes are as follows:
+
+  - `type="text"`: Specifies that the field accepts text input
+  - `name="fullName"`: A unique field name used while processing submitted data
+  - `placeholder="Enter full name"`: Hint text shown when the field is empty
+  - `required`: Indicates that the field is required and should not be empty
+  - `maxlength="64"`: Limits the length of field to 64 characters
+  - `value="${escapeHtml(fullNameValue)}"`: Sets the initial value of the field
+
+- While setting the `value` attribute, the helper function `escapeHtml` to [replace unsafe characters](https://chatgpt.com/share/04625edb-d1d1-4c03-b78e-774ae5e9602c)) like `<`, `>`, `"`, etc. in `fullNameValue` with special codes like `&lt;`, `&gt;`, `&quot;`, etc. to avoid disturbing the HTML layout.
+
+### Form Field 2 - Email
+
+Let’s define the function `renderEmailField` within `index.js` for the "Email" field:
+
+```javascript
+function renderEmailField(emailValue) {
+  return `
+    <label>
+      <div>Email</div>
+      <input
+        type="email"
+        name="email"
+        readonly
+        value="${escapeHtml(emailValue)}"
+      />
+    </label>
+  `;
+}
+```
+
+Here are some notes about the above code:
+
+- `renderEmailField` accepts a single argument `emailValue` and returns a string representing HTML code for the "Email" form field, pre-filled with the contents of `emailValue`.
+
+- The `input` tag for the "Email" field has the following attributes:
+  - `type="email"`: Specifies that the value must be a valid email address
+  - `name="email"`: A unique field name used while processing submitted data
+  - `readonly`: Indicates that this field is read-only and cannot be edited by the user
+  - `value="${escapeHtml(emailValue)}"`: Sets the initial value of the field, with unsafe characters encoded using `escapeHtml`
+
+### Form Field 3 - Avatar
+
+Let’s define the function `renderAvatarField` within `index.js` for the "Avatar Image" field:
+
+```javascript
+function renderAvatarField(avatarUrl) {
+  return `
+    <label>
+      <div>Avatar Image</div>
+      <img src="${escapeHtml(avatarUrl)}" class="avatar-image" height="80">
+      <input
+        type="file"
+        name="avatarFile"
+        accept="image/jpeg, image/png"
+      />
+    </label>
+  `;
+}
+```
+
+Here are some notes about the above code:
+
+- `renderAvatarField` accepts a single argument `avatarUrl` and returns a string representing HTML code for the "Avatar Image" form field. However, unlike other `input` types, a file upload field cannot be prefilled with an existing value.
+
+- The `img` tag displays the existing avatar image. It has the following attributes:
+
+  - `src="${escapeHtml(avatarUrl)}"`: Sets the source URL to `avatarUrl`, with unsafe characters encoded using `escapeHtml`
+  - `class="avatar-image"`: Applies a CSS class for styling the image
+  - `height="80"`: Sets the height of the image to 80 pixels
+
+- The `input` tag creates a form field that allows the user to upload a new avatar image. It has the following attributes:
+  - `type="file"`: Specifies that the field is a file input
+  - `name="avatarFile"`: A unique field name used while processing submitted data
+  - `accept="image/jpeg, image/png"`: Restricts file types to JPEG & PNG images
+
+### Form Field 4 - Bio
+
+Let’s define the function `renderBioField` within `index.js` for the "Bio" field:
+
+```javascript
+function renderBioField(bioValue = "") {
+  return `
+    <label>
+      <div>Bio</div>
+      <textarea
+        name="bio"
+        placeholder="Add a bio"
+        maxlength="1000"
+      >${escapeHtml(bioValue)}</textarea>
+    </label>`;
+}
+```
+
+Here are some notes about the above code:
+
+- `renderBioField` accepts a single optional argument `bioValue` (defaulting to an empty string) and returns a string representing HTML code for the "Bio" form field, pre-filled with the contents of `bioValue`.
+
+- We use a `textarea` tag instead of an `input` tag because `textarea` allows for multi-line text input, which is more suitable for a longer text field like "Bio".
+
+- The `textarea` tag for the "Bio" field has the following attributes:
+
+  - `name="bio"`: A unique field name used while processing submitted data
+  - `placeholder="Add a bio"`: Provides a hint to the user when the field is empty
+  - `maxlength="1000"`: Restricts the maximum number of characters to 1000
+
+- The `textarea` tag does not have a `value` attribute. Instead, the initial content `escapeHtml(bioValue)` is placed between the opening and closing `textarea` tags.
+
+- The `escapeHtml` function is used to encode any unsafe characters in the `bioValue` that might interfere with the HTML layout.
+
+## Display the Pre-Filled Form
+
+Now that we have created the HTML layout for the form, let’s modify the `renderHtmlPage` function to invoke `renderForm` and display the pre-filled form below the heading:
+
+```javascript
+function renderHtmlPage() {
+  return `
+    <!DOCTYPE html>
+    <html lang="en-US">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="/styles.css" />
+        <script src="/script.js"></script>
+        <title>Account Settings</title>
+      </head>
+      <body>
+        <div id="container">
+          <h1>Account Settings</h1>
+          ${renderForm()}
+        </div>
+      </body>
+    </html>
+  `;
+}
+```
+
+We can now save the file `index.js` (which automatically restarts the server) and reload the browser to display the updated web page at the URL http://localhost:8080:
+
+![page-with-form](https://i.imgur.com/wvqNRdx.png)
+
+Here’s the functionality we have implemented so far:
+
+- The page displays a form with the fields "Full Name", "Email", "Avatar Image", and "Bio".
+- Values for "Full Name" and "Email" are pre-filled using sample data from `data.json`.
+- The "Full Name" field is required i.e. the form cannot be submitted if the field is empty.
+- The "Full Name" & "Bio" fields are limited to 64 and 1000 characters respectively.
+- A preview of the existing avatar image is shown next to the "Avatar Image" field.
+- The "Avatar Image" file upload field accepts JPEG and PNG image files as valid inputs.
+- The "Email" field is read-only and cannot be edited. All other fields are editable.
+- The "Bio" field is empty as it has no initial data, and can accept multiple lines of input.
+
+Note that our "Account Settings" form is currently unstyled and clicking on the "Save Settings" button simply reloads the page without saving the submitted data. We'll add this functionality in the subsequent tutorials:
+
+- In Part 2 of the series (coming soon), we’ll style the form using CSS rules and add interactivity & client-side validation using JavaScript.
+
+- In Part 3 of the series (coming soon), we’ll process form submissions on the server and redisplay the form with updated data and success/error messages.
+
+The finished code for this tutorial (Part 1 of the series) can be found [here](https://github.com/aakashns/anatomy-of-a-form/tree/main/part1). Stay tuned!
